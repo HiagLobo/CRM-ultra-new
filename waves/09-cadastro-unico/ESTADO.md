@@ -49,8 +49,8 @@
   conferência manual) e o último acesso.
 
 ## Pendências fora de escopo
-- **Fundador — publicação**: rodar `migrations/005-cadastro-unico.sql` no Neon **antes** do deploy
-  (RUNBOOK 3.10).
+- ~~Fundador — publicação: rodar a 005 no Neon antes do deploy~~ — **feito pelo fundador em
+  2026-09-19**, antes do push.
 - **Fundador — DNS/e-mail**: excluir a zona antiga no registro.br (a.sec/c.sec.dns.br ainda
   respondem e o 1.1.1.1 gruda nela) + limpar o cache da Cloudflare; publicar o DKIM do Google
   (`google._domainkey`) na Vercel; `rua` no DMARC; Click/Open tracking do Resend desligados;
