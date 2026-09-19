@@ -1,14 +1,15 @@
 "use client";
 /**
- * Seção de confiança. Em vez de depoimentos inventados (o produto está em
- * pré-lançamento e não tem clientes para citar), afirma só o que é verificável
- * na própria demonstração. O espaço dos depoimentos reais fica reservado e
- * marcado enquanto `brand.demoMode` estiver ligado.
+ * Seção de confiança. Nada de depoimento inventado: afirma o que é verificável
+ * na própria demonstração e mostra os depoimentos REAIS de quem testou o demo
+ * (`src/content/depoimentos.ts`, um por autorização registrada). Sem nenhum
+ * autorizado, o espaço fica reservado e marcado enquanto `brand.demoMode` estiver ligado.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
+import { DEPOIMENTOS, assinatura } from "@/content/depoimentos";
 import { Secao, Eyebrow, Titulo, Sub, AvisoIlustrativo } from "./ui";
 
 const GARANTIAS: { icone: string; titulo: string; texto: string }[] = [
@@ -68,7 +69,49 @@ export default function Prova() {
         ))}
       </div>
 
-      {brand.demoMode && (
+      {DEPOIMENTOS.length > 0 && (
+        <section aria-labelledby="titulo-depoimentos" style={{ marginTop: 44 }}>
+          <h3
+            id="titulo-depoimentos"
+            style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, color: p.ink, margin: 0 }}
+          >
+            Quem testou a demonstração
+          </h3>
+          <p style={{ fontSize: 14, color: p.g500, margin: "6px 0 20px" }}>
+            Corretores que pediram acesso e navegaram pelos painéis. Publicado com autorização de cada um.
+          </p>
+          <div className="ds-cards" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 22 }}>
+            {DEPOIMENTOS.map((d) => (
+              <figure
+                key={d.id}
+                style={{
+                  margin: 0,
+                  background: p.white,
+                  borderRadius: 16,
+                  border: `1px solid ${p.g100}`,
+                  padding: 26,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                <span
+                  aria-hidden="true"
+                  style={{ fontFamily: "var(--font-display)", fontSize: 38, lineHeight: 0.6, color: p.lilac2, height: 22 }}
+                >
+                  &ldquo;
+                </span>
+                <blockquote style={{ margin: 0, fontSize: 15.5, lineHeight: 1.65, color: p.ink }}>
+                  &ldquo;{d.texto}&rdquo;
+                </blockquote>
+                <figcaption style={{ marginTop: "auto", fontSize: 13.5, color: p.g500 }}>{assinatura(d)}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {brand.demoMode && DEPOIMENTOS.length === 0 && (
         <div
           style={{
             marginTop: 34,
