@@ -48,23 +48,26 @@ export default function PainelLeads() {
   return (
     <div style={{ minHeight: "100vh", background: p.page }}>
       <header style={{ background: "#fff", borderBottom: `1px solid ${p.g300}` }}>
-        <div className="ds-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 32px", height: 72, display: "flex", alignItems: "center", gap: 16 }}>
+        {/* celular: só ícones nos botões e sem o título, senão "Sair" sai da tela */}
+        <style>{`@media (max-width: 640px) { .adm-titulo, .adm-rotulo { display: none; } .adm-topo { padding: 0 16px !important; gap: 10px !important; } .adm-topo img { height: 36px !important; } }`}</style>
+        <div className="ds-pad adm-topo" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 32px", height: 72, display: "flex", alignItems: "center", gap: 16 }}>
           <img src="/assets/logo.svg" alt={brand.nome} style={{ height: 44 }} />
-          <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: p.ink }}>
+          <span className="adm-titulo" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: p.ink }}>
             Painel de leads
           </span>
           <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
             <button
               type="button"
               onClick={() => void painel.exportar()}
+              aria-label="Exportar CSV"
               disabled={painel.exportando}
               className="ds-btnpop"
               style={{ ...acao(p.primary, true), opacity: painel.exportando ? 0.7 : 1 }}
             >
-              <Ic n="download" s={16} c="#fff" /> {painel.exportando ? "Exportando…" : "Exportar CSV"}
+              <Ic n="download" s={16} c="#fff" /> <span className="adm-rotulo">{painel.exportando ? "Exportando…" : "Exportar CSV"}</span>
             </button>
-            <button type="button" onClick={() => void painel.sair()} style={acao(p.g500, false)}>
-              <Ic n="log-out" s={16} c={p.g700} /> Sair
+            <button type="button" onClick={() => void painel.sair()} aria-label="Sair" style={acao(p.g500, false)}>
+              <Ic n="log-out" s={16} c={p.g700} /> <span className="adm-rotulo">Sair</span>
             </button>
           </div>
         </div>
