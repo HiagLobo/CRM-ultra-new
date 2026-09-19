@@ -1,19 +1,26 @@
 /**
  * Porta de e-mail (fronteira de fornecedor — ADR U4).
  * ResendEmail (produção) + ConsoleEmail (fallback dev, sem chave Resend).
- * Conteúdo em `emailCodigo.ts`, remetente em `remetente.ts`. PII (e-mail) mascarada em log.
+ * Conteúdo em `emailCodigo.ts` (código) e `emailAviso.ts` (aviso ao fundador),
+ * remetente em `remetente.ts`. PII (e-mail) mascarada em log.
  *
  * SERVER-ONLY. Importa env (validado no boot, fail-closed).
  */
 import { Resend } from "resend";
 import { env, emailModoDev } from "./env";
-import { montarEmailCodigo } from "./emailCodigo";
+import { montarEmailCodigo, type EmailCodigo } from "./emailCodigo";
+import { montarEmailAviso } from "./emailAviso";
 import { interpretarRemetente, montarRemetente, MENSAGEM_REMETENTE_INVALIDO, type Remetente } from "./remetente";
 import type { BrandConfig } from "../config/brand";
 
 export interface ProvedorEmail {
   /** Envia o código de verificação para o e-mail informado. */
   enviarCodigo(para: string, codigo: string, brand: BrandConfig): Promise<void>;
+  /**
+   * Avisa o fundador (`para` = AVISO_LEADS_EMAIL) que um lead confirmou o e-mail.
+   * Não recebe dado do lead — o aviso é sem PII por construção (O7·S1).
+   */
+  enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void>;
 }
 
 /** Mascara o e-mail para uso seguro em log (não vaza o endereço completo). */
@@ -30,6 +37,10 @@ export class ConsoleEmail implements ProvedorEmail {
     // pela resposta da rota (codigoDev), nunca pelo log.
     console.log(`[email:dev] código de acesso enviado para ${mascararEmail(para)} (modo desenvolvimento)`);
   }
+  async enviarAvisoNovoLead(_para: string, _brand: BrandConfig): Promise<void> {
+    // dev: nem o destinatário vai ao log — só o fato
+    console.log("[email:dev] aviso de lead novo confirmado (modo desenvolvimento) — veja o /admin");
+  }
 }
 
 export class ResendEmail implements ProvedorEmail {
@@ -38,16 +49,23 @@ export class ResendEmail implements ProvedorEmail {
     this.resend = new Resend(apiKey);
   }
   async enviarCodigo(para: string, codigo: string, brand: BrandConfig): Promise<void> {
-    const { assunto, html, texto } = montarEmailCodigo(codigo, brand);
+    // a resposta do corretor vai para o contato comercial, não para o remetente técnico
+    return this.enviar(para, montarEmailCodigo(codigo, brand), brand, brand.contato.email);
+  }
+
+  async enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void> {
+    return this.enviar(para, montarEmailAviso(brand), brand);
+  }
+
+  private async enviar(para: string, conteudo: EmailCodigo, brand: BrandConfig, responderPara?: string): Promise<void> {
     const { error } = await this.resend.emails.send({
       // sempre com nome de exibição ("<nome da marca> <acesso@…>"), nunca um endereço solto
       from: montarRemetente(this.remetente, brand.nomeCurto),
-      // a resposta do corretor vai para o contato comercial, não para o remetente técnico
-      ...(brand.contato.email ? { replyTo: brand.contato.email } : {}),
+      ...(responderPara ? { replyTo: responderPara } : {}),
       to: para,
-      subject: assunto,
-      html,
-      text: texto,
+      subject: conteudo.assunto,
+      html: conteudo.html,
+      text: conteudo.texto,
     });
     // erro sem PII (só o nome do erro do provedor); não engole — propaga.
     if (error) throw new Error(`falha no envio de e-mail (${error.name})`);

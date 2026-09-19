@@ -8,7 +8,7 @@
 import { timingSafeEqual } from "crypto";
 import type { LeadStore } from "../../lib/leadStore";
 import type { RateLimiter, RegraRate } from "../../lib/ratelimit";
-import { hashCodigo, MAX_TENTATIVAS, type CodigoVerificacao, type Lead } from "./lead";
+import { hashCodigo, MAX_TENTATIVAS, SEM_CODIGO, type CodigoVerificacao, type Lead } from "./lead";
 import type { VerifyInput } from "./schema";
 
 /**
@@ -17,9 +17,6 @@ import type { VerifyInput } from "./schema";
  * limitar por e-mail deixaria um terceiro travar a retentativa do dono.
  */
 export const REGRA_VERIFICACAO: RegraRate = { max: 20, janelaMs: 10 * 60_000 };
-
-/** Marca de código consumido/invalidado: string vazia nunca casa com um HMAC (64 hex). */
-const SEM_CODIGO = "";
 
 export type MotivoFalha = "codigo_invalido" | "expirado" | "tentativas_excedidas";
 

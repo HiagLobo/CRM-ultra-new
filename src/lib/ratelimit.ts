@@ -16,6 +16,12 @@ export interface RegraRate {
   janelaMs: number;
 }
 
+/** Uma chave com a sua própria regra (ex.: e-mail 3/30 min e IP 10/30 min). */
+export interface LimiteChave {
+  chave: string;
+  regra: RegraRate;
+}
+
 export interface RateLimiter {
   /**
    * Registra um evento em TODAS as `chaves` (ex.: ["email:x", "ip:y"]) e retorna
@@ -24,29 +30,42 @@ export interface RateLimiter {
    * consome o limite das outras.
    */
   permitir(chaves: string[], regra: RegraRate, agora?: Date): Promise<boolean>;
+  /**
+   * Igual a `permitir`, mas cada chave com a SUA regra — tudo ou nada, atômico.
+   * É o que deixa o IP de um escritório ter folga maior que a de um e-mail sem
+   * que barrar por um consuma a vaga do outro.
+   */
+  permitirCada(limites: LimiteChave[], agora?: Date): Promise<boolean>;
 }
 
 export class MemoriaRateLimiter implements RateLimiter {
   private readonly eventos = new Map<string, number[]>();
 
-  async permitir(chaves: string[], regra: RegraRate, agora: Date = new Date()): Promise<boolean> {
-    const t = agora.getTime();
-    const inicioJanela = t - regra.janelaMs;
-    const podados = chaves.map(
-      (chave) =>
-        [chave, (this.eventos.get(chave) ?? []).filter((ts) => ts > inicioJanela)] as const,
+  permitir(chaves: string[], regra: RegraRate, agora: Date = new Date()): Promise<boolean> {
+    return this.permitirCada(
+      chaves.map((chave) => ({ chave, regra })),
+      agora,
     );
+  }
 
-    if (podados.some(([, recentes]) => recentes.length >= regra.max)) {
+  async permitirCada(limites: LimiteChave[], agora: Date = new Date()): Promise<boolean> {
+    const t = agora.getTime();
+    const podados = limites.map(({ chave, regra }) => {
+      const inicioJanela = t - regra.janelaMs;
+      const recentes = (this.eventos.get(chave) ?? []).filter((ts) => ts > inicioJanela);
+      return { chave, regra, recentes };
+    });
+
+    if (podados.some(({ regra, recentes }) => recentes.length >= regra.max)) {
       // barrado: não registra; só persiste a poda (e libera chaves esvaziadas)
-      for (const [chave, recentes] of podados) {
+      for (const { chave, recentes } of podados) {
         if (recentes.length === 0) this.eventos.delete(chave);
         else this.eventos.set(chave, recentes);
       }
       return false;
     }
 
-    for (const [chave, recentes] of podados) {
+    for (const { chave, recentes } of podados) {
       recentes.push(t);
       this.eventos.set(chave, recentes);
     }

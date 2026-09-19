@@ -2,6 +2,7 @@
 /** Peças de formulário do fluxo de acesso (campo, aviso, botão de envio). */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
+import { brand, linkWhatsapp } from "@/config/brand";
 import { Ic } from "@/components/Icon";
 
 /**
@@ -113,6 +114,26 @@ export function Aviso({
       </span>
       <span>{children}</span>
     </div>
+  );
+}
+
+/**
+ * Lead recebido, mas o e-mail do código não saiu (O7·S1): diz a verdade e dá uma
+ * saída na hora — o WhatsApp da marca — em vez de deixar a pessoa esperando.
+ */
+export function AvisoSemCodigo({ mensagem }: { mensagem: string }) {
+  return (
+    <Aviso tipo="info">
+      {mensagem}{" "}
+      <a
+        href={linkWhatsapp(`Olá! Pedi acesso ao demo do ${brand.nomeCurto} e o código não chegou.`)}
+        target="_blank"
+        rel="noreferrer"
+        style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}
+      >
+        Falar no WhatsApp
+      </a>
+    </Aviso>
   );
 }
 

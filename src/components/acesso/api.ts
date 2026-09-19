@@ -14,8 +14,20 @@ export interface DadosSolicitacao {
   consentimento: true;
 }
 
+/** Sinais anti-robô (O7·S1) — vão junto do pedido, mas não são dado do lead. */
+export interface AntiRobo {
+  /** Campo-isca: gente deixa vazio. */
+  website?: string;
+  /** Token do Cloudflare Turnstile, quando o widget está ligado. */
+  turnstileToken?: string;
+}
+
 export type ResultadoSolicitar =
   | { status: "enviado"; codigoDev?: string }
+  /** Lead gravado, mas o e-mail com o código não saiu (falha do provedor ou teto do dia). */
+  | { status: "recebido_sem_codigo"; mensagem: string }
+  /** Anti-robô recusou ou está fora do ar: pede nova verificação. */
+  | { status: "desafio"; mensagem: string }
   | { status: "limitado"; mensagem: string }
   | { status: "invalido"; mensagem: string; campos?: Record<string, string[] | undefined> }
   | { status: "erro"; mensagem: string };
@@ -28,6 +40,12 @@ export type ResultadoVerificar =
 
 const ERRO_REDE = "não deu para falar com o servidor. Verifique sua conexão e tente de novo.";
 const ERRO_SERVIDOR = "algo falhou do nosso lado. Tente novamente em instantes.";
+
+/** Mensagem honesta do "recebido sem código": o contato ficou, o e-mail não saiu. */
+export const MENSAGEM_SEM_CODIGO =
+  "Recebemos seus dados. O e-mail com o código não saiu agora — tente reenviar em alguns minutos ou fale com a gente.";
+const DESAFIO_RECUSADO = "não conseguimos confirmar que você é uma pessoa. Refaça a verificação e tente de novo.";
+const DESAFIO_FORA = "a verificação de segurança está fora do ar agora. Tente de novo em instantes.";
 
 /** Faz o POST e devolve `{ res, corpo }`; `corpo` é `{}` se a resposta não for JSON. */
 async function postar(url: string, dados: unknown): Promise<{ res: Response; corpo: any } | null> {
@@ -51,18 +69,28 @@ async function postar(url: string, dados: unknown): Promise<{ res: Response; cor
 }
 
 /** `POST /api/lead` — cria/atualiza o lead e dispara o código por e-mail. */
-export async function solicitarAcesso(dados: DadosSolicitacao): Promise<ResultadoSolicitar> {
-  const r = await postar("/api/lead", dados);
+export async function solicitarAcesso(dados: DadosSolicitacao, antiRobo: AntiRobo = {}): Promise<ResultadoSolicitar> {
+  const r = await postar("/api/lead", {
+    ...dados,
+    ...(antiRobo.website ? { website: antiRobo.website } : {}),
+    ...(antiRobo.turnstileToken ? { turnstileToken: antiRobo.turnstileToken } : {}),
+  });
   if (!r) return { status: "erro", mensagem: ERRO_REDE };
   const { res, corpo } = r;
 
   if (res.ok && corpo?.ok) {
+    if (res.status === 202 || corpo.status === "recebido_sem_codigo") {
+      return { status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO };
+    }
     return { status: "enviado", codigoDev: typeof corpo.codigoDev === "string" ? corpo.codigoDev : undefined };
   }
+  if (corpo?.erro === "verificacao_humana") return { status: "desafio", mensagem: DESAFIO_RECUSADO };
+  if (corpo?.erro === "verificacao_indisponivel") return { status: "desafio", mensagem: DESAFIO_FORA };
   if (res.status === 429) {
     return {
       status: "limitado",
-      mensagem: "você já pediu o código algumas vezes. Aguarde alguns minutos e tente de novo.",
+      // o limite é por e-mail E por rede: a pessoa pode não ter pedido nada ainda
+      mensagem: "muitos pedidos de código em pouco tempo (deste e-mail ou desta rede). Aguarde alguns minutos e tente de novo.",
     };
   }
   if (res.status === 400) {

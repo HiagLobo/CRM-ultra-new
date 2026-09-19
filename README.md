@@ -71,7 +71,14 @@ adaptador — o domínio não muda.
   CRECI para a forma canônica (`PE 12345-F`), aceitando o jeito que o corretor digita.
 - Código de verificação guardado **só como hash** (HMAC-SHA256), com expiração de 10 min, máximo de
   5 tentativas e uso único. Comparação em tempo constante.
-- **Rate-limit** no envio do código (3/30 min por e-mail e IP) e no login do admin (5/5 min por IP).
+- **Rate-limit** no envio do código (3/30 min por e-mail, 10/30 min por IP — escritório e CGNAT
+  dividem IP), **teto diário** de e-mails do app (`LIMITE_ENVIOS_DIA`, padrão 90) e no login do
+  admin (5/5 min por IP).
+- **Anti-robô**: campo-isca sempre ligado (robô recebe sucesso falso, nada é gravado) e Cloudflare
+  **Turnstile** opcional (liga com as duas chaves no env).
+- **Lead não se perde**: se o e-mail com o código não sai (falha do provedor ou teto do dia), o
+  contato é gravado assim mesmo e a pessoa recebe uma mensagem honesta, com saída pelo WhatsApp.
+- **Aviso de lead novo** opcional (`AVISO_LEADS_EMAIL`): um e-mail sem PII, só com o link do `/admin`.
 - Acesso ao demo e sessão do admin em **cookie httpOnly assinado**, validados **no servidor** (os 3
   painéis nem renderizam sem token); `/api/admin/*` inteiro atrás de
   autorização, com guard de servidor no `/admin`.

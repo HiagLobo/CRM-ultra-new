@@ -9,7 +9,7 @@ vi.mock("resend", () => ({
   },
 }));
 
-import { ResendEmail } from "./email";
+import { ConsoleEmail, ResendEmail, mascararEmail } from "./email";
 
 const MARCA: BrandConfig = {
   nome: "Marca Teste Completa",
@@ -87,5 +87,59 @@ describe("criarProvedorEmail — EMAIL_FROM em produção", () => {
   it("EMAIL_FROM fora do formato → erro claro (sem cair em remetente quebrado)", async () => {
     const { criarProvedorEmail } = await carregar({ EMAIL_FROM: "Marca Teste" });
     expect(() => criarProvedorEmail()).toThrow(/EMAIL_FROM inválido/);
+  });
+});
+
+describe("ResendEmail — aviso de lead novo ao fundador (O7·S1)", () => {
+  const FUNDADOR = "avisos@exemplo.com.br";
+
+  it("vai para o fundador, com remetente nomeado e link do /admin", async () => {
+    await new ResendEmail("re_teste", { endereco: ENDERECO }).enviarAvisoNovoLead(FUNDADOR, MARCA);
+    const msg = enviar.mock.calls[0]![0];
+    expect(msg.to).toBe(FUNDADOR);
+    expect(msg.from).toBe(`Marca Teste <${ENDERECO}>`);
+    expect(msg.subject).toContain("novo lead");
+    expect(msg.text).toContain("https://exemplo.com.br/admin");
+    expect(msg.html).toContain("https://exemplo.com.br/admin");
+    expect(msg).not.toHaveProperty("replyTo"); // ninguém responde a um aviso automático
+  });
+
+  it("corpo sem PII: nenhum endereço de e-mail nem número de telefone", async () => {
+    await new ResendEmail("re_teste", { endereco: ENDERECO }).enviarAvisoNovoLead(FUNDADOR, MARCA);
+    const { text, html, subject } = enviar.mock.calls[0]![0];
+    for (const parte of [text, html, subject]) {
+      expect(parte).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/); // nem o do lead, nem outro qualquer
+      expect(parte).not.toMatch(/\d{4,5}-?\d{4}/);
+    }
+  });
+
+  it("falha do Resend no aviso propaga só o nome do erro", async () => {
+    enviar.mockResolvedValue({ data: null, error: { name: "rate_limit_exceeded", message: "x" } });
+    await expect(
+      new ResendEmail("re_teste", { endereco: ENDERECO }).enviarAvisoNovoLead(FUNDADOR, MARCA),
+    ).rejects.toThrow("falha no envio de e-mail (rate_limit_exceeded)");
+  });
+});
+
+describe("ConsoleEmail (fallback dev) — sem PII em log", () => {
+  const logs = () => vi.spyOn(console, "log").mockImplementation(() => {});
+
+  it("código: não loga o e-mail completo nem o código", async () => {
+    const spy = logs();
+    await new ConsoleEmail().enviarCodigo(PARA, "123456", MARCA);
+    const logado = spy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(logado).not.toContain(PARA);
+    expect(logado).not.toContain("123456");
+    expect(logado).toContain(mascararEmail(PARA)); // só a forma mascarada
+    spy.mockRestore();
+  });
+
+  it("aviso: não loga nem o destinatário", async () => {
+    const spy = logs();
+    await new ConsoleEmail().enviarAvisoNovoLead("avisos@exemplo.com.br", MARCA);
+    const logado = spy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(logado).toContain("aviso de lead novo");
+    expect(logado).not.toContain("@");
+    spy.mockRestore();
   });
 });

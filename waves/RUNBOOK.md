@@ -46,6 +46,9 @@ Detalhe completo em `.env.example`. Resumo do que **quebra** se faltar:
 | `DATABASE_URL` | **em produção o boot para**; em dev, usa `data/leads.json` |
 | `RESEND_API_KEY` | **em produção o boot para**; em dev, o código aparece na tela |
 | `EMAIL_FROM` | o envio falha se houver `RESEND_API_KEY` |
+| `LIMITE_ENVIOS_DIA` | opcional — padrão 90 e-mails/24h (abaixo dos 100/dia do Resend Free) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | opcionais — sem as duas, o formulário roda sem Turnstile (só com o campo-isca); **uma sem a outra para o boot** |
+| `AVISO_LEADS_EMAIL` | opcional — sem ela, você não recebe o e-mail "novo lead confirmado" |
 
 O contato público (e-mail, telefone, CNPJ, razão social) **não** é variável de ambiente: sai de
 `src/config/brand.ts`, que é a fonte única. Há teste garantindo que esses dados não apareçam
@@ -96,6 +99,15 @@ funcionem):
 | `RESEND_API_KEY` | Resend → API Keys |
 | `EMAIL_FROM` | um endereço no domínio verificado no Resend (`endereço` ou `Nome <endereço>`) |
 
+E as opcionais da O7 (anti-abuso e aviso de lead novo):
+
+| Variável | Onde nasce |
+|----------|------------|
+| `LIMITE_ENVIOS_DIA` | o teto de e-mails do app em 24h (códigos + avisos). Resend Free: deixe o padrão (90). Plano pago: o limite do plano |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare → Turnstile → Add widget (hostname do site) → **Site Key**. É pública e entra no **build**: trocou, refaça o deploy |
+| `TURNSTILE_SECRET_KEY` | a **Secret Key** do mesmo widget. Configure as duas juntas |
+| `AVISO_LEADS_EMAIL` | o e-mail onde você quer saber que entrou lead novo (o aviso não traz dado do lead, só o link do `/admin`) |
+
 **Neon, passo a passo:** crie o projeto (região mais perto do Brasil), copie a *connection string*
 **pooled** — a que tem `-pooler` no host — e cole em `DATABASE_URL`. A string já vem com
 `sslmode=require`, que é o que o app espera. Depois rode as três migrações da seção 3.1 pelo **SQL
@@ -127,6 +139,23 @@ faz ele não insistir; para rever, o botão **Guia** tem "Refazer o tour desta t
 **Painel vazio para explorar?** `npm run seed` cria 8 leads fictícios com status variados. O script
 recusa rodar se encontrar `NODE_ENV=production` ou `DATABASE_URL` — semear a base real falsearia os
 números do seu funil.
+
+**Lead que chegou sem código.** Se o e-mail com o código não sai (Resend fora do ar, domínio não
+verificado, cota do dia) ou o teto diário (`LIMITE_ENVIOS_DIA`) estourou, o lead é **gravado mesmo
+assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
+agora — tente reenviar em alguns minutos ou fale com a gente", com um botão de WhatsApp. No
+`/admin` ele aparece como qualquer lead novo: é só ligar ou chamar no WhatsApp. O motivo fica no
+log (seção 6).
+
+**Aviso de lead novo.** Com `AVISO_LEADS_EMAIL` definida, cada lead que confirma o e-mail pela
+**primeira** vez gera um aviso "novo lead confirmado" com o link do `/admin` — sem e-mail, telefone
+ou CRECI do lead no corpo. Pedir código de novo e reverificar não avisa outra vez. Se o aviso falhar,
+a verificação do corretor segue normal e o log registra `[aviso-lead]`.
+
+**Anti-robô.** O formulário tem um campo-isca invisível (robô preenche, gente não vê): quem
+preenche recebe um "sucesso" falso e nada é gravado nem enviado. Com as duas chaves do Turnstile
+no env, entra também o desafio da Cloudflare — quase sempre invisível; só aparece quando a
+Cloudflare desconfia.
 
 **Follow-up:** "Contatado" e "Descartar" mudam o status e ficam registrados na auditoria.
 "Descartar" **preserva** o histórico — use para parar o follow-up.
@@ -167,7 +196,11 @@ Em **produção** vai para a tabela `auditoria` do Postgres; em **dev**, para `d
 | E-mail não chega | domínio não verificado no Resend | verificar o domínio (SPF/DKIM); antes disso só chega no e-mail da conta |
 | "Código expirado" | passou de 10 min | pedir novo código (botão reenviar) |
 | "Tentativas esgotadas" | 5 erros no mesmo código | pedir novo código |
-| "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail/IP | esperar a janela |
+| "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail, ou 10 pela mesma rede (IP) | esperar a janela |
+| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | log `[/api/lead] código não enviado; lead gravado sem código: <causa>` — `teto_diario` = o dia bateu o `LIMITE_ENVIOS_DIA`; `email:<tipo>` = o Resend recusou | o lead está no `/admin`: fale com ele. Teto: espere 24h ou suba o limite (se o plano deixar). Resend: confira domínio verificado, chave e cota no painel do Resend |
+| Tela pede "verificação de segurança" / 403 no `/api/lead` | Turnstile recusou o token (robô, ou widget expirado) | a pessoa refaz a verificação; se for com todo mundo, confira se a site key é do mesmo widget da secret |
+| 503 no `/api/lead` + log `[turnstile]` | Cloudflare fora do ar, ou `TURNSTILE_SECRET_KEY` errada (log diz `config:TURNSTILE_SECRET_KEY`) | conferir a chave; se a Cloudflare estiver fora, tirar as duas chaves do Turnstile e refazer o deploy desliga o desafio |
+| Não chega o aviso de lead novo | `AVISO_LEADS_EMAIL` vazia, teto diário atingido ou envio recusado (log `[aviso-lead]`) | conferir a variável e o log; os leads continuam no `/admin` |
 | Login do admin em 429 | 5 tentativas em 5 min | esperar 5 min |
 | `/admin` volta para o login | sessão de 12h expirou | logar de novo |
 | Painel do demo rebate para a landing | sem cookie de acesso válido (expira em 7 dias) | pedir acesso e verificar o e-mail |

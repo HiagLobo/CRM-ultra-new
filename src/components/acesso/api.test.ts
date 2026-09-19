@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { solicitarAcesso, verificarCodigo } from "./api";
+import { solicitarAcesso, verificarCodigo, MENSAGEM_SEM_CODIGO } from "./api";
 
 const DADOS = {
   email: "corretor@exemplo.com",
@@ -75,6 +75,48 @@ describe("solicitarAcesso (POST /api/lead)", () => {
   it("resposta que não é JSON não quebra o fluxo", async () => {
     fetchFake(200, null, { naoEhJson: true });
     expect((await solicitarAcesso({ ...DADOS })).status).toBe("erro");
+  });
+});
+
+describe("solicitarAcesso — O7·S1 (lead sem código e anti-robô)", () => {
+  it("202 vira 'recebido_sem_codigo' com a mensagem honesta", async () => {
+    fetchFake(202, { ok: true, status: "recebido_sem_codigo" });
+    const r = await solicitarAcesso({ ...DADOS });
+    expect(r).toEqual({ status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO });
+    expect(MENSAGEM_SEM_CODIGO).toMatch(/Recebemos seus dados/);
+    expect(MENSAGEM_SEM_CODIGO).toMatch(/não saiu agora/);
+  });
+
+  it("manda o token do Turnstile e a isca quando existem; nada extra quando vazios", async () => {
+    const chamadas = fetchFake(200, { ok: true, status: "enviado" });
+    await solicitarAcesso({ ...DADOS }, { turnstileToken: "tok-1", website: "" });
+    expect(chamadas[0]!.body).toEqual({ ...DADOS, turnstileToken: "tok-1" });
+
+    await solicitarAcesso({ ...DADOS }, { website: "robô preencheu" });
+    expect(chamadas[1]!.body).toEqual({ ...DADOS, website: "robô preencheu" });
+  });
+
+  it("anti-robô recusou (403) ou fora do ar (503): 'desafio' com mensagem própria", async () => {
+    fetchFake(403, { ok: false, erro: "verificacao_humana" });
+    const recusado = await solicitarAcesso({ ...DADOS });
+    expect(recusado.status).toBe("desafio");
+    expect(recusado.status === "desafio" && recusado.mensagem).toMatch(/pessoa/);
+
+    fetchFake(503, { ok: false, erro: "verificacao_indisponivel" });
+    const fora = await solicitarAcesso({ ...DADOS });
+    expect(fora.status).toBe("desafio");
+    expect(fora.status === "desafio" && fora.mensagem).toMatch(/fora do ar/);
+  });
+
+  it("503 que não é do anti-robô (ex.: plataforma) segue sendo erro genérico", async () => {
+    fetchFake(503, null, { naoEhJson: true });
+    expect((await solicitarAcesso({ ...DADOS })).status).toBe("erro");
+  });
+
+  it("429 explica que o limite pode ser da rede, sem culpar a pessoa", async () => {
+    fetchFake(429, { ok: false });
+    const r = await solicitarAcesso({ ...DADOS });
+    expect(r.status === "limitado" && r.mensagem).toMatch(/rede/);
   });
 });
 

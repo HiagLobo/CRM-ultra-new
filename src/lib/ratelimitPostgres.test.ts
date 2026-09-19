@@ -5,7 +5,7 @@
  * o que se testa é a lógica e o protocolo, não o driver.
  */
 import { describe, it, expect, vi } from "vitest";
-import { PostgresRateLimiter } from "./ratelimitPostgres";
+import { PostgresRateLimiter, PREFIXO_GLOBAL } from "./ratelimitPostgres";
 import type { RegraRate } from "./ratelimit";
 
 const REGRA: RegraRate = { max: 3, janelaMs: 30 * 60_000 };
@@ -110,6 +110,81 @@ describe("PostgresRateLimiter", () => {
     const [sql, params] = pool.query.mock.calls[0]!;
     expect(String(sql)).toContain("DELETE FROM rate_limit");
     expect((params as Date[])[0]!.toISOString()).toBe(new Date(T0.getTime() - 3_600_000).toISOString());
+  });
+
+  it("chaves globais (teto diário, sem PII) ficam 25h; as de e-mail/IP seguem com 1h", async () => {
+    const { pool } = poolFake();
+    const rl = new PostgresRateLimiter(pool as never, () => 0); // força a poda
+    await rl.permitir(["global:envio:dia"], { max: 90, janelaMs: 24 * 3_600_000 }, T0);
+    await new Promise((r) => setTimeout(r, 0));
+
+    const [sql, params] = pool.query.mock.calls[0]!;
+    const [curta, longa, prefixo] = params as [Date, Date, string];
+    expect(String(sql)).toMatch(/chave NOT LIKE \$3 AND em < \$1/);
+    expect(String(sql)).toMatch(/chave LIKE \$3 AND em < \$2/);
+    expect(curta.toISOString()).toBe(new Date(T0.getTime() - 3_600_000).toISOString());
+    expect(longa.toISOString()).toBe(new Date(T0.getTime() - 25 * 3_600_000).toISOString());
+    expect(prefixo).toBe(`${PREFIXO_GLOBAL}%`);
+  });
+
+  it("poda que falha não derruba a requisição e fica no log sem a chave", async () => {
+    const { pool } = poolFake();
+    pool.query.mockRejectedValueOnce(Object.assign(new Error("x"), { code: "42P01" }));
+    const avisos = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const rl = new PostgresRateLimiter(pool as never, () => 0);
+
+    expect(await rl.permitir(["email:a@x.com"], REGRA, T0)).toBe(true);
+    await new Promise((r) => setTimeout(r, 0));
+    const log = avisos.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(log).toContain("42P01");
+    expect(log).not.toContain("a@x.com");
+    avisos.mockRestore();
+  });
+
+  it("permitirCada: cada chave contada na SUA janela e barrada pelo SEU máximo", async () => {
+    // IP com 9 envios (limite 10) passa; e-mail com 3 (limite 3) barra — e nada é gravado
+    const { pool, cliente, comandos } = poolFake({ "ip:1.1.1.1": 9, "email:a@x.com": 3 });
+    const rl = new PostgresRateLimiter(pool as never, semPoda);
+    const porEmail: RegraRate = { max: 3, janelaMs: 30 * 60_000 };
+    const porIp: RegraRate = { max: 10, janelaMs: 30 * 60_000 };
+
+    expect(
+      await rl.permitirCada(
+        [
+          { chave: "email:a@x.com", regra: porEmail },
+          { chave: "ip:1.1.1.1", regra: porIp },
+        ],
+        T0,
+      ),
+    ).toBe(false);
+    expect(comandos.some((c) => c.startsWith("INSERT"))).toBe(false);
+
+    // o início de cada janela vai junto com a sua chave
+    const select = cliente.query.mock.calls.find(([sql]) => String(sql).includes("SELECT chave"))!;
+    const [chaves, inicios] = select[1] as [string[], Date[]];
+    expect(chaves).toEqual(["email:a@x.com", "ip:1.1.1.1"]);
+    expect(inicios.map((d) => d.toISOString())).toEqual([
+      new Date(T0.getTime() - 30 * 60_000).toISOString(),
+      new Date(T0.getTime() - 30 * 60_000).toISOString(),
+    ]);
+  });
+
+  it("permitirCada: janelas diferentes (30 min × 24h) na mesma consulta", async () => {
+    const { pool, cliente } = poolFake({ "global:envio:dia": 89 });
+    const rl = new PostgresRateLimiter(pool as never, semPoda);
+
+    expect(
+      await rl.permitirCada(
+        [
+          { chave: "ip:1.1.1.1", regra: { max: 10, janelaMs: 30 * 60_000 } },
+          { chave: "global:envio:dia", regra: { max: 90, janelaMs: 24 * 3_600_000 } },
+        ],
+        T0,
+      ),
+    ).toBe(true);
+    const select = cliente.query.mock.calls.find(([sql]) => String(sql).includes("SELECT chave"))!;
+    const [, inicios] = select[1] as [string[], Date[]];
+    expect(inicios[1]!.toISOString()).toBe(new Date(T0.getTime() - 24 * 3_600_000).toISOString());
   });
 
   it("lista de chaves vazia é permitida sem tocar no banco", async () => {

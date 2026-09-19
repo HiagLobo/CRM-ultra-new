@@ -41,16 +41,15 @@ export interface Lead {
 }
 
 /**
- * Texto da política carimbado no consentimento (LGPD). Definido no `schema.ts`
- * (client-safe) para o formulário exibir o mesmo texto que é gravado; re-exportado
- * aqui porque o domínio é quem carimba.
+ * Texto do consentimento (LGPD) e validade do código moram no `schema.ts`
+ * (client-safe: a tela mostra o mesmo que é gravado); o domínio, que carimba, re-exporta.
  */
-export { TEXTO_CONSENTIMENTO };
-
-/** Validade do código, em minutos — definida no `schema.ts` (a tela do código também lê). */
-export { EXPIRACAO_CODIGO_MIN };
+export { TEXTO_CONSENTIMENTO, EXPIRACAO_CODIGO_MIN };
 /** Máximo de tentativas de verificação por código (anti-força bruta). */
 export const MAX_TENTATIVAS = 5;
+
+/** Código consumido/inutilizado: string vazia nunca casa com um HMAC (64 hex). */
+export const SEM_CODIGO = "";
 
 /** Código numérico de 6 dígitos, cripto-seguro (000000–999999). */
 export function gerarCodigo(): string {
@@ -76,6 +75,11 @@ function montarCodigo(codigo: string, secret: string, agora: Date): CodigoVerifi
   };
 }
 
+/** Código que nunca valida (sem hash, já vencido); datas = a tentativa de envio (colunas NOT NULL). */
+function codigoInutilizado(agora: Date): CodigoVerificacao {
+  return { hash: SEM_CODIGO, expiraEm: agora.toISOString(), tentativas: 0, enviadoEm: agora.toISOString() };
+}
+
 export interface ContextoCriacao {
   ip: string;
   secret: string;
@@ -90,17 +94,29 @@ export interface ResultadoCriacao {
   novo: boolean;
 }
 
-export interface SolicitacaoPreparada {
-  lead: Lead;
-  codigo: string;
-  novo: boolean;
+export interface SolicitacaoPreparada extends ResultadoCriacao {
   /**
-   * Persiste a solicitação. Separado da preparação para o chamador poder enviar o
-   * e-mail ANTES de persistir — assim um envio que falha não sobrescreve um código
-   * válido anterior. Sob corrida (mesmo e-mail criado nesse meio), cai para
-   * atualização em vez de duplicar.
+   * Persiste com o código novo. Separado da preparação para o chamador enviar o
+   * e-mail ANTES — um envio que falha não sobrescreve um código válido anterior.
    */
   persistir(): Promise<void>;
+  /**
+   * Persiste o contato SEM o código novo (o e-mail não saiu): o lead não se perde.
+   * Lead novo nasce com o código inutilizado; lead existente mantém o código e o
+   * status que já tinha (um código válido continua valendo; nunca rebaixa).
+   */
+  persistirSemCodigo(): Promise<void>;
+}
+
+/** Cria o lead; se o e-mail já foi criado por outro request nesse meio, mescla em vez de duplicar. */
+async function criarOuMesclar(store: LeadStore, lead: Lead, mesclar: (atual: Lead) => Lead): Promise<void> {
+  try {
+    await store.criar(lead);
+  } catch (err) {
+    const atual = await store.buscarPorEmail(lead.email);
+    if (!atual) throw err;
+    await store.atualizar(mesclar(atual));
+  }
 }
 
 /**
@@ -119,16 +135,23 @@ export async function prepararSolicitacao(
 
   const existente = await store.buscarPorEmail(input.email);
   if (existente) {
-    const lead: Lead = {
+    // contato e consentimento atualizados; o código só troca se o e-mail sair
+    const comContato: Lead = {
       ...existente,
       telefone: input.telefone,
       creci: input.creci,
       origem: input.origem ?? existente.origem,
       consentimento,
-      codigo: codigoObj,
       atualizadoEm: agora.toISOString(),
     };
-    return { lead, codigo, novo: false, persistir: async () => void (await store.atualizar(lead)) };
+    const lead: Lead = { ...comContato, codigo: codigoObj };
+    return {
+      lead,
+      codigo,
+      novo: false,
+      persistir: async () => void (await store.atualizar(lead)),
+      persistirSemCodigo: async () => void (await store.atualizar(comContato)),
+    };
   }
 
   const lead: Lead = {
@@ -147,16 +170,17 @@ export async function prepararSolicitacao(
     lead,
     codigo,
     novo: true,
-    persistir: async () => {
-      try {
-        await store.criar(lead);
-      } catch (err) {
-        // corrida: e-mail criado por outro request nesse meio → atualiza, não duplica
-        const atual = await store.buscarPorEmail(lead.email);
-        if (!atual) throw err;
-        await store.atualizar({ ...lead, id: atual.id, criadoEm: atual.criadoEm });
-      }
-    },
+    persistir: () => criarOuMesclar(store, lead, (atual) => ({ ...lead, id: atual.id, criadoEm: atual.criadoEm })),
+    persistirSemCodigo: () =>
+      criarOuMesclar(store, { ...lead, codigo: codigoInutilizado(agora) }, (atual) => ({
+        // corrida: o outro request pode ter deixado um código válido — preserva
+        ...lead,
+        id: atual.id,
+        criadoEm: atual.criadoEm,
+        status: atual.status,
+        codigo: atual.codigo,
+        ...(atual.verificadoEm ? { verificadoEm: atual.verificadoEm } : {}),
+      })),
   };
 }
 

@@ -1,149 +1,186 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { promises as fs } from "fs";
-import os from "os";
-import path from "path";
-import { randomUUID } from "crypto";
-import { FileLeadStore } from "../../lib/leadStore";
-import { ConsoleEmail, mascararEmail, type ProvedorEmail } from "../../lib/email";
 import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import { brand } from "../../config/brand";
-import type { BrandConfig } from "../../config/brand";
-import { LeadInputSchema } from "./schema";
-import { solicitarAcesso, REGRA_ENVIO_CODIGO } from "./solicitarAcesso";
+import { PedidoAcessoSchema } from "./schema";
+import { verificarCodigo } from "./verificacao";
+import {
+  solicitarAcesso,
+  REGRA_ENVIO_POR_EMAIL,
+  REGRA_ENVIO_POR_IP,
+  type DepsSolicitarAcesso,
+} from "./solicitarAcesso";
+import { EmailFake, storesTemporarias } from "./apoioTestes";
 
 const SECRET = "segredo-de-teste-1234567890";
 const EMAIL_TESTE = "corretor@exemplo.com";
-const TELEFONE_TESTE = "(11) 90000-0000";
+const T0 = new Date("2026-06-17T12:00:00.000Z");
 
-function inputValido(over: Record<string, unknown> = {}) {
-  return { email: "Corretor@Exemplo.com", telefone: TELEFONE_TESTE, creci: "SP 12345", consentimento: true, ...over };
-}
-
-/** E-mail fake: registra os envios sem rede. */
-class EmailFake implements ProvedorEmail {
-  enviadas: { para: string; codigo: string }[] = [];
-  async enviarCodigo(para: string, codigo: string, _brand: BrandConfig): Promise<void> {
-    this.enviadas.push({ para, codigo });
-  }
-}
-
-let arquivos: string[] = [];
-function novaStore() {
-  const arquivo = path.join(os.tmpdir(), `leads-s2-${randomUUID()}.json`);
-  arquivos.push(arquivo);
-  return new FileLeadStore(arquivo);
-}
+const stores = storesTemporarias("leads-solicitar");
 afterEach(async () => {
-  await Promise.all(arquivos.map((a) => fs.rm(a, { force: true })));
-  arquivos = [];
+  await stores.limpar();
   vi.restoreAllMocks();
 });
 
-describe("solicitarAcesso (rota POST /api/lead, nível de domínio)", () => {
-  it("happy: cria lead, carimba consentimento e 'envia' o código", async () => {
-    const store = novaStore();
-    const email = new EmailFake();
-    const limiter = new MemoriaRateLimiter();
-    const r = await solicitarAcesso(
-      { store, email, limiter, brand, secret: SECRET },
-      LeadInputSchema.parse(inputValido()),
-      { ip: "1.2.3.4" },
-    );
+function pedido(over: Record<string, unknown> = {}) {
+  return PedidoAcessoSchema.parse({
+    email: "Corretor@Exemplo.com",
+    telefone: "(11) 90000-0000",
+    creci: "SP 12345",
+    consentimento: true,
+    ...over,
+  });
+}
+
+function montarDeps(over: Partial<DepsSolicitarAcesso> = {}) {
+  const email = new EmailFake();
+  const deps: DepsSolicitarAcesso = {
+    store: stores.nova(),
+    email,
+    limiter: new MemoriaRateLimiter(),
+    brand,
+    secret: SECRET,
+    limiteEnviosDia: 90,
+    agora: T0,
+    ...over,
+  };
+  return { deps, email: deps.email as EmailFake };
+}
+
+describe("solicitarAcesso — happy path", () => {
+  it("cria lead, carimba consentimento e envia o código", async () => {
+    const { deps, email } = montarDeps();
+    const r = await solicitarAcesso(deps, pedido(), { ip: "1.2.3.4" });
     expect(r.status).toBe("enviado");
     if (r.status !== "enviado") return;
     expect(r.novo).toBe(true);
     expect(r.codigo).toMatch(/^\d{6}$/);
-    expect(email.enviadas).toEqual([{ para: EMAIL_TESTE, codigo: r.codigo }]);
-    const persistido = await store.buscarPorEmail(EMAIL_TESTE);
+    expect(email.codigos).toEqual([{ para: EMAIL_TESTE, codigo: r.codigo }]);
+    const persistido = await deps.store.buscarPorEmail(EMAIL_TESTE);
     expect(persistido?.consentimento.ip).toBe("1.2.3.4");
     expect(persistido?.consentimento.texto.length).toBeGreaterThan(20);
-    expect(persistido?.consentimento.aceitoEm).toBeTruthy();
     expect(persistido?.codigo.hash).toMatch(/^[a-f0-9]{64}$/);
   });
+});
 
-  it("envio que falha NÃO sobrescreve um código válido nem cria lead órfão", async () => {
-    const store = novaStore();
-    const limiter = new MemoriaRateLimiter();
-    // 1º envio OK → lead com código A
-    const r1 = await solicitarAcesso(
-      { store, email: new EmailFake(), limiter, brand, secret: SECRET },
-      LeadInputSchema.parse(inputValido()),
+describe("lead não se perde quando o e-mail não sai (O7·S1)", () => {
+  it("envio que falha GRAVA o lead novo, com status novo e código inutilizado", async () => {
+    const { deps, email } = montarDeps();
+    email.falharCodigo = new Error(`provedor caiu ao enviar para ${EMAIL_TESTE}`);
+
+    const r = await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
+    expect(r).toEqual({ status: "recebido_sem_codigo", motivo: "falha_envio", causa: "email:Error" });
+    // a causa vai para o log: só o tipo do erro, nunca a mensagem (que tinha o e-mail)
+    expect(r.status === "recebido_sem_codigo" && r.causa).not.toContain(EMAIL_TESTE);
+
+    const salvo = await deps.store.buscarPorEmail(EMAIL_TESTE);
+    expect(salvo?.status).toBe("novo");
+    expect(salvo?.telefone).toBe("+5511900000000");
+    expect(salvo?.creci).toBe("SP 12345");
+    expect(salvo?.consentimento.ip).toBe("5.5.5.5");
+    expect(salvo?.codigo.hash).toBe(""); // SEM_CODIGO: nenhum código confere
+    const tentativa = await verificarCodigo(
+      { store: deps.store, limiter: new MemoriaRateLimiter(), secret: SECRET, agora: T0 },
+      { email: EMAIL_TESTE, codigo: "000000" },
       { ip: "5.5.5.5" },
     );
-    expect(r1.status).toBe("enviado");
-    const hashA = (await store.buscarPorEmail(EMAIL_TESTE))!.codigo.hash;
-    // reenvio cujo e-mail FALHA → não pode persistir o código novo
-    const emailQuebrado: ProvedorEmail = {
-      enviarCodigo: async () => {
-        throw new Error("provedor caiu");
-      },
-    };
-    await expect(
-      solicitarAcesso(
-        { store, email: emailQuebrado, limiter, brand, secret: SECRET },
-        LeadInputSchema.parse(inputValido()),
-        { ip: "5.5.5.5" },
-      ),
-    ).rejects.toThrow();
-    const hashDepois = (await store.buscarPorEmail(EMAIL_TESTE))!.codigo.hash;
-    expect(hashDepois).toBe(hashA); // código válido preservado
-    expect(await store.listar()).toHaveLength(1);
+    expect(tentativa).toEqual({ status: "falha", motivo: "codigo_invalido" });
   });
 
-  it("rate-limit: 4º envio em 30min barra; reenviar não duplica lead", async () => {
-    const store = novaStore();
-    const email = new EmailFake();
-    const limiter = new MemoriaRateLimiter();
-    const agora = new Date("2026-06-17T12:00:00.000Z");
-    const chamar = () =>
-      solicitarAcesso(
-        { store, email, limiter, brand, secret: SECRET, agora },
-        LeadInputSchema.parse(inputValido()),
-        { ip: "9.9.9.9" },
-      );
-    expect((await chamar()).status).toBe("enviado");
-    expect((await chamar()).status).toBe("enviado");
-    expect((await chamar()).status).toBe("enviado");
+  it("falha num lead existente NÃO sobrescreve o código válido — ele segue valendo", async () => {
+    const { deps, email } = montarDeps();
+    const r1 = await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
+    if (r1.status !== "enviado") throw new Error("pré-condição: 1º envio sai");
+    const hashA = (await deps.store.buscarPorEmail(EMAIL_TESTE))!.codigo.hash;
+
+    email.falharCodigo = new Error("provedor caiu");
+    const r2 = await solicitarAcesso(deps, pedido({ telefone: "(21) 98888-7777" }), { ip: "5.5.5.5" });
+    expect(r2.status).toBe("recebido_sem_codigo");
+
+    const salvo = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
+    expect(salvo.codigo.hash).toBe(hashA); // código anterior preservado
+    expect(salvo.telefone).toBe("+5521988887777"); // contato novo gravado
+    expect(await deps.store.listar()).toHaveLength(1); // upsert, sem duplicar
+    const v = await verificarCodigo(
+      { store: deps.store, limiter: new MemoriaRateLimiter(), secret: SECRET, agora: T0 },
+      { email: EMAIL_TESTE, codigo: r1.codigo },
+      { ip: "5.5.5.5" },
+    );
+    expect(v.status).toBe("verificado");
+  });
+
+  it("falha num lead já verificado não rebaixa o status", async () => {
+    const { deps, email } = montarDeps();
+    const r1 = await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
+    if (r1.status !== "enviado") throw new Error("pré-condição");
+    const lim = new MemoriaRateLimiter();
+    await verificarCodigo({ store: deps.store, limiter: lim, secret: SECRET, agora: T0 }, { email: EMAIL_TESTE, codigo: r1.codigo }, { ip: "5.5.5.5" });
+
+    email.falharCodigo = new Error("provedor caiu");
+    await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
+    const salvo = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
+    expect(salvo.status).toBe("verificado");
+    expect(salvo.verificadoEm).toBe(T0.toISOString());
+  });
+});
+
+describe("teto global diário (LIMITE_ENVIOS_DIA)", () => {
+  it("estourou: não envia, mas grava o lead sem código", async () => {
+    const { deps, email } = montarDeps({ limiteEnviosDia: 2 });
+    const pedir = (n: number) =>
+      solicitarAcesso(deps, pedido({ email: `corretor${n}@exemplo.com` }), { ip: `10.0.0.${n}` });
+
+    expect((await pedir(1)).status).toBe("enviado");
+    expect((await pedir(2)).status).toBe("enviado");
+    expect(await pedir(3)).toEqual({ status: "recebido_sem_codigo", motivo: "teto_diario", causa: "teto_diario" });
+
+    expect(email.codigos).toHaveLength(2); // o 3º não gastou cota do provedor
+    expect(await deps.store.listar()).toHaveLength(3); // mas o contato ficou
+    expect((await deps.store.buscarPorEmail("corretor3@exemplo.com"))?.codigo.hash).toBe("");
+  });
+
+  it("a janela é de 24h: no dia seguinte volta a enviar", async () => {
+    const { deps } = montarDeps({ limiteEnviosDia: 1 });
+    const pedir = (n: number, agora: Date) =>
+      solicitarAcesso({ ...deps, agora }, pedido({ email: `c${n}@exemplo.com` }), { ip: `10.0.1.${n}` });
+
+    expect((await pedir(1, T0)).status).toBe("enviado");
+    expect((await pedir(2, new Date(T0.getTime() + 23 * 3_600_000))).status).toBe("recebido_sem_codigo");
+    expect((await pedir(3, new Date(T0.getTime() + 24 * 3_600_000 + 1))).status).toBe("enviado");
+  });
+});
+
+describe("rate-limit por pessoa: e-mail 3/30 min, IP 10/30 min", () => {
+  it("usa as regras separadas", () => {
+    expect(REGRA_ENVIO_POR_EMAIL).toEqual({ max: 3, janelaMs: 30 * 60_000 });
+    expect(REGRA_ENVIO_POR_IP).toEqual({ max: 10, janelaMs: 30 * 60_000 });
+  });
+
+  it("mesmo e-mail: o 4º em 30 min barra; reenviar não duplica lead", async () => {
+    const { deps, email } = montarDeps();
+    const chamar = () => solicitarAcesso(deps, pedido(), { ip: "9.9.9.9" });
+    for (let i = 0; i < 3; i++) expect((await chamar()).status).toBe("enviado");
     expect((await chamar()).status).toBe("limitado");
-    expect(email.enviadas).toHaveLength(3); // o 4º não envia
-    expect(await store.listar()).toHaveLength(1); // upsert: nunca duplica
+    expect(email.codigos).toHaveLength(3);
+    expect(await deps.store.listar()).toHaveLength(1);
   });
 
-  it("usa a regra de 3 envios / 30 min", () => {
-    expect(REGRA_ENVIO_CODIGO).toEqual({ max: 3, janelaMs: 30 * 60_000 });
-  });
-});
-
-describe("ConsoleEmail (fallback dev) — sem PII em log", () => {
-  it("não loga o e-mail completo, o telefone nem o código", async () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
-    await new ConsoleEmail().enviarCodigo(EMAIL_TESTE, "123456", brand);
-    const logado = spy.mock.calls.map((c) => c.join(" ")).join("\n");
-    expect(logado).not.toContain(EMAIL_TESTE);
-    expect(logado).not.toContain("90000-0000");
-    expect(logado).not.toContain("123456");
-    expect(logado).toContain(mascararEmail(EMAIL_TESTE)); // só a forma mascarada
-  });
-});
-
-describe("MemoriaRateLimiter (janela deslizante)", () => {
-  it("barra ao estourar e libera após a janela", async () => {
-    const rl = new MemoriaRateLimiter();
-    const regra = { max: 2, janelaMs: 1000 };
-    const t0 = new Date("2026-06-17T12:00:00.000Z");
-    expect(await rl.permitir(["k"], regra, t0)).toBe(true);
-    expect(await rl.permitir(["k"], regra, t0)).toBe(true);
-    expect(await rl.permitir(["k"], regra, t0)).toBe(false);
-    const depois = new Date(t0.getTime() + 1001);
-    expect(await rl.permitir(["k"], regra, depois)).toBe(true);
+  it("mesmo IP (escritório/CGNAT): 10 corretores passam, o 11º barra; outro IP segue", async () => {
+    const { deps } = montarDeps();
+    const pedir = (n: number, ip: string) => solicitarAcesso(deps, pedido({ email: `c${n}@exemplo.com` }), { ip });
+    for (let n = 1; n <= 10; n++) expect((await pedir(n, "200.1.1.1")).status).toBe("enviado");
+    expect((await pedir(11, "200.1.1.1")).status).toBe("limitado");
+    expect((await pedir(11, "200.2.2.2")).status).toBe("enviado");
   });
 
-  it("barrar por uma chave NÃO consome o limite da outra", async () => {
-    const rl = new MemoriaRateLimiter();
-    const regra = { max: 1, janelaMs: 1000 };
-    const t = new Date("2026-06-17T12:00:00.000Z");
-    expect(await rl.permitir(["b"], regra, t)).toBe(true); // b atinge o limite
-    expect(await rl.permitir(["a", "b"], regra, t)).toBe(false); // barrado por b
-    expect(await rl.permitir(["a"], regra, t)).toBe(true); // 'a' não foi consumido
+  it("barrado pelo e-mail NÃO gasta a vaga do IP (checagem atômica)", async () => {
+    const { deps } = montarDeps();
+    const ip = "200.3.3.3";
+    for (let i = 0; i < 3; i++) await solicitarAcesso(deps, pedido(), { ip });
+    expect((await solicitarAcesso(deps, pedido(), { ip })).status).toBe("limitado"); // pelo e-mail
+    // o IP gastou só 3 das 10 vagas: mais 7 corretores diferentes passam
+    for (let n = 1; n <= 7; n++) {
+      expect((await solicitarAcesso(deps, pedido({ email: `o${n}@exemplo.com` }), { ip })).status).toBe("enviado");
+    }
+    expect((await solicitarAcesso(deps, pedido({ email: "o8@exemplo.com" }), { ip })).status).toBe("limitado");
   });
 });

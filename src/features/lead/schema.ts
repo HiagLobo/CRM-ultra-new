@@ -79,6 +79,21 @@ export const LeadInputSchema = z.object({
 
 export type LeadInput = z.infer<typeof LeadInputSchema>;
 
+/**
+ * Pedido de acesso como chega na rota: os dados do lead + os sinais anti-robô
+ * (O7·S1). Ficam fora do `LeadInput` porque não são dado do lead — nunca vão
+ * para o banco.
+ */
+export const PedidoAcessoSchema = LeadInputSchema.extend({
+  // campo-isca (honeypot): invisível na tela, mas robô de formulário preenche.
+  // Aceita qualquer texto curto — recusar com 400 ensinaria o robô a deixá-lo vazio.
+  website: z.string().max(500).optional(),
+  // token do Cloudflare Turnstile (até 2048 caracteres, pela documentação)
+  turnstileToken: z.string().max(2048).optional(),
+});
+
+export type PedidoAcesso = z.infer<typeof PedidoAcessoSchema>;
+
 /** Entrada da verificação: e-mail + código de 6 dígitos (formato conferido antes de qualquer lógica). */
 export const VerifyInputSchema = z.object({
   email: emailSchema,
