@@ -1,9 +1,9 @@
 -- CRM Ultra — funil de leads (O8): etapas, próxima ação, anotações e cadastro manual.
 --
--- RODE ANTES DO DEPLOY DESTA VERSÃO. Neon → SQL Editor (branch principal,
--- database `neondb`) → cole o arquivo INTEIRO → Run.
--- É idempotente: rodar de novo não estraga nada (e converte algum status antigo
--- que o código anterior tenha gravado entre a migração e o deploy).
+-- RODE LOGO DEPOIS DO DEPLOY DESTA VERSÃO (RUNBOOK 3.9: o painel antigo não
+-- conhece as etapas novas; o código novo aguenta o banco antigo). Neon → SQL
+-- Editor (branch principal, database `neondb`) → cole o arquivo INTEIRO → Run.
+-- É idempotente: rodar de novo não estraga nada.
 -- Não apaga nem reescreve dado de contato: só acrescenta colunas, afrouxa o
 -- NOT NULL do e-mail e traduz os 3 status antigos para as etapas novas.
 

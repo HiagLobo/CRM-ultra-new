@@ -109,3 +109,12 @@ describe("CadastroManualSchema", () => {
     expect(JSON.stringify(r.success ? {} : r.error.flatten())).not.toMatch(/maria|7070|XYZ|99999/);
   });
 });
+
+describe("PatchLeadSchema — motivo vazio (achado da revisão da O8·S1)", () => {
+  it("retomar com motivo vazio é aceito como sem motivo; perdido com motivo vazio pede o motivo", () => {
+    const retomar = PatchLeadSchema.safeParse({ id: "x", etapa: "retomar", retomarEm: "2099-01-10", motivo: "  " });
+    expect(retomar.success).toBe(true);
+    const perdido = PatchLeadSchema.safeParse({ id: "x", etapa: "perdido", motivo: "" });
+    expect(perdido.success).toBe(false);
+  });
+});

@@ -21,7 +21,7 @@ com os dados antigos migrados e a exclusão LGPD continuando completa.
    /api/admin/leads` (manual), `GET|POST /api/admin/leads/[id]/notas`. DTO do admin ganha os campos
    novos (nada de hash/IP/consentimento). CSV ganha `nome;etapa;canal;proxima_acao_em;retomar_em;motivo`
    (sem anotações).
-6. RUNBOOK: seção "migração 004 — rode ANTES do deploy desta versão" + como usar o funil;
+6. RUNBOOK: seção da migração 004 (na integração, a ordem virou: deploy primeiro, 004 logo depois — o painel antigo quebra com as etapas novas) + como usar o funil;
    README atualizado.
 
 ## Pronto quando

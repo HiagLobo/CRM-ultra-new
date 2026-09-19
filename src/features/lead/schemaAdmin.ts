@@ -43,7 +43,8 @@ export const PatchLeadSchema = z
     id: IdLeadSchema,
     etapa: z.enum(ETAPAS, { errorMap: () => ({ message: "etapa inválida" }) }).optional(),
     retomarEm: diaSchema.optional(),
-    motivo: textoObrigatorio(LIMITE_MOTIVO, "o motivo").optional(),
+    // vazio conta como não informado (retomar aceita sem motivo; perdido cai no "informe o motivo")
+    motivo: opcional(textoObrigatorio(LIMITE_MOTIVO, "o motivo")),
     proximaAcao: z
       .object({ em: diaSchema, texto: textoObrigatorio(LIMITE_PROXIMA_ACAO, "a próxima ação") })
       .strict()

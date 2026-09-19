@@ -262,21 +262,33 @@ pedido do titular, que no caso é você).
 
 Se algum passo falhar, veja a seção 6.
 
-### 3.9. Migração 004 (funil) — rode ANTES do deploy desta versão
+### 3.9. Migração 004 (funil) — publique a versão nova e rode a 004 logo em seguida
 
 Para quem já está no ar com as migrações 001 a 003. (Banco novo: o passo 3.4 já inclui a 004.) A
-versão com o funil de leads usa colunas e uma tabela que só a `004-funil.sql` cria. A ordem é esta:
+versão com o funil de leads usa colunas e uma tabela que só a `004-funil.sql` cria.
+
+**A ordem é: publicar primeiro, migrar logo depois.** O motivo:
+
+- o painel **antigo** (O7) não conhece as etapas novas. Se a 004 rodar antes, ela converte
+  `contatado` → `em_contato` e `descartado` → `perdido`, e o `/admin` antigo quebra ao abrir
+  (até o deploy novo sair);
+- o código **novo** aguenta o banco antigo: lê com `SELECT *`, entende os status antigos e só grava
+  as colunas novas quando elas têm valor. Captação, verificação e a lista do `/admin` seguem
+  funcionando. Só as ações novas (mudar etapa, próxima ação, anotar, cadastrar à mão) esperam a 004.
+
+Passo a passo:
 
 1. **Backup.** Neon → **Branches → Create branch** a partir do principal, com a data no nome (ex.:
    `antes-004-2026-09-20`). Veja "Backup" na seção 4.
-2. Neon → **SQL Editor** (branch principal, database `neondb`) → abra `migrations/004-funil.sql` no
-   GitHub → copie **tudo** → cole → **Run**.
-3. Confira, no mesmo SQL Editor:
+2. **Publique**: merge/push na `main` (deploy automático) e espere o deploy ficar **Ready** na Vercel.
+3. **Logo em seguida**, Neon → **SQL Editor** (branch principal, database `neondb`) → abra
+   `migrations/004-funil.sql` no GitHub → copie **tudo** → cole → **Run**. Não precisa de Redeploy.
+4. Confira, no mesmo SQL Editor:
 
    ```sql
    SELECT column_name FROM information_schema.columns
-    WHERE table_name = 'leads'
-      AND column_name IN ('nome', 'canal', 'retomar_em', 'motivo', 'proxima_acao_em', 'proxima_acao')
+    WHERE table_name = leads
+      AND column_name IN (nome, canal, retomar_em, motivo, proxima_acao_em, proxima_acao)
     ORDER BY 1;
    ```
 
@@ -290,24 +302,21 @@ versão com o funil de leads usa colunas e uma tabela que só a `004-funil.sql` 
    `descartado`.
 
    ```sql
-   SELECT to_regclass('public.lead_notas');
+   SELECT to_regclass(public.lead_notas);
    ```
 
    Tem de voltar `lead_notas`. Vazio quer dizer que a tabela das anotações não foi criada.
-4. Só então publique: merge na `main` (deploy automático) ou **Redeploy** (3.7).
-5. Depois do deploy, **rode a 004 de novo**. Ela é idempotente. Entre o passo 2 e o deploy, a versão
-   antiga ainda gravava os status antigos: quem confirmou o e-mail nesse meio ficou `verificado`. A
-   segunda rodada converte esses. O painel já mostra certo sem ela; é só para o banco ficar limpo.
+5. No `/admin`: mude a etapa de um lead, escreva uma anotação e cadastre um lead de teste à mão
+   (depois exclua). Se algum der erro, veja a causa no log (abaixo).
 
 **O que a 004 faz:** acrescenta as colunas do funil (nome, canal, retomar em, motivo, próxima ação),
 deixa o e-mail opcional (só o lead cadastrado à mão pode não ter; dois leads continuam sem poder ter
 o mesmo e-mail), traduz `verificado` → `novo`, `contatado` → `em_contato` e `descartado` → `perdido`,
-e cria a tabela `lead_notas` das anotações. **Não apaga nada.**
+e cria a tabela `lead_notas` das anotações. **Não apaga nada** e pode rodar de novo sem estrago.
 
-**Se publicou antes de rodar a 004:** o site continua captando e verificando, e a lista do `/admin`
-abre. Mudar etapa, definir próxima ação, anotar e cadastrar à mão dão erro, com `db:42703` (coluna
-que não existe) ou `db:42P01` (tabela `lead_notas` que não existe) no log `[/api/admin/...]`. Rode a
-004 (passos 1 a 3). Não precisa de Redeploy.
+**Entre o deploy e a 004** (ou se esquecer de rodar): mudar etapa, definir próxima ação, anotar e
+cadastrar à mão dão erro, com `db:42703` (coluna que não existe) ou `db:42P01` (tabela
+`lead_notas` que não existe) no log `[/api/admin/...]`. Rode a 004 (passos 3 e 4).
 
 ---
 
