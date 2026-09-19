@@ -38,10 +38,10 @@ const AUTORIZADO_EM_19_09 = { em: "2026-09-19", canal: "WhatsApp" } as const;
 
 export const DEPOIMENTOS: readonly Depoimento[] = [
   {
-    id: "ricardo-recife",
+    id: "rodrigo-recife",
     texto:
       "Tive acesso à versão demo e fiquei impressionado com a tecnologia e a praticidade que o sistema traz.",
-    nome: "Ricardo",
+    nome: "Rodrigo",
     papel: "Corretor",
     local: "Recife",
     contexto: "testou a demonstração",
@@ -68,7 +68,7 @@ export const DEPOIMENTOS: readonly Depoimento[] = [
   },
 ];
 
-/** Como a assinatura aparece na tela: "Ricardo, corretor em Recife". */
+/** Como a assinatura aparece na tela: "Rodrigo, corretor em Recife". */
 export function assinatura(d: Depoimento): string {
   const papel = d.papel === "Imobiliária" ? "imobiliária" : d.papel.toLowerCase();
   return `${d.nome}, ${papel} em ${d.local}`;

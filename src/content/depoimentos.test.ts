@@ -38,7 +38,7 @@ describe("depoimentos publicados", () => {
   });
 
   it("a assinatura sai legível", () => {
-    expect(assinatura(DEPOIMENTOS[0]!)).toBe("Ricardo, corretor em Recife");
+    expect(assinatura(DEPOIMENTOS[0]!)).toBe("Rodrigo, corretor em Recife");
     expect(
       assinatura({ ...DEPOIMENTOS[0]!, nome: "Ana", papel: "Imobiliária", local: "Olinda" }),
     ).toBe("Ana, imobiliária em Olinda");
