@@ -100,7 +100,7 @@ export default function SiteImoveis() {
           <Titulo>Sua imobiliária também ganha um site de imóveis</Titulo>
           <Sub>
             Não é só o sistema interno. Ao assinar o {brand.nomeCurto}, sua carteira vira um site
-            público — com a sua marca — onde o cliente busca, favorita e pede contato. Cadastrou o
+            público (com a sua marca) onde o cliente busca, favorita e pede contato. Cadastrou o
             imóvel no CRM, ele aparece lá.
           </Sub>
 
@@ -136,7 +136,7 @@ export default function SiteImoveis() {
             Ver o site de exemplo <Ic n="arrow-up-right" s={18} c={p.primary} />
           </Link>
           <div style={{ fontSize: 12.5, color: p.g500, marginTop: 10 }}>
-            Aberto, sem cadastro — o site é público por natureza.
+            Aberto, sem cadastro: o site é público por natureza.
           </div>
         </div>
 

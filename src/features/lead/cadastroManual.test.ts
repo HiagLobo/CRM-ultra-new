@@ -43,7 +43,7 @@ describe("cadastrarManual", () => {
       aceitoEm: T0.toISOString(),
       ip: IP_CADASTRO_MANUAL,
     });
-    expect(salvo.consentimento.texto).toMatch(/cadastro manual pelo administrador — canal indicação — base legal: legítimo interesse/i);
+    expect(salvo.consentimento.texto).toMatch(/cadastro manual pelo administrador, canal indicação, base legal: legítimo interesse/i);
   });
 
   it("e-mail e CRECI opcionais são normalizados como no formulário público", async () => {

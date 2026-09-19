@@ -41,7 +41,7 @@ export default function Planos({ onAcessar }: { onAcessar: () => void }) {
     <Secao id="planos" fundo={p.page}>
       <div style={{ maxWidth: 720, marginBottom: 24 }}>
         <Eyebrow>Planos</Eyebrow>
-        <Titulo>Comece pela demonstração — o plano vem depois</Titulo>
+        <Titulo>Comece pela demonstração: o plano vem depois</Titulo>
         <Sub>
           O acesso ao demo do {brand.nomeCurto} é gratuito e não pede cartão. Os valores de assinatura
           estão em definição e serão combinados no contato comercial.
@@ -49,7 +49,7 @@ export default function Planos({ onAcessar }: { onAcessar: () => void }) {
       </div>
 
       <div style={{ marginBottom: 34 }}>
-        <AvisoIlustrativo>Preços ainda não divulgados — nada é cobrado nesta etapa</AvisoIlustrativo>
+        <AvisoIlustrativo>Preços ainda não divulgados. Nada é cobrado nesta etapa</AvisoIlustrativo>
       </div>
 
       <div className="ds-cards" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 22 }}>

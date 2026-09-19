@@ -27,9 +27,9 @@ export const runtime = "nodejs"; // store/crypto exigem runtime Node (não Edge)
 
 /** Motivo do domínio → status HTTP + texto para o usuário (a UI da O2 lê o `erro`). */
 const RESPOSTA_FALHA: Record<MotivoFalha, { status: number; mensagem: string }> = {
-  codigo_invalido: { status: 400, mensagem: "código inválido — confira e tente novamente" },
-  expirado: { status: 410, mensagem: "código expirado — solicite um novo" },
-  tentativas_excedidas: { status: 429, mensagem: "tentativas esgotadas — solicite um novo código" },
+  codigo_invalido: { status: 400, mensagem: "código inválido, confira e tente novamente" },
+  expirado: { status: 410, mensagem: "código expirado, solicite um novo" },
+  tentativas_excedidas: { status: 429, mensagem: "tentativas esgotadas, solicite um novo código" },
 };
 
 export async function POST(req: NextRequest) {

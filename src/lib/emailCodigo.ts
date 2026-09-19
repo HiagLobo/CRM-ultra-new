@@ -41,7 +41,7 @@ export function montarEmailCodigo(codigo: string, brand: BrandConfig): EmailCodi
   const texto = [
     `Seu código de acesso ao demo do ${brand.nome} é ${codigo}.`,
     `Validade: ${validade}.`,
-    "Se você não solicitou, ignore este e-mail — nunca pediremos seu código por telefone ou mensagem.",
+    "Se você não solicitou, ignore este e-mail. Nunca pediremos seu código por telefone ou mensagem.",
     "",
     "—",
     `${brand.nome} · ${site}`,

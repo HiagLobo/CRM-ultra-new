@@ -67,7 +67,7 @@ export default function ModalEtapa({
       fecharNoFundo={false}
     >
       <p style={{ fontSize: 14, color: p.g700, margin: "-6px 0 16px", lineHeight: 1.5 }}>
-        {identificacaoLead(lead)} —{" "}
+        {identificacaoLead(lead)}:{" "}
         {retomar ? "sai da fila e volta para o “Hoje” no dia escolhido." : "sai da fila; o histórico fica."}
       </p>
       <form onSubmit={enviar} noValidate>

@@ -36,7 +36,7 @@ export function BotaoQueroUsar({
       href={linkQueroUsar()}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`${ROTULO_QUERO_USAR} — abre o WhatsApp em nova aba`}
+      aria-label={`${ROTULO_QUERO_USAR} (abre o WhatsApp em nova aba)`}
       className="ds-btnpop"
       style={{
         display: compacto ? "inline-flex" : "flex",

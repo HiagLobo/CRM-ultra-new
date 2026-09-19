@@ -187,7 +187,7 @@ export default function GavetaLead({
           </section>
 
           <section style={{ borderTop: `1px solid ${p.g100}`, paddingTop: 18 }}>
-            <button type="button" onClick={aoExcluir} disabled={ocupado} title="Excluir definitivamente (pedido do titular — LGPD)" style={botaoContorno(p.error, ocupado)}>
+            <button type="button" onClick={aoExcluir} disabled={ocupado} title="Excluir definitivamente (pedido do titular, LGPD)" style={botaoContorno(p.error, ocupado)}>
               <Ic n="user-x" s={14} c="currentColor" /> Excluir (LGPD)
             </button>
           </section>

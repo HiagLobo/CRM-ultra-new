@@ -42,7 +42,7 @@ export default function AccessFlow({
         <div style={{ marginBottom: 16 }}>
           <Aviso tipo="info">
             Seu acesso ao demo expirou ou ainda não foi liberado neste navegador. Confirme seu
-            e-mail para entrar de novo — leva menos de um minuto.
+            e-mail para entrar de novo, leva menos de um minuto.
           </Aviso>
         </div>
       )}

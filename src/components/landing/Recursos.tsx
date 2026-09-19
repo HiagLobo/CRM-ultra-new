@@ -13,7 +13,7 @@ const RECURSOS: { icone: string; titulo: string; texto: string }[] = [
     icone: "sparkles",
     titulo: "Assistente que adianta o trabalho",
     texto:
-      "O assistente atende primeiro, descobre o que o cliente procura, orçamento e urgência, e entrega a conversa já qualificada — com a ficha preenchida e a etapa do funil no lugar certo.",
+      "O assistente atende primeiro, descobre o que o cliente procura, orçamento e urgência, e entrega a conversa já qualificada, com a ficha preenchida e a etapa do funil no lugar certo.",
   },
   {
     icone: "kanban-square",
@@ -25,7 +25,7 @@ const RECURSOS: { icone: string; titulo: string; texto: string }[] = [
     icone: "message-circle",
     titulo: "Atendimento centralizado",
     texto:
-      "Conversas, modelos de mensagem, agenda de visitas e ficha do cliente na mesma tela — sem pular entre aplicativos.",
+      "Conversas, modelos de mensagem, agenda de visitas e ficha do cliente na mesma tela, sem pular entre aplicativos.",
   },
   {
     icone: "target",
@@ -49,7 +49,7 @@ const RECURSOS: { icone: string; titulo: string; texto: string }[] = [
     icone: "percent",
     titulo: "Comissões e financeiro",
     texto:
-      "Divisão de comissão, repasses e relatórios — o dinheiro de cada negócio rastreado do começo ao fim.",
+      "Divisão de comissão, repasses e relatórios: o dinheiro de cada negócio rastreado do começo ao fim.",
   },
 ];
 
@@ -60,7 +60,7 @@ export default function Recursos() {
         <Eyebrow>O que o {brand.nomeCurto} faz</Eyebrow>
         <Titulo>Tudo o que o dia do corretor exige, num sistema só</Titulo>
         <Sub>
-          Seis frentes que você percorre na demonstração — os mesmos módulos que o time usa no dia a
+          Seis frentes que você percorre na demonstração: os mesmos módulos que o time usa no dia a
           dia, com dados fictícios para você explorar sem medo.
         </Sub>
       </div>
