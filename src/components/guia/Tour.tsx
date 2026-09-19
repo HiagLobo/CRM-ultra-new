@@ -7,8 +7,13 @@
  * o que cada parte do menu faz.
  *
  * Decisões que importam:
- * - **Passo sem elemento na tela é pulado**, não trava o tour. No celular a
- *   barra lateral não existe, e metade dos alvos some junto.
+ * - **Passo cujo alvo não está NA TELA é pulado.** Existir no DOM não basta: no
+ *   celular o menu lateral continua lá, só que escondido ou fora da tela, e o
+ *   recorte apontava para um canto vazio. A lista é refeita a cada passo, porque
+ *   a tela muda enquanto o tour roda (a gaveta do menu abre, uma lista carrega).
+ * - **Espera a tela assentar antes de começar** (o Atendimento mostra um
+ *   esqueleto até ~850 ms). Fechar por falta de alvo não conta como visto.
+ * - O teclado não sequestra quem está digitando (regras em `regrasDoTour`).
  * - O recorte acompanha a tela a cada quadro: rolagem, resize e layout que
  *   assenta depois do carregamento moviam o buraco para o lugar errado.
  * - O fundo escuro **não** bloqueia clique no elemento destacado: quem quiser
@@ -16,77 +21,48 @@
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import { Ic } from "@/components/Icon";
-import {
-  posicaoDoBalao,
-  larguraDoBalao,
-  estaVisivel,
-  type Retangulo,
-} from "@/lib/tourPosicao";
+import { posicaoDoBalao, larguraDoBalao, type Retangulo, type Viewport } from "@/lib/tourPosicao";
 import type { PassoTour } from "@/content/guia";
+import { acaoDaTecla, passoVizinho, type MotivoSaida } from "./regrasDoTour";
+import { localizarAlvo, passosDisponiveis, trazerParaTela, useEsperaDosAlvos, viewportAtual } from "./alvosDoTour";
+import BalaoDoTour from "./BalaoDoTour";
 
 const ALTURA_ESTIMADA = 190; // usada só para escolher o lado; o balão ajusta sozinho
 
-export default function Tour({
-  passos,
-  aoSair,
-}: {
+interface Andamento {
+  /** Passos com alvo na tela na última conferência — dão o "Passo X de N". */
+  disponiveis: number[];
+  /** Índice do passo atual em `passos`. */
+  atual: number;
+}
+
+interface PropsDoTour {
   passos: PassoTour[];
-  /** `concluiu` = chegou ao fim (em vez de pular). */
-  aoSair: (concluiu: boolean) => void;
-}) {
-  const [indice, setIndice] = React.useState(0);
-  const [alvo, setAlvo] = React.useState<Retangulo | null>(null);
-  const [viewport, setViewport] = React.useState({ largura: 0, altura: 0 });
+  aoSair: (motivo: MotivoSaida) => void;
+}
 
-  // só os passos cujo elemento existe agora (mobile esconde a barra lateral)
-  const visiveis = React.useMemo(
-    () => passos.filter((passo) => document.querySelector(passo.alvo)),
-    [passos],
-  );
-  const passo = visiveis[indice];
+/**
+ * Tour de outra tela = tour novo: a chave zera espera e andamento. Sem isso, um
+ * índice do tour anterior apontaria para um passo que não existe no novo.
+ */
+export default function Tour(props: PropsDoTour) {
+  return <TourDaTela key={props.passos.map((passo) => passo.alvo).join("|")} {...props} />;
+}
 
+function TourDaTela({ passos, aoSair }: PropsDoTour) {
   const sair = React.useRef(aoSair);
   sair.current = aoSair;
 
-  // nenhum alvo na tela: não faz sentido abrir o tour
-  React.useEffect(() => {
-    if (visiveis.length === 0) sair.current(false);
-  }, [visiveis.length]);
+  const prontos = useEsperaDosAlvos(passos, () => sair.current("sem-alvo"));
+  const [andamento, setAndamento] = React.useState<Andamento | null>(null);
+  const [alvo, setAlvo] = React.useState<Retangulo | null>(null);
+  const [viewport, setViewport] = React.useState<Viewport>({ largura: 0, altura: 0 });
+  /** Algum balão chegou a aparecer? Sem isso, ficar sem passos não é "concluiu". */
+  const mostrou = React.useRef(false);
 
-  // traz o elemento para a área visível ao trocar de passo
   React.useEffect(() => {
-    if (!passo) return;
-    const el = document.querySelector(passo.alvo);
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    if (!estaVisivel(r, { largura: window.innerWidth, altura: window.innerHeight })) {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }, [passo]);
-
-  // acompanha o elemento quadro a quadro (rolagem, resize, layout assentando)
-  React.useEffect(() => {
-    if (!passo) return;
-    let quadro = 0;
-    let anterior = "";
-
-    const medir = () => {
-      const el = document.querySelector(passo.alvo);
-      if (el) {
-        const r = el.getBoundingClientRect();
-        const chave = `${r.top}|${r.left}|${r.width}|${r.height}|${window.innerWidth}`;
-        if (chave !== anterior) {
-          anterior = chave;
-          setAlvo({ top: r.top, left: r.left, width: r.width, height: r.height });
-          setViewport({ largura: window.innerWidth, altura: window.innerHeight });
-        }
-      }
-      quadro = requestAnimationFrame(medir);
-    };
-    quadro = requestAnimationFrame(medir);
-    return () => cancelAnimationFrame(quadro);
-  }, [passo]);
+    setAndamento(prontos && prontos.length > 0 ? { disponiveis: prontos, atual: prontos[0] } : null);
+  }, [prontos]);
 
   /**
    * O `sair` fica FORA do updater de estado de propósito. Chamado lá dentro,
@@ -94,31 +70,76 @@ export default function Tour({
    * component while rendering a different component" — o updater tem de ser
    * função pura.
    */
-  const avancar = React.useCallback(() => {
-    if (indice + 1 >= visiveis.length) {
-      sair.current(true);
-      return;
-    }
-    setIndice(indice + 1);
-  }, [indice, visiveis.length]);
+  const andar = React.useCallback(
+    (direcao: 1 | -1) => {
+      if (!andamento) return;
+      const disponiveis = passosDisponiveis(passos);
+      const proximo = passoVizinho(disponiveis, andamento.atual, direcao);
+      if (proximo !== null) setAndamento({ disponiveis, atual: proximo });
+      else if (direcao === 1) sair.current(mostrou.current ? "concluiu" : "sem-alvo");
+    },
+    [andamento, passos],
+  );
+  const andarRef = React.useRef(andar);
+  andarRef.current = andar;
 
-  const voltar = React.useCallback(() => setIndice((i) => Math.max(0, i - 1)), []);
-
+  // ao trocar de passo: traz o alvo para a tela; se sumiu ou não dá para ver, pula
   React.useEffect(() => {
+    if (!andamento) return;
+    const el = localizarAlvo(passos[andamento.atual].alvo);
+    if (!el || !trazerParaTela(el)) andarRef.current(1);
+  }, [andamento, passos]);
+
+  // acompanha o elemento quadro a quadro (rolagem, resize, layout assentando)
+  React.useEffect(() => {
+    if (!andamento) return;
+    const seletor = passos[andamento.atual].alvo;
+    let quadro = 0;
+    let anterior = "";
+
+    const medir = () => {
+      const el = localizarAlvo(seletor);
+      if (!el) {
+        andarRef.current(1); // sumiu no meio do passo: a gaveta fechou, a tela mudou
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const v = viewportAtual();
+      const chave = `${r.top}|${r.left}|${r.width}|${r.height}|${v.largura}|${v.altura}`;
+      if (chave !== anterior) {
+        anterior = chave;
+        mostrou.current = true;
+        setAlvo({ top: r.top, left: r.left, width: r.width, height: r.height });
+        setViewport(v);
+      }
+      quadro = requestAnimationFrame(medir);
+    };
+    quadro = requestAnimationFrame(medir);
+    return () => cancelAnimationFrame(quadro);
+  }, [andamento, passos]);
+
+  const ativo = andamento !== null;
+  React.useEffect(() => {
+    if (!ativo) return;
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === "Escape") sair.current(false);
-      if (e.key === "ArrowRight" || e.key === "Enter") avancar();
-      if (e.key === "ArrowLeft") voltar();
+      const foco = e.target instanceof HTMLElement ? e.target : null;
+      const acao = acaoDaTecla(e.key, {
+        tag: foco?.tagName ?? "",
+        editavel: foco?.isContentEditable ?? false,
+        modificador: e.altKey || e.ctrlKey || e.metaKey || e.isComposing,
+      });
+      if (acao === "sair") sair.current("pulou");
+      else if (acao === "avancar") andarRef.current(1);
+      else if (acao === "voltar") andarRef.current(-1);
     };
     document.addEventListener("keydown", aoTeclar);
     return () => document.removeEventListener("keydown", aoTeclar);
-  }, [avancar, voltar]);
+  }, [ativo]);
 
-  if (!passo || !alvo || viewport.largura === 0) return null;
+  if (!andamento || !alvo || viewport.largura === 0) return null;
 
   const largura = larguraDoBalao(viewport);
   const { top, left } = posicaoDoBalao(alvo, viewport, { largura, altura: ALTURA_ESTIMADA });
-  const ultimo = indice === visiveis.length - 1;
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 400, pointerEvents: "none" }}>
@@ -138,72 +159,15 @@ export default function Tour({
         }}
       />
 
-      <div
-        role="dialog"
-        aria-modal="false"
-        aria-labelledby="tour-titulo"
-        style={{
-          position: "fixed",
-          top,
-          left,
-          width: largura,
-          background: "#fff",
-          borderRadius: 14,
-          boxShadow: "0 24px 60px rgba(20,6,38,.4)",
-          padding: 18,
-          pointerEvents: "auto",
-          fontFamily: "var(--font-body)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase", color: p.primary }}>
-            Passo {indice + 1} de {visiveis.length}
-          </span>
-          <button
-            type="button"
-            onClick={() => sair.current(false)}
-            style={{ marginLeft: "auto", background: "none", border: "none", padding: 2, cursor: "pointer", color: p.g500, display: "grid" }}
-            aria-label="Fechar o tour"
-          >
-            <Ic n="x" s={16} c={p.g500} />
-          </button>
-        </div>
-
-        <h3 id="tour-titulo" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, margin: "0 0 6px", color: p.ink }}>
-          {passo.titulo}
-        </h3>
-        <p style={{ fontSize: 14, lineHeight: 1.55, color: p.g700, margin: 0 }}>{passo.texto}</p>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16 }}>
-          <button
-            type="button"
-            onClick={() => sair.current(false)}
-            style={{ background: "none", border: "none", padding: 0, color: p.g500, fontSize: 13, cursor: "pointer", fontFamily: "var(--font-body)" }}
-          >
-            Pular
-          </button>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-            {indice > 0 && (
-              <button
-                type="button"
-                onClick={voltar}
-                style={{ border: `1.5px solid ${p.g300}`, background: "#fff", color: p.g700, borderRadius: 999, padding: "9px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "var(--font-body)" }}
-              >
-                Anterior
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={avancar}
-              className="ds-btnpop"
-              style={{ border: "none", background: p.primary, color: "#fff", borderRadius: 999, padding: "9px 18px", fontSize: 13.5, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "var(--font-body)" }}
-            >
-              {ultimo ? "Concluir" : "Próximo"}
-              {!ultimo && <Ic n="arrow-right" s={15} c="#fff" />}
-            </button>
-          </div>
-        </div>
-      </div>
+      <BalaoDoTour
+        passo={passos[andamento.atual]}
+        numero={andamento.disponiveis.indexOf(andamento.atual) + 1}
+        total={andamento.disponiveis.length}
+        posicao={{ top, left, largura }}
+        aoPular={() => sair.current("pulou")}
+        aoVoltar={() => andar(-1)}
+        aoAvancar={() => andar(1)}
+      />
     </div>
   );
 }

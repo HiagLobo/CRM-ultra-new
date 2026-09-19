@@ -75,11 +75,14 @@ const RANKING = [
 ];
 
 /* ---------------- SIDEBAR ---------------- */
-function FqSidebar({ active, go }: { active: string; go: (id: string) => void }) {
+function FqSidebar({ active, go, aberto, fechar }: { active: string; go: (id: string) => void; aberto: boolean; fechar: () => void }) {
   return (
-    <aside className="fq-side" data-tour="fq-menu" style={{ width: 268, minWidth: 268, background: fq.dark, color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', flexShrink: 0 }}>
-      <div style={{ padding: '20px 18px 14px' }}>
+    <aside className={`fq-side${aberto ? ' aberto' : ''}`} data-tour="fq-menu" style={{ width: 268, minWidth: 268, background: fq.dark, color: '#fff', display: 'flex', flexDirection: 'column', position: 'sticky', top: 0, height: '100vh', flexShrink: 0 }}>
+      <div style={{ padding: '20px 18px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <img src="/assets/logo-white.svg" alt={brand.nome} style={{ height: 44 }} />
+        <button className="fq-fechar" onClick={fechar} title="Fechar" aria-label="Fechar menu" style={{ width: 34, height: 34, border: '1px solid rgba(255,255,255,.18)', background: 'rgba(255,255,255,.06)', borderRadius: 9, placeItems: 'center', cursor: 'pointer' }}>
+          <CIc n="x" s={18} c="#fff" />
+        </button>
       </div>
       <div style={{ margin: '0 16px 8px', padding: '8px 12px', background: 'rgba(255,255,255,.08)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="store" s={15} c="#fff" />
@@ -114,12 +117,16 @@ function FqSidebar({ active, go }: { active: string; go: (id: string) => void })
 }
 
 /* ---------------- TOPBAR ---------------- */
-function FqTopbar() {
+function FqTopbar({ abrirMenu }: { abrirMenu: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   return (
-    <header style={{ minHeight: 72, background: '#fff', borderBottom: `1px solid ${fq.g300}`, display: 'flex', alignItems: 'center', padding: '0 28px', gap: 16, position: 'sticky', top: 0, zIndex: 30 }}>
-      <div title="Seu acesso é limitado à sua unidade — garantido pelo servidor" style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${fq.g300}`, background: fq.lilac1, borderRadius: 999, padding: '8px 14px', cursor: 'not-allowed' }}>
+    <header className="fq-top" style={{ minHeight: 72, background: '#fff', borderBottom: `1px solid ${fq.g300}`, display: 'flex', alignItems: 'center', padding: '0 28px', gap: 16, position: 'sticky', top: 0, zIndex: 30 }}>
+      {/* mesmo data-tour do menu: no celular o tour destaca o botão que abre a gaveta */}
+      <button className="fq-burger" onClick={abrirMenu} title="Menu" aria-label="Abrir menu" data-tour="fq-menu" style={{ width: 42, height: 42, border: `1px solid ${fq.g300}`, background: '#fff', borderRadius: 12, placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+        <CIc n="menu" s={22} c={fq.ink} />
+      </button>
+      <div className="fq-unidade" title="Seu acesso é limitado à sua unidade — garantido pelo servidor" style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${fq.g300}`, background: fq.lilac1, borderRadius: 999, padding: '8px 14px', cursor: 'not-allowed' }}>
         <span style={{ width: 30, height: 30, borderRadius: '50%', background: fq.lilac2, display: 'grid', placeItems: 'center' }}>
           <CIc n="store" s={16} c={fq.primary} />
         </span>
@@ -129,7 +136,7 @@ function FqTopbar() {
         </span>
         <CIc n="lock" s={14} c={fq.g500} />
       </div>
-      <div style={{ flex: 1, maxWidth: 420, display: 'flex', alignItems: 'center', gap: 10, background: fq.g100, borderRadius: 999, padding: '0 16px', height: 44 }}>
+      <div style={{ flex: 1, maxWidth: 420, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, background: fq.g100, borderRadius: 999, padding: '0 16px', height: 44 }}>
         <CIc n="search" s={18} c={fq.g500} />
         <input placeholder="Buscar na sua unidade…" style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'var(--font-body)', fontSize: 14, color: fq.ink, minWidth: 0 }} />
       </div>
@@ -140,7 +147,7 @@ function FqTopbar() {
         </button>
         <button onClick={() => setOpen((o) => !o)} style={{ display: 'flex', alignItems: 'center', gap: 10, border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 6px 4px 4px', borderRadius: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg, ${fq.light}, ${fq.deep})`, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 700, fontFamily: 'var(--font-display)' }}>BT</div>
-          <div style={{ lineHeight: 1.2, textAlign: 'left' }}>
+          <div className="fq-nome" style={{ lineHeight: 1.2, textAlign: 'left' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: fq.ink }}>Bruno Tavares</div>
             <div style={{ fontSize: 12, color: fq.g500 }}>Franqueado · Boa Viagem</div>
           </div>
@@ -282,7 +289,7 @@ function FqLeads() {
 function FqPlano() {
   return (
     <section id="plano" style={{ scrollMarginTop: 90 }}>
-      <div className="fq-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 18 }}>
+      <div className="fq-2col" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(360px, 100%), 1fr))', gap: 18 }}>
         <div style={{ ...fqCard, padding: 22 }}>
           <FqHead title="Plano & assentos" sub={`Sua assinatura da ${demo.nome}`} right={<FqBadge text="em dia" fg={fq.success} bg={fq.successBg} ic="check" />} />
           <div style={{ background: `linear-gradient(135deg, ${fq.primary}, ${fq.deep})`, borderRadius: 14, padding: '18px 20px', color: '#fff', marginBottom: 14, boxShadow: 'var(--shadow-purple)' }}>
@@ -387,20 +394,43 @@ function FqRanking() {
 }
 
 /* ---------------- PAGE ---------------- */
+/* No celular a barra lateral vira gaveta (o mesmo padrão do painel do CEO): antes ela
+   só sumia, e o painel ficava sem navegação. Fechada, fica invisível — fora do Tab e
+   do tour. A topbar perde o que não cabe em 390 px (unidade e nome, que já estão na
+   gaveta e no título). CSS, e não hook de viewport: sem piscar a barra no 1º render. */
+const CSS_CELULAR = `
+  .fq-burger, .fq-fechar { display: none; }
+  @media (max-width: 880px) {
+    .fq-burger, .fq-fechar { display: grid !important; }
+    .fq-side { position: fixed !important; top: 0; left: 0; bottom: 0; height: auto !important; z-index: 60;
+      transform: translateX(-100%); visibility: hidden;
+      transition: transform .24s cubic-bezier(.2,.7,.3,1), visibility 0s linear .24s; }
+    .fq-side.aberto { transform: translateX(0); visibility: visible; transition: transform .24s cubic-bezier(.2,.7,.3,1); }
+    .fq-overlay { position: fixed; inset: 0; background: rgba(28,26,34,.45); z-index: 55; }
+    .fq-top { padding: 0 16px !important; gap: 12px !important; }
+    .fq-unidade, .fq-nome { display: none !important; }
+    .fq-main { padding: 18px !important; }
+  }
+  @media (min-width: 881px) { .fq-overlay { display: none; } }
+`;
+
 export default function FranqueadoPage() {
   const [active, setActive] = useState('visao');
+  const [menuAberto, setMenuAberto] = useState(false);
   const go = (id: string) => {
     setActive(id);
+    setMenuAberto(false);
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <style>{`@media (max-width: 880px){ .fq-side { display: none !important; } }`}</style>
-      <FqSidebar active={active} go={go} />
+      <style>{CSS_CELULAR}</style>
+      {menuAberto && <div className="fq-overlay" onClick={() => setMenuAberto(false)} />}
+      <FqSidebar active={active} go={go} aberto={menuAberto} fechar={() => setMenuAberto(false)} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <GuiaDemo painel="franqueado" />
-        <FqTopbar />
-        <main style={{ padding: 28, flex: 1, overflow: 'auto' }}>
+        <FqTopbar abrirMenu={() => setMenuAberto(true)} />
+        <main className="fq-main" style={{ padding: 28, flex: 1, overflow: 'auto' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 1180 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
               <div>
