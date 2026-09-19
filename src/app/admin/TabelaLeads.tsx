@@ -1,9 +1,10 @@
 "use client";
 /**
  * Lista de leads da aba: quem é, contato em um clique (WhatsApp com mensagem
- * curta, e-mail), entrada, próximo passo e o seletor de etapa. Clicar na linha
- * (ou no nome, pelo teclado) abre a gaveta do lead.
- * Celular: cada linha vira um cartão (nome + etapa, telefone, próximo passo).
+ * curta, e-mail), CRECI com o selo da conferência, entrada, próximo passo e o
+ * seletor de etapa. Selos da O9 sob o nome: "repetido" e "voltou ao demo".
+ * Clicar na linha (ou no nome, pelo teclado) abre a gaveta do lead.
+ * Celular: cada linha vira um cartão (nome + selos + etapa, telefone, próximo passo).
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
@@ -13,6 +14,8 @@ import { ROTULO_CANAL, type StatusLead } from "@/features/lead/funil";
 import SeletorEtapa from "./SeletorEtapa";
 import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
 import { proximoPasso, type TomPasso } from "./hoje";
+import { textoConferencia } from "./creciPainel";
+import { dataHoraCurta, textoRepetido, voltouAoDemo, type MotivoRepetido } from "./selosLead";
 
 const COR_TOM: Readonly<Record<TomPasso, string>> = {
   atrasado: p.error,
@@ -34,6 +37,17 @@ const th: React.CSSProperties = {
 const td: React.CSSProperties = { fontSize: 14, color: p.ink, padding: "12px 14px", borderTop: `1px solid ${p.g100}`, whiteSpace: "nowrap" };
 const link: React.CSSProperties = { color: "inherit", textDecoration: "underline", textDecorationColor: p.g300, textUnderlineOffset: 3 };
 const pararClique = (e: React.MouseEvent) => e.stopPropagation();
+
+/** Selo curto sob o nome (texto escuro sobre fundo claro da cor: legível nos dois tamanhos). */
+function Selo({ cor, icone, texto, dica }: { cor: string; icone: string; texto: string; dica: string }) {
+  return (
+    <span title={dica} style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: p.ink, background: `${cor}24`, borderRadius: 999, padding: "2px 8px", whiteSpace: "nowrap" }}>
+      <Ic n={icone} s={12} c={cor} /> {texto}
+      {/* a dica também para leitor de tela (o title não é lido em todo lugar) */}
+      <span style={{ position: "absolute", width: 1, height: 1, margin: -1, padding: 0, border: 0, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>: {dica}</span>
+    </span>
+  );
+}
 
 /** Desktop: tabela. Até 640 px: cada linha vira cartão em grade (sem rolagem lateral). */
 const CSS_LISTA = `
@@ -57,12 +71,15 @@ export default function TabelaLeads({
   leads,
   agora,
   ocupado,
+  repetidos,
   aoAbrir,
   aoEscolherEtapa,
 }: {
   leads: LeadAdmin[];
   agora: Date;
   ocupado: string | null;
+  /** Calculado sobre a lista inteira (não só a aba): o repetido pode estar em outra etapa. */
+  repetidos: ReadonlyMap<string, MotivoRepetido[]>;
   aoAbrir: (id: string) => void;
   aoEscolherEtapa: (lead: LeadAdmin, etapa: StatusLead) => void;
 }) {
@@ -85,6 +102,9 @@ export default function TabelaLeads({
             const travado = ocupado === l.id;
             const passo = proximoPasso(l, agora);
             const whatsapp = linkWhatsappLead(l.telefone, l.canal);
+            const repetido = repetidos.get(l.id);
+            const voltou = voltouAoDemo(l, agora);
+            const conferencia = textoConferencia(l);
             return (
               <tr key={l.id} className="adm-linha" onClick={() => aoAbrir(l.id)} style={{ opacity: travado ? 0.5 : 1 }}>
                 <td className="adm-c-lead" style={{ ...td, maxWidth: 260 }}>
@@ -115,6 +135,12 @@ export default function TabelaLeads({
                       escrever e-mail
                     </a>
                   )}
+                  {(repetido || voltou) && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                      {repetido && <Selo cor={p.warning} icone="users" texto="repetido" dica={textoRepetido(repetido)} />}
+                      {voltou && <Selo cor={p.info} icone="log-in" texto="voltou ao demo" dica={`Último acesso: ${dataHoraCurta(l.ultimoAcessoEm)}`} />}
+                    </div>
+                  )}
                 </td>
                 <td className="adm-c-tel" style={td}>
                   {whatsapp ? (
@@ -125,7 +151,14 @@ export default function TabelaLeads({
                     telefoneNacional(l.telefone)
                   )}
                 </td>
-                <td className="adm-c-creci" style={{ ...td, color: p.g700 }}>{l.creci || "—"}</td>
+                <td className="adm-c-creci" style={{ ...td, color: p.g700 }}>
+                  {l.creci || "—"}
+                  {conferencia && (
+                    <span title={`CRECI: ${conferencia}`} aria-label={`CRECI: ${conferencia}`} style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 6 }}>
+                      <Ic n={l.creciConferencia === "conferido" ? "check-circle-2" : "x"} s={15} c={l.creciConferencia === "conferido" ? p.success : p.error} />
+                    </span>
+                  )}
+                </td>
                 <td className="adm-c-entrada" style={{ ...td, color: p.g700, fontSize: 13 }}>
                   {dataHoraRecife(l.criadoEm).slice(0, 10)}
                   <div style={{ fontSize: 12, color: p.g500 }}>{ROTULO_CANAL[l.canal]}{l.origem?.utm ? ` · ${l.origem.utm}` : ""}</div>

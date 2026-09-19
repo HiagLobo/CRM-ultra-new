@@ -9,7 +9,8 @@ captura o corretor (nome + e-mail + WhatsApp + CRECI com o estado, com consentim
 cadastro por pessoa, e quem já tem cadastro entra só com o e-mail —, verificação por código
 enviado por e-mail, acesso a um **demo navegável** dos três painéis, e um **painel de leads** com funil — etapas,
 "retomar depois", próxima ação, anotações e cadastro manual — onde o fundador trabalha cada contato:
-uma aba **Hoje** com o que fazer no dia, abas por etapa e a ficha de cada lead (no computador e no celular).
+uma aba **Hoje** com o que fazer no dia, abas por etapa e a ficha de cada lead (no computador e no celular),
+com a conferência do CRECI na busca oficial do conselho e os selos "repetido" e "voltou ao demo".
 
 Os painéis do CRM são **demonstração**: telas completas com dados fictícios. O backend real do
 produto é outra fase.

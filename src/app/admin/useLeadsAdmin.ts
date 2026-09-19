@@ -1,7 +1,7 @@
 "use client";
 /**
  * Estado e chamadas do painel de leads: carregar, mudar etapa, próxima ação,
- * cadastrar, excluir, exportar e sair. Toda falha vira mensagem visível — nada
+ * conferência do CRECI (O9), cadastrar, excluir, exportar e sair. Toda falha vira mensagem visível — nada
  * de erro engolido — e sessão vencida (401) volta para o login em qualquer ação.
  *
  * As ações devolvem o resultado (em vez de só acender o aviso do topo): na
@@ -11,6 +11,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { LeadAdmin } from "@/features/lead/admin";
 import type { MudancaEtapa, ProximaAcao } from "@/features/lead/funil";
+import type { ConferenciaCreci } from "@/features/lead/creci";
 import { comJson, pedirApi } from "./apiPainel";
 import { mensagemDeErro, respostaOk, type RespostaApi } from "./mensagensApi";
 import { lerRespostaCadastro, type FormNovoLead, type ResultadoCadastroTela } from "./formNovoLead";
@@ -77,6 +78,10 @@ export function useLeadsAdmin() {
   const definirProximaAcao = (id: string, acao: ProximaAcao | null) =>
     alterar(id, { proximaAcao: acao }, acao ? "salvar a próxima ação" : "limpar a próxima ação");
 
+  /** Resultado da conferência na busca oficial do conselho; `null` desfaz. */
+  const conferirCreci = (id: string, conferencia: ConferenciaCreci | null) =>
+    alterar(id, { creciConferencia: conferencia }, conferencia ? "marcar a conferência do CRECI" : "desfazer a conferência do CRECI");
+
   /** Cadastro manual; o lead novo entra no topo da lista (é o mais recente). */
   async function cadastrar(form: FormNovoLead): Promise<ResultadoCadastroTela> {
     const r = await pedir("/api/admin/leads", comJson("POST", form));
@@ -138,6 +143,7 @@ export function useLeadsAdmin() {
     carregar,
     mudarEtapa,
     definirProximaAcao,
+    conferirCreci,
     cadastrar,
     excluir,
     exportar,

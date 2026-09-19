@@ -1,7 +1,8 @@
 "use client";
 /**
- * Gaveta do lead (abre ao clicar na linha): contato em um clique, etapa,
- * próxima ação, anotações, dados de origem e a exclusão (LGPD). Lateral no
+ * Gaveta do lead (abre ao clicar na linha): contato em um clique, CRECI com a
+ * conferência (O9), etapa, próxima ação, anotações, dados de origem (com o
+ * último acesso ao demo) e a exclusão (LGPD). Lateral no
  * computador; tela cheia no celular (`min(480px, 100%)`). Esc e o fundo fecham.
  */
 import * as React from "react";
@@ -9,9 +10,12 @@ import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { dataHoraRecife, diaBR, telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
 import { ROTULO_CANAL, type ProximaAcao, type StatusLead } from "@/features/lead/funil";
+import type { ConferenciaCreci } from "@/features/lead/creci";
 import SeletorEtapa from "./SeletorEtapa";
 import BlocoProximaAcao from "./BlocoProximaAcao";
 import BlocoNotas from "./BlocoNotas";
+import BlocoCreci from "./BlocoCreci";
+import { dataHoraCurta } from "./selosLead";
 import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
 import { acao, botaoContorno, caixaErro, tituloSecao } from "./estilos";
 import type { ResultadoAcao } from "./useLeadsAdmin";
@@ -26,6 +30,7 @@ export default function GavetaLead({
   aoEscolherEtapa,
   aoAlterarRetomar,
   aoDefinirProximaAcao,
+  aoConferirCreci,
   aoExcluir,
 }: {
   lead: LeadAdmin;
@@ -38,6 +43,7 @@ export default function GavetaLead({
   aoEscolherEtapa: (etapa: StatusLead) => Promise<ResultadoAcao>;
   aoAlterarRetomar: () => void;
   aoDefinirProximaAcao: (acao: ProximaAcao | null) => Promise<ResultadoAcao>;
+  aoConferirCreci: (conferencia: ConferenciaCreci | null) => Promise<ResultadoAcao>;
   aoExcluir: () => void;
 }) {
   const [erroEtapa, setErroEtapa] = React.useState<string | null>(null);
@@ -118,10 +124,11 @@ export default function GavetaLead({
               itens={[
                 ["Telefone", telefoneNacional(lead.telefone)],
                 ["E-mail", lead.email ?? "—"],
-                ["CRECI", lead.creci || "—"],
               ]}
             />
           </section>
+
+          <BlocoCreci lead={lead} ocupado={ocupado} aoConferir={aoConferirCreci} />
 
           <section aria-labelledby="gaveta-etapa">
             <h3 id="gaveta-etapa" style={tituloSecao}>Etapa</h3>
@@ -167,6 +174,7 @@ export default function GavetaLead({
                 ["Campanha", origem || "—"],
                 ["Entrou em", dataHoraRecife(lead.criadoEm)],
                 ["E-mail confirmado", lead.verificadoEm ? dataHoraRecife(lead.verificadoEm) : "não"],
+                ["Último acesso ao demo", lead.ultimoAcessoEm ? dataHoraCurta(lead.ultimoAcessoEm) : "—"],
               ]}
             />
           </section>

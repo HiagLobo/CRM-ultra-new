@@ -435,6 +435,19 @@ coluna **Próximo passo** diz o que falta em cada lead (em vermelho quando está
 WhatsApp e e-mail, a etapa, a próxima ação (editar ou limpar), as anotações, de onde o lead veio e o
 **Excluir (LGPD)**. Esc ou o X fecham.
 
+**Conferir o CRECI** (não há consulta automática: os conselhos não têm API oficial e as buscas têm
+captcha). Na ficha, bloco **CRECI**: **Copiar número** → **Conferir no CRECI-PE ↗** (abre a busca
+oficial do conselho em outra aba) → cole o número e confira nome e situação → volte e marque
+**✓ Confere** ou **✗ Não confere** ("Desfazer" limpa). A lista mostra o selo ao lado do CRECI. CRECI
+antigo sem estado: o link diz **(provável)** — a UF é palpite pelo DDD do WhatsApp; se não achar,
+confira no conselho de outro estado. Se o corretor trocar o CRECI pelo site, a conferência antiga é
+desfeita sozinha. Os endereços das buscas ficam em `src/config/creciConsulta.ts`.
+
+**Selos da lista.** **repetido**: outro lead tem o mesmo WhatsApp ou o mesmo CRECI (o cadastro novo
+já barra; o selo mostra os que vieram de antes — passe o mouse para ver qual dado repete).
+**voltou ao demo**: o lead entrou de novo no demo nos últimos 7 dias (a ficha mostra o "Último
+acesso ao demo") — bom momento para puxar conversa.
+
 **Funil de leads.** Cada lead está numa **etapa**: **Novo** → **Em contato** → **Demonstração** →
 **Negociação** → **Cliente**. A etapa muda no seletor da própria linha ou na ficha. Fora da fila de
 trabalho ficam **Retomar depois** e **Perdido**:
