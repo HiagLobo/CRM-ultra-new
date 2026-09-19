@@ -1,0 +1,32 @@
+{
+  "name": "crm-imobiliario-ultra",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CRM Imobiliario Ultra - site publico + captacao de leads + demo navegavel (paineis corretor/CEO/franquias).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "seed": "node scripts/seed.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "0.383.0",
+    "next": "^15.5.25",
+    "pg": "^8.23.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "resend": "^4.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/pg": "^8.21.0",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "typescript": "5.5.4",
+    "vitest": "^2.1.8"
+  }
+}

@@ -1,0 +1,563 @@
+/* ============================================================
+   CRM IMOBILIÁRIO ULTRA — Design System Foundations  (ported verbatim)
+   Colors + Type tokens + animation utilities from the handoff.
+   Fonts load from Google Fonts (Plus Jakarta Sans + Inter).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  /* ---------- BRAND PURPLES ---------- */
+  --purple-primary: #4F46E5;   /* marca — primary CTAs, links, brand */
+  --purple-dark:    #4338CA;   /* seções / sidebar / footer bands */
+  --purple-deep:    #312E81;   /* deepest band, hero overlays */
+  --purple-light:   #6366F1;   /* hover state on primary purple */
+  --lilac-200:      #E0E7FF;   /* soft tinted backgrounds, chips */
+  --lilac-100:      #EEF2FF;   /* faintest wash, hover rows */
+
+  /* ---------- INK & NEUTRALS ---------- */
+  --ink:            #1C1A22;   /* primary text, near-black */
+  --gray-700:       #4A4754;   /* secondary text */
+  --gray-500:       #807C8A;   /* tertiary text, captions, icons */
+  --gray-300:       #D8D5DE;   /* borders, dividers */
+  --gray-100:       #F2F1F5;   /* subtle fills, table stripes */
+  --page-bg:        #FAFAFB;   /* default page background */
+  --white:          #FFFFFF;
+
+  /* ---------- SEMANTIC ---------- */
+  --success:        #2E9E5B;
+  --warning:        #E0A82E;
+  --error:          #D64545;
+  --success-bg:     #E6F4EC;
+  --warning-bg:     #FBF1DC;
+  --error-bg:       #FAE5E5;
+
+  --on-purple:      #FFFFFF;   /* text over any purple — always white */
+
+  /* ---------- TYPE FAMILIES ---------- */
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ---------- TYPE SCALE ---------- */
+  --fs-h1:   48px;
+  --fs-h2:   32px;
+  --fs-h3:   22px;
+  --fs-body: 16px;
+  --fs-sm:   14px;
+  --fs-micro:12px;
+
+  --lh-tight: 1.1;   /* headings */
+  --lh-body:  1.55;  /* body copy */
+
+  /* ---------- WEIGHTS ---------- */
+  --fw-body:     400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+  --fw-extra:    800;
+
+  /* ---------- SPACING (8px base) ---------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ---------- RADII ---------- */
+  --r-button: 10px;
+  --r-input:  10px;
+  --r-card:   16px;
+  --r-pill:   999px;
+
+  /* ---------- SHADOWS (soft elevation) ---------- */
+  --shadow-sm: 0 1px 2px rgba(28, 26, 34, 0.06), 0 1px 3px rgba(28, 26, 34, 0.04);
+  --shadow-md: 0 4px 12px rgba(28, 26, 34, 0.08), 0 2px 4px rgba(28, 26, 34, 0.04);
+  --shadow-lg: 0 12px 32px rgba(49,46,129, 0.12), 0 4px 8px rgba(28, 26, 34, 0.05);
+  --shadow-purple: 0 8px 24px rgba(79,70,229, 0.24);
+}
+
+/* ============================================================
+   SEMANTIC TYPE CLASSES
+   ============================================================ */
+.ds-h1 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-extra);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.ds-h2 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.ds-h3 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-h3);
+  line-height: 1.25;
+  color: var(--ink);
+}
+.ds-body {
+  font-family: var(--font-body);
+  font-weight: var(--fw-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--gray-700);
+}
+.ds-small {
+  font-family: var(--font-body);
+  font-weight: var(--fw-body);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  color: var(--gray-500);
+}
+.ds-micro {
+  font-family: var(--font-body);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-micro);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+
+/* ============================================================
+   BASE RESET (from each prototype's <style>)
+   ============================================================ */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--page-bg);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+html { scroll-behavior: smooth; }
+a { color: inherit; }
+
+/* ============================================================
+   NAV / BUTTON ANIMATIONS  (SiteShell injectBtnAnim — verbatim)
+   ============================================================ */
+/* nav links: animated underline grows from center + lift */
+.ds-navlink { position:relative; transition: color .2s ease, background .2s ease, transform .15s ease; }
+.ds-navlink::after { content:''; position:absolute; left:12px; right:12px; bottom:3px; height:2px;
+  background: var(--purple-primary, #4F46E5); border-radius:2px; transform: scaleX(0); transform-origin:center;
+  transition: transform .28s cubic-bezier(.2,.7,.3,1); }
+.ds-navlink:hover { color: var(--purple-primary, #4F46E5) !important; transform: translateY(-1px); }
+.ds-navlink:hover::after { transform: scaleX(1); }
+.ds-navlink:active { transform: translateY(0) scale(.97); }
+.ds-navlink.is-active::after { transform: scaleX(1); }
+
+/* pill buttons (WhatsApp, Buscar): lift + shadow on hover, shrink on press */
+.ds-btnpop { transition: transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease, background .2s ease, filter .2s ease; }
+.ds-btnpop:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(79,70,229,.28); filter: brightness(1.04); }
+.ds-btnpop:active { transform: translateY(0) scale(.96); }
+
+/* icon-box (menu grid): rotate icon + tint on hover, press shrink */
+.ds-iconbox { transition: transform .18s ease, border-color .2s ease, background .2s ease, box-shadow .25s ease; }
+.ds-iconbox:hover { border-color: var(--purple-primary,#4F46E5) !important; background: var(--lilac-100,#EEF2FF) !important;
+  box-shadow: 0 6px 16px rgba(79,70,229,.18); }
+.ds-iconbox:hover svg { transform: rotate(90deg); color: var(--purple-primary,#4F46E5); }
+.ds-iconbox svg { transition: transform .3s cubic-bezier(.2,.7,.3,1), color .2s ease; }
+.ds-iconbox:active { transform: scale(.92); }
+
+/* hero tabs (Comprar/Alugar/Filtros): lift + shadow, press shrink */
+.ds-tab { transition: transform .18s cubic-bezier(.2,.7,.3,1), background .2s ease, color .2s ease, box-shadow .25s ease; }
+.ds-tab:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(20,6,38,.22); }
+.ds-tab:active { transform: translateY(0) scale(.95); }
+.ds-tab svg { transition: transform .3s ease; }
+.ds-tab:hover svg { transform: rotate(12deg); }
+
+/* ============================================================
+   PROPERTY CARD GALLERY  (SiteComponents injectCardStyles — verbatim)
+   ============================================================ */
+.ds-pcard { background:#fff; border-radius:16px; box-shadow: var(--shadow-md); overflow:hidden;
+  font-family: var(--font-body); transition: transform .4s cubic-bezier(.2,.7,.3,1), box-shadow .4s ease; }
+.ds-pcard:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.ds-gallery { position:relative; height:190px; overflow:hidden; }
+.ds-track { display:flex; height:100%; transition: transform .5s cubic-bezier(.2,.7,.3,1); will-change: transform; }
+.ds-slide { flex:0 0 100%; height:100%; background-size:cover; background-position:center;
+  transition: transform .6s cubic-bezier(.2,.7,.3,1); }
+.ds-pcard:hover .ds-slide { transform: scale(1.06); }
+.ds-arrow { position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px; border:none;
+  background:rgba(255,255,255,.92); border-radius:50%; display:grid; place-items:center; cursor:pointer;
+  opacity:0; transition: opacity .25s ease, background .2s ease; box-shadow:0 2px 8px rgba(0,0,0,.18); z-index:3; }
+.ds-arrow:hover { background:#fff; }
+.ds-pcard:hover .ds-arrow { opacity:1; }
+.ds-arrow.l { left:10px; } .ds-arrow.r { right:10px; }
+.ds-dot { border-radius:999px; cursor:pointer; height:7px; background:rgba(255,255,255,.55);
+  transition: width .3s ease, background .3s ease; }
+
+/* ============================================================
+   RECRUIT (seja-corretor) animations  (RecruitShell — verbatim)
+   ============================================================ */
+.rec-cta { position:relative; overflow:hidden; transition: transform .18s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease, filter .2s ease; }
+.rec-cta:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(79,70,229,.4); filter: brightness(1.05); }
+.rec-cta:active { transform: translateY(0) scale(.97); }
+.rec-cta::after { content:''; position:absolute; top:0; left:-120%; width:60%; height:100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform: skewX(-18deg); }
+.rec-cta:hover::after { animation: recShine .8s ease; }
+@keyframes recShine { to { left:140%; } }
+.rec-rise { opacity:0; transform: translateY(26px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
+.rec-rise.in { opacity:1; transform:none; }
+.rec-card-hover { transition: transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease, border-color .2s ease; }
+.rec-card-hover:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
+.rec-navlink { position:relative; transition: color .2s ease; }
+.rec-navlink::after { content:''; position:absolute; left:0; right:0; bottom:-3px; height:2px; background:#fff; border-radius:2px; transform:scaleX(0); transform-origin:center; transition: transform .26s cubic-bezier(.2,.7,.3,1); }
+.rec-navlink:hover::after { transform:scaleX(1); }
+
+/* ============================================================
+   SOBRE (about) animations  (SobreSectionsA — verbatim)
+   ============================================================ */
+.sb-rise{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1);}
+.sb-rise.in{opacity:1;transform:none;}
+.sb-card{transition:transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .25s ease;}
+.sb-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);}
+
+/* tap feedback (mobile helpers) */
+.tap { -webkit-tap-highlight-color: transparent; }
+.noscroll::-webkit-scrollbar { display: none; }
+.noscroll { scrollbar-width: none; }
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+/* ============================================================
+   LANDING — movimento
+   Tudo aqui é decoração: nada some nem deixa de funcionar quando
+   o sistema pede menos animação (bloco prefers-reduced-motion).
+   ============================================================ */
+
+/* revelação ao rolar: o .in entra por IntersectionObserver */
+.lp-rise { opacity: 0; transform: translateY(22px);
+  transition: opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1); }
+.lp-rise.in { opacity: 1; transform: none; }
+
+/* entrada da capa (acima da dobra: anima ao carregar, não ao rolar) */
+.lp-entra { opacity: 0; animation: lpEntra .75s cubic-bezier(.2,.7,.3,1) both; }
+.lp-entra-1 { animation-delay: .05s; }
+.lp-entra-2 { animation-delay: .16s; }
+.lp-entra-3 { animation-delay: .27s; }
+.lp-entra-4 { animation-delay: .38s; }
+@keyframes lpEntra { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+/* flutuação lenta dos cartões da capa — dá profundidade sem chamar atenção */
+.lp-flutua { animation: lpFlutua 6.5s ease-in-out infinite; }
+.lp-flutua-b { animation: lpFlutua 8s ease-in-out infinite; animation-delay: -3s; }
+@keyframes lpFlutua { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+/* barras do funil preenchendo */
+.lp-barra { transform-origin: left; animation: lpBarra 1.1s cubic-bezier(.2,.7,.3,1) both; }
+@keyframes lpBarra { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* pulso do ponto "ao vivo" */
+.lp-pulso { animation: lpPulso 2.4s ease-in-out infinite; }
+@keyframes lpPulso { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* as camadas da capa só se deslocam no desktop; no celular elas empilham */
+@media (min-width: 901px) {
+  .lp-camada-b { margin-right: 52px; }
+  .lp-camada-c { margin-left: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-navlink, .ds-navlink::after, .ds-btnpop, .ds-iconbox, .ds-iconbox svg, .ds-tab, .ds-tab svg { transition:none !important; }
+  .ds-track { transition:none; } .ds-slide { transition:none; } .ds-pcard { transition:none; }
+  .rec-cta, .rec-rise, .rec-card-hover, .rec-cta::after, .rec-navlink::after { transition:none!important; animation:none!important; }
+  .rec-rise { opacity:1; transform:none; }
+  .sb-rise { opacity:1!important; transform:none!important; } .sb-card { transition:none; }
+  .lp-rise, .lp-entra, .lp-flutua, .lp-flutua-b, .lp-barra, .lp-pulso {
+    opacity: 1 !important; transform: none !important; animation: none !important; transition: none !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* ============================================================
+   RESPONSIVE UTILITIES (mobile)
+   Desktop look comes from inline styles (untouched). These classes
+   only override layout at small widths via !important.
+   ============================================================ */
+
+/* multi-column card grids -> 2 cols on tablet, 1 on phone */
+@media (max-width: 1000px) {
+  .ds-cards { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 640px) {
+  .ds-cards { grid-template-columns: 1fr !important; }
+}
+
+/* two-column content blocks (hero split, contato, founders, comparativo...) -> stack */
+@media (max-width: 900px) {
+  .ds-2col { grid-template-columns: 1fr !important; }
+}
+
+/* reduce side padding of max-width wrappers on phones (keeps vertical padding) */
+@media (max-width: 768px) {
+  .ds-pad { padding-left: 16px !important; padding-right: 16px !important; }
+}
+
+/* horizontal scroll safety for wide tables */
+.ds-scroll-x { overflow-x: auto; }
+.ds-scroll-x > * { min-width: 560px; }
+
+/* buscar: list row stacks (image on top) on phones */
+@media (max-width: 760px) {
+  .ds-prow { flex-direction: column !important; }
+  .ds-prow-media { width: 100% !important; min-height: 180px !important; }
+}
+
+/* ---- public navbar: desktop vs mobile ---- */
+.ds-nav-desktop { display: flex; }
+.ds-nav-burger { display: none; }
+@media (max-width: 920px) {
+  .ds-nav-desktop { display: none !important; }
+  .ds-nav-burger { display: grid !important; }
+}
+
+/* ---- panel (corretor/CEO) sidebar: drawer on mobile ---- */
+.ds-panel-burger { display: none; }
+@media (max-width: 860px) {
+  .ds-panel-burger { display: grid !important; }
+  .ds-panel-topsearch { display: none !important; }
+  /* sidebar becomes an off-canvas drawer */
+  .ds-sidebar { position: fixed !important; top: 0; bottom: 0; left: 0; z-index: 120;
+    transform: translateX(-100%); transition: transform .25s cubic-bezier(.2,.7,.3,1) !important; }
+  .ds-sidebar.open { transform: translateX(0); }
+  .ds-sidebar-overlay { position: fixed; inset: 0; background: rgba(28,10,46,.5); z-index: 110; }
+}
+@media (min-width: 861px) {
+  .ds-sidebar-overlay { display: none; }
+}
+@media (max-width: 860px) {
+  .ds-panel-main { padding: 16px !important; }
+}
+
+/* ============================================================
+   LOGIN PAGE  (from login/index.html <style> — verbatim, paths fixed)
+   ============================================================ */
+.login-grid { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
+
+/* LEFT: architectural photo panel */
+.photo-panel { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 48px 52px; color: #fff; }
+.photo-panel .bg { position: absolute; inset: 0; background: linear-gradient(120deg, var(--purple-deep,#312E81) 0%, var(--purple-dark,#4338CA) 52%, var(--purple-primary,#4F46E5) 100%); }
+.photo-panel .scrim { position: absolute; inset: 0; background: linear-gradient(155deg, rgba(49,46,129,.78) 0%, rgba(49,46,129,.55) 38%, rgba(42,14,64,.92) 100%); }
+.photo-panel .hairline { position: absolute; inset: 26px; border: 1px solid rgba(255,255,255,.18); border-radius: 6px; pointer-events: none; }
+
+/* RIGHT: clean form panel */
+.form-panel { display: grid; place-items: center; padding: 40px; background: var(--page-bg); }
+.field { width: 100%; font-family: var(--font-body); font-size: 15px; color: var(--ink);
+  padding: 13px 14px 13px 44px; border-radius: 10px; outline: none; background: #fff;
+  border: 1.5px solid var(--gray-300); transition: border-color .18s, box-shadow .18s; }
+.field::placeholder { color: var(--gray-500); }
+.field:focus { border-color: var(--purple-primary); box-shadow: 0 0 0 3px rgba(79,70,229,.14); }
+.primary-btn { transition: background .18s, transform .15s, box-shadow .22s; }
+.primary-btn:hover { background: var(--purple-light); box-shadow: var(--shadow-purple); }
+.primary-btn:active { transform: scale(.985); background: var(--purple-deep); }
+
+@media (max-width: 860px) {
+  .login-grid { grid-template-columns: 1fr; }
+  .photo-panel { display: none; }
+}
+
+/* ============================================================
+   PAINEL DO CORRETOR — utilitários compartilhados (do handoff)
+   ============================================================ */
+@keyframes toastUp { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.sk { background: linear-gradient(90deg, #F0EEF4 0%, #E6E3EC 40%, #F0EEF4 80%); background-size: 800px 100%; animation: shimmer 1.3s infinite linear; }
+.hide-scroll::-webkit-scrollbar { display: none; }
+.hide-scroll { scrollbar-width: none; }
+/* grades responsivas usadas por várias páginas do painel */
+@media (max-width: 720px) { .grow-grid { grid-template-columns: 1fr !important; } }
+@media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr !important; } }
+@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Mobile panel shell: real visible viewport height (fixes bottom tab bar falling off-screen on mobile browsers) */
+.ds-mobile-shell { height: 100vh; height: 100dvh; max-height: 100dvh; }
+
+/* Scrollbar fino e discreto em todo o app (substitui a barra cinza padrão do SO) */
+* { scrollbar-width: thin; scrollbar-color: rgba(79,70,229,.28) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(79,70,229,.28);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(79,70,229,.46); background-clip: padding-box; }
+
+/* ===== Login ===== */
+.login-card { width: 100%; max-width: 392px; background: #fff; border: 1px solid var(--gray-300); border-radius: 18px; padding: 38px 34px; box-shadow: var(--shadow-md); }
+/* Login no mobile: tela cheia estilo app (cartão de ponta a ponta) */
+@media (max-width: 860px) {
+  .form-panel { padding: 0; place-items: stretch; background: #fff; }
+  .login-card { max-width: none; min-height: 100dvh; border: none; border-radius: 0; box-shadow: none; padding: 32px max(22px, (100% - 430px) / 2) calc(26px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; justify-content: center; }
+}
+
+/* ============================================================
+   PAINEL DO CEO — grids/utilitários (do handoff Painel do CEO.html)
+   ============================================================ */
+  .ceo-search:focus-within { border-color: var(--purple-primary) !important; background: #fff !important; box-shadow: 0 0 0 3px rgba(79,70,229,.14); }
+  @keyframes ceo-shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+  @keyframes ceo-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .ceo-skel { background: linear-gradient(90deg, #EEECF1 25%, #F6F4F8 37%, #EEECF1 63%); background-size: 800px 100%; animation: ceo-shimmer 1.3s ease-in-out infinite; border-radius: 12px; }
+  /* hide scrollbar on sidebar nav, keep scrollability */
+  .ceo-nav { scrollbar-width: none; -ms-overflow-style: none; }
+  .ceo-nav::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  /* Visão geral — responsive grids */
+  .vg-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .vg-2col { display: grid; grid-template-columns: 1.45fr 1fr; gap: 18px; }
+  .vg-2col-even { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .vg-risco { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 1280px) { .vg-kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 960px) { .vg-2col, .vg-2col-even { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .vg-kpis { grid-template-columns: repeat(2, 1fr); } .vg-risco { grid-template-columns: 1fr; } }
+  /* Associados & Franquias */
+  .af-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .af-onboarding { display: flex; align-items: stretch; gap: 8px; }
+  .af-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .af-table-wrap { display: block; }
+  .af-table-cards { display: none; }
+  @media (max-width: 1280px) { .af-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) { .af-onboarding { flex-wrap: wrap; } .af-arrow { display: none !important; } }
+  @media (max-width: 760px) { .af-table-wrap { display: none; } .af-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .af-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Corretores */
+  .cr-summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .cr-recruit { display: flex; align-items: stretch; gap: 8px; }
+  .cr-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cr-table-wrap { display: block; }
+  .cr-table-cards { display: none; }
+  @media (max-width: 1280px) { .cr-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px) { .cr-recruit { flex-wrap: wrap; } .cr-arrow { display: none !important; } }
+  @media (max-width: 760px) { .cr-table-wrap { display: none; } .cr-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .cr-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Curadoria */
+  .cu-summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .cu-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .cu-photo-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  @media (max-width: 1280px) { .cu-summary { grid-template-columns: repeat(3, 1fr); } .cu-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .cu-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .cu-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Financeiro */
+  .fi-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .fi-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .fi-3col { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .fi-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fi-table-wrap { display: block; }
+  .fi-table-cards { display: none; }
+  @media (max-width: 1280px) { .fi-summary { grid-template-columns: repeat(3, 1fr); } .fi-3col { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 960px) { .fi-2col { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .fi-table-wrap { display: none; } .fi-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .fi-summary { grid-template-columns: repeat(2, 1fr); } .fi-2x2 { grid-template-columns: 1fr; } }
+  /* Locação & Garantia */
+  .lg-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .lg-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .lg-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .lg-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .lg-renew { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .lg-table-wrap { display: block; }
+  .lg-table-cards { display: none; }
+  @media (max-width: 1280px) { .lg-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 960px) { .lg-2col { grid-template-columns: 1fr; } .lg-renew { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .lg-table-wrap { display: none; } .lg-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .lg-summary { grid-template-columns: repeat(2, 1fr); } .lg-3col { grid-template-columns: 1fr; } }
+  /* Planos & Assinaturas */
+  .pl-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .pl-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .pl-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pl-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .pl-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pl-growth { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; align-items: center; }
+  .pl-table-wrap { display: block; }
+  .pl-table-cards { display: none; }
+  @media (max-width: 1280px) { .pl-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 960px) { .pl-plans { grid-template-columns: 1fr; } .pl-2col { grid-template-columns: 1fr; } .pl-growth { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .pl-table-wrap { display: none; } .pl-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .pl-summary { grid-template-columns: repeat(2, 1fr); } .pl-2x2 { grid-template-columns: 1fr; } }
+  /* Leads & Distribuição */
+  .ld-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .ld-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ld-rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .ld-table-wrap { display: block; }
+  .ld-table-cards { display: none; }
+  @media (max-width: 1280px) { .ld-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 960px) { .ld-rules-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .ld-table-wrap { display: none; } .ld-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .ld-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Captação & Radar */
+  .cp-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .cp-regions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .cp-funnel-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: start; }
+  .cp-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .cp-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .cp-table-wrap { display: block; }
+  .cp-table-cards { display: none; }
+  @media (max-width: 1280px) { .cp-summary { grid-template-columns: repeat(3, 1fr); } .cp-regions { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 960px) { .cp-funnel-grid { grid-template-columns: 1fr; } .cp-2col { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .cp-table-wrap { display: none; } .cp-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .cp-summary { grid-template-columns: repeat(2, 1fr); } .cp-regions { grid-template-columns: 1fr; } }
+  /* Parcerias */
+  .pa-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .pa-wall-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 24px; align-items: start; }
+  .pa-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pa-partners { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .pa-perf-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 24px; align-items: start; }
+  .pa-table-wrap { display: block; }
+  .pa-table-cards { display: none; }
+  @media (max-width: 1280px) { .pa-summary { grid-template-columns: repeat(3, 1fr); } .pa-partners { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 960px) { .pa-wall-grid { grid-template-columns: 1fr; } .pa-perf-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .pa-table-wrap { display: none; } .pa-table-cards { display: flex !important; } .pa-partners { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .pa-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Score */
+  .sc-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .sc-weights-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: center; }
+  .sc-tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .sc-dist { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .sc-rank-wrap { display: block; }
+  @media (max-width: 1280px) { .sc-summary { grid-template-columns: repeat(3, 1fr); } .sc-tiers { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 960px) { .sc-weights-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .sc-summary { grid-template-columns: repeat(2, 1fr); } .sc-tiers { grid-template-columns: 1fr; } }
+  /* Administradores & Acessos */
+  .ad-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .ad-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ad-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+  .ad-table-wrap { display: block; }
+  .ad-table-cards { display: none; }
+  @media (max-width: 1280px) { .ad-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 960px) { .ad-2col { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .ad-table-wrap { display: none; } .ad-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .ad-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Jurídico & LGPD */
+  .ju-summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .ju-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .ju-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+  .ju-table-wrap { display: block; }
+  .ju-table-cards { display: none; }
+  @media (max-width: 1280px) { .ju-summary { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 960px) { .ju-2col { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .ju-table-wrap { display: none; } .ju-table-cards { display: flex !important; } }
+  @media (max-width: 620px) { .ju-summary { grid-template-columns: repeat(2, 1fr); } }
+  /* Relatórios */
+  .re-top { display: grid; grid-template-columns: 1fr 2.2fr; gap: 16px; align-items: stretch; }
+  .re-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .re-exec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .re-cat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 1280px) { .re-exec-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 960px) { .re-top { grid-template-columns: 1fr; } .re-cat-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) { .re-stats { grid-template-columns: repeat(2, 1fr); } .re-exec-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 620px) {
+    .ceo-hide-sm { display: none !important; }
+    .ceo-divider { display: none !important; }
+  }
