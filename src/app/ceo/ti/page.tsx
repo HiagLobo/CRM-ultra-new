@@ -53,17 +53,17 @@ const CHAMADOS_TI: any[] = [
     id: '#T-208', titulo: 'Upload de fotos trava em 80%', quem: 'Júlia Castro · Corretora', papel: 'Corretor',
     sev: 'Média', status: 'Aguardando usuário', dev: 'Parceiro de TI · Caio', aberto: 'ontem 16:40',
     contexto: '/corretor/imoveis · Chrome 126 · Android', afeta: '3 usuários relataram',
-    diag: 'Arquivos acima do limite de 25 MB — aviso da tela aparece tarde demais. Correção de UX programada para a v1.8.3.',
+    diag: 'Arquivos acima do limite de 25 MB: o aviso da tela aparece tarde demais. Correção de UX programada para a v1.8.3.',
   },
   {
     id: '#T-207', titulo: 'Relatório mensal exporta com fuso errado', quem: 'Marina Costa · Financeiro', papel: 'Financeiro',
     sev: 'Baixa', status: 'Em correção', dev: 'Parceiro de TI · Caio', aberto: '09/06',
     contexto: '/ceo/relatorios · Edge 125 · Windows', afeta: 'só exportação CSV',
-    diag: 'Datas em UTC no CSV. Correção pronta em homologação — entra na v1.8.3 (sex).',
+    diag: 'Datas em UTC no CSV. Correção pronta em homologação, entra na v1.8.3 (sex).',
   },
   {
     id: '#T-205', titulo: 'IA respondeu fora de contexto em 2 conversas', quem: 'Rafael Lima · Operação', papel: 'Operação',
-    sev: 'Alta', status: 'Em triagem', dev: '— triagem —', aberto: 'hoje 07:15',
+    sev: 'Alta', status: 'Em triagem', dev: 'triagem', aberto: 'hoje 07:15',
     contexto: 'fila de atendimento · conversas #4812 e #4815', afeta: '2 conversas (clientes já atendidos por humano)',
     diag: 'Conversas adicionadas ao conjunto de testes da IA. Investigando se o caso entra na regra de transferência por baixa confiança.',
   },
@@ -111,7 +111,7 @@ function TiSummary() {
 function TiServicos() {
   return (
     <div style={{ ...tiCard, padding: 22 }}>
-      <TiHead title="Status dos serviços" sub="Monitorado de fora a cada minuto — o mesmo status que corretores veem na página de Suporte"
+      <TiHead title="Status dos serviços" sub="Monitorado de fora a cada minuto, o mesmo status que corretores veem na página de Suporte"
         right={<TiBadge text="página pública de status" fg={ti.primary} bg={ti.lilac2} ic="external-link" />} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
         {SERVICOS.map((s) => (
@@ -134,7 +134,7 @@ function TiChamados() {
   const [openId, setOpenId] = useState<string | null>('#T-205');
   return (
     <div style={{ ...tiCard, padding: 22 }}>
-      <TiHead title="Chamados técnicos" sub="Abertos por qualquer papel — do corretor ao CEO — e triados pela equipe de desenvolvimento"
+      <TiHead title="Chamados técnicos" sub="Abertos por qualquer papel (do corretor ao CEO) e triados pela equipe de desenvolvimento"
         right={<TiBadge text="responsável: parceiro de TI" fg={ti.g700} bg={ti.g100} ic="wrench" />} />
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
@@ -195,7 +195,7 @@ function TiChamados() {
       </div>
       <div style={{ marginTop: 14, padding: '10px 14px', background: ti.lilac1, border: `1px solid ${ti.lilac2}`, borderRadius: 10, fontSize: 12.5, color: ti.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="siren" s={14} c={ti.primary} />
-        Severidade <b>crítica</b> (sistema fora do ar) aciona a equipe a qualquer hora, com SLA de 4h — e abre incidente automaticamente se afetar dados.
+        Severidade <b>crítica</b> (sistema fora do ar) aciona a equipe a qualquer hora, com SLA de 4h, e abre incidente automaticamente se afetar dados.
       </div>
     </div>
   );
@@ -211,7 +211,7 @@ function TiContrato() {
   ];
   return (
     <div style={{ ...tiCard, padding: 22 }}>
-      <TiHead title="Contrato de manutenção — junho" sub="Parceiro de TI · 24h/mês"
+      <TiHead title="Contrato de manutenção em junho" sub="Parceiro de TI · 24h/mês"
         right={<TiBadge text={`${(total - usado).toLocaleString('pt-BR')}h disponíveis`} fg={ti.success} bg={ti.successBg} />} />
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
         <span style={{ color: ti.g700, fontWeight: 600 }}>{usado.toLocaleString('pt-BR')}h usadas</span>
@@ -239,7 +239,7 @@ function TiContrato() {
 function TiChangelog() {
   return (
     <div style={{ ...tiCard, padding: 22 }}>
-      <TiHead title="O que mudou — changelog" sub="Cada versão publicada, em linguagem de gente" right={<TiBadge text="v1.8.2 atual" fg={ti.primary} bg={ti.lilac2} ic="rocket" />} />
+      <TiHead title="O que mudou (changelog)" sub="Cada versão publicada, em linguagem de gente" right={<TiBadge text="v1.8.2 atual" fg={ti.primary} bg={ti.lilac2} ic="rocket" />} />
       {CHANGELOG.map((c, i) => (
         <div key={c.v} style={{ display: 'flex', gap: 12, marginBottom: i < CHANGELOG.length - 1 ? 4 : 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -271,7 +271,7 @@ export default function CeoTiPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: ti.ink }}>TI & Plataforma</h1>
-            <div style={{ fontSize: 13.5, color: ti.g500, marginTop: 4 }}>Saúde do sistema, chamados técnicos e o contrato de manutenção — em um lugar só</div>
+            <div style={{ fontSize: 13.5, color: ti.g500, marginTop: 4 }}>Saúde do sistema, chamados técnicos e o contrato de manutenção em um lugar só</div>
           </div>
           <TiBadge text="Operacional · uptime 99,97%" fg={ti.success} bg={ti.successBg} ic="activity" />
         </div>

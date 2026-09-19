@@ -115,7 +115,7 @@ function PlCatalog() {
   const list = seg === 'Unidades' ? PLANS : CORRETOR_PLANS;
   return (
     <div>
-      <PlHead title="Catálogo de planos" sub="O CEO cria, edita e arquiva planos — sem código" right={<button style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: pl.primary, color: '#fff', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13.5, boxShadow: 'var(--shadow-purple)', whiteSpace: 'nowrap' }}><CIc n="plus" s={16} c="#fff" /> Novo plano</button>} />
+      <PlHead title="Catálogo de planos" sub="O CEO cria, edita e arquiva planos, sem código" right={<button style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: pl.primary, color: '#fff', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13.5, boxShadow: 'var(--shadow-purple)', whiteSpace: 'nowrap' }}><CIc n="plus" s={16} c="#fff" /> Novo plano</button>} />
       <div style={{ display: 'flex', background: pl.g100, borderRadius: 999, padding: 4, width: 'fit-content', marginBottom: 16 }}>
         {[['Unidades', 'building-2'], ['Corretores', 'user']].map(([s, ic]: any) => (
           <button key={s} onClick={() => setSeg(s)} style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 600, padding: '8px 16px', borderRadius: 999, transition: 'all .15s ease', background: seg === s ? '#fff' : 'transparent', color: seg === s ? pl.primary : pl.g500, boxShadow: seg === s ? 'var(--shadow-sm)' : 'none' }}>
@@ -462,7 +462,7 @@ function PlanosPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: pl.ink }}>Planos &amp; Assinaturas</h1>
-          <div style={{ fontSize: 13.5, color: pl.g500, marginTop: 4 }}>A receita recorrente da rede — mensalidade das unidades</div>
+          <div style={{ fontSize: 13.5, color: pl.g500, marginTop: 4 }}>A receita recorrente da rede: mensalidade das unidades</div>
         </div>
         <PlPeriod />
       </div>

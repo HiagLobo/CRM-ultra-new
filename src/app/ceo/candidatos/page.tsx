@@ -55,19 +55,19 @@ const CANDIDATOS: any[] = [
       { d: 'Carteirinha CRECI vigente', ok: true },
     ],
     timeline: [
-      { t: '05/06', d: `Indicada pelo franqueado da ${demo.nomeCurto} Boa Viagem (Bruno T.) — vínculo de unidade fixado`, ic: 'building-2' },
+      { t: '05/06', d: `Indicada pelo franqueado da ${demo.nomeCurto} Boa Viagem (Bruno T.), com vínculo de unidade fixado`, ic: 'building-2' },
       { t: '06/06', d: 'Documentos enviados pelo link seguro · 3/3 aceitos', ic: 'file-check-2', ok: true },
-      { t: '08/06', d: 'CRECI validado junto ao Conselho — nome e situação ativos', ic: 'id-card', ok: true },
-      { t: '10/06', d: 'Entrevista com gestor concluída — parecer positivo', ic: 'video', ok: true },
+      { t: '08/06', d: 'CRECI validado junto ao Conselho: nome e situação ativos', ic: 'id-card', ok: true },
+      { t: '10/06', d: 'Entrevista com gestor concluída: parecer positivo', ic: 'video', ok: true },
     ],
-    assento: `${demo.nomeCurto} Boa Viagem: 2 assentos livres de 40 — aprovação consome 1`,
+    assento: `${demo.nomeCurto} Boa Viagem: 2 assentos livres de 40 (a aprovação consome 1)`,
   },
   {
     id: 'k2', nome: 'Marcos Lima', cidade: 'Caruaru/PE', unidade: `${demo.nomeCurto} Caruaru`, origem: 'Site (quero ser corretor)',
     status: 'Docs pendentes', etapa: 2, dias: 4, creci: 'CRECI-PE 00000-F · aguardando docs',
     docs: [
       { d: 'Documento de identidade', ok: true },
-      { d: 'Comprovante de residência', ok: false, nota: 'reenvio solicitado — foto ilegível · IA cobrou ontem pelo WhatsApp' },
+      { d: 'Comprovante de residência', ok: false, nota: 'reenvio solicitado: foto ilegível · IA cobrou ontem pelo WhatsApp' },
       { d: 'Carteirinha CRECI vigente', ok: true },
     ],
     timeline: [
@@ -88,7 +88,7 @@ const CANDIDATOS: any[] = [
     timeline: [
       { t: '03/06', d: 'Indicada por Renata A. (bônus de indicação no Score se aprovada)', ic: 'users' },
       { t: '05/06', d: 'Docs completos · 3/3 aceitos', ic: 'file-check-2', ok: true },
-      { t: '09/06', d: 'Conselho retorna "Helena R. da Silva" × cadastro "Helena Rocha" — análise manual', ic: 'alert-triangle', warn: true },
+      { t: '09/06', d: 'Conselho retorna "Helena R. da Silva" × cadastro "Helena Rocha", vai para análise manual', ic: 'alert-triangle', warn: true },
     ],
     assento: `${demo.nomeCurto} Recife Centro: 1 assento livre de 30`,
   },
@@ -99,15 +99,15 @@ const CANDIDATOS: any[] = [
     timeline: [
       { t: '06/06', d: 'Pré-cadastro + docs no mesmo dia', ic: 'zap', ok: true },
       { t: '09/06', d: 'CRECI validado', ic: 'id-card', ok: true },
-      { t: '12/06', d: 'Entrevista agendada — Google Meet, amanhã 10h (convite enviado)', ic: 'video' },
+      { t: '12/06', d: 'Entrevista agendada: Google Meet, amanhã 10h (convite enviado)', ic: 'video' },
     ],
     assento: `${demo.nomeCurto} Olinda: 8 assentos livres de 20`,
   },
   {
-    id: 'k5', nome: 'Patrícia Gomes', cidade: 'Jaboatão/PE', unidade: '— a definir —', origem: 'Site (quero ser corretor)',
+    id: 'k5', nome: 'Patrícia Gomes', cidade: 'Jaboatão/PE', unidade: 'a definir', origem: 'Site (quero ser corretor)',
     status: 'Pré-cadastro', etapa: 1, dias: 1, creci: 'não informado ainda',
     docs: [{ d: 'Aguardando envio de documentos (link expira em 7 dias)', ok: false }],
-    timeline: [{ t: 'ontem 18:22', d: `Pré-cadastro pelo site · sem unidade na região — sugerir ${demo.nomeCurto} Recife Centro`, ic: 'globe' }],
+    timeline: [{ t: 'ontem 18:22', d: `Pré-cadastro pelo site · sem unidade na região, sugerir ${demo.nomeCurto} Recife Centro`, ic: 'globe' }],
     assento: 'definir unidade antes da aprovação',
   },
 ];
@@ -157,7 +157,7 @@ function CdTabela() {
   const [openId, setOpenId] = useState<string | null>('k1');
   return (
     <div style={{ ...cdCard, padding: 22 }}>
-      <CdHead title="Candidatos" sub="Do pré-cadastro à aprovação — clique para abrir o dossiê"
+      <CdHead title="Candidatos" sub="Do pré-cadastro à aprovação. Clique para abrir o dossiê"
         right={<CdBadge text="aprovar consome 1 assento da unidade" fg={cd.warning} bg={cd.warnBg} ic="armchair" />} />
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 840 }}>
@@ -252,7 +252,7 @@ function CdTabela() {
       </div>
       <div style={{ marginTop: 14, padding: '10px 14px', background: cd.lilac1, border: `1px solid ${cd.lilac2}`, borderRadius: 10, fontSize: 12.5, color: cd.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="shield-check" s={14} c={cd.primary} />
-        Sem assento livre, a aprovação fica <b>retida</b> — o sistema confere a vaga no momento do clique e sugere ampliar o plano da unidade.
+        Sem assento livre, a aprovação fica <b>retida</b>, porque o sistema confere a vaga no momento do clique e sugere ampliar o plano da unidade.
       </div>
     </div>
   );
@@ -275,7 +275,7 @@ function CdOrigens() {
       ))}
       <div style={{ marginTop: 14, padding: '10px 14px', background: cd.lilac1, border: `1px solid ${cd.lilac2}`, borderRadius: 10, fontSize: 12.5, color: cd.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="lightbulb" s={14} c={cd.primary} />
-        Indicação converte 2,3× mais que o site — quem indica ganha pontos no Score quando o indicado é aprovado.
+        Indicação converte 2,3× mais que o site. Quem indica ganha pontos no Score quando o indicado é aprovado.
       </div>
     </div>
   );
@@ -284,7 +284,7 @@ function CdOrigens() {
 function CdAssentos() {
   return (
     <div style={{ ...cdCard, padding: 22 }}>
-      <CdHead title="Assentos por unidade" sub="Contratados no plano × em uso — aprovar sem vaga é retido" right={<CdBadge text="16 livres na rede" fg={cd.success} bg={cd.successBg} ic="armchair" />} />
+      <CdHead title="Assentos por unidade" sub="Contratados no plano × em uso: aprovar sem vaga é retido" right={<CdBadge text="16 livres na rede" fg={cd.success} bg={cd.successBg} ic="armchair" />} />
       {ASSENTOS.map((a) => {
         const pct = (a.usado / a.total) * 100;
         const cheio = pct >= 95;

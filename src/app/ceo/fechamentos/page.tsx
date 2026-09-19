@@ -51,11 +51,11 @@ const NEGOCIOS: any[] = [
     docs: [
       { d: 'Matrícula atualizada do imóvel', ok: true },
       { d: 'Certidões do vendedor (5)', ok: true },
-      { d: 'Comprovante de renda do comprador', ok: false, nota: 'solicitado ontem — IA cobrou no WhatsApp hoje 09:00' },
-      { d: 'ITBI — guia emitida', ok: false },
+      { d: 'Comprovante de renda do comprador', ok: false, nota: 'solicitado ontem, IA cobrou no WhatsApp hoje 09:00' },
+      { d: 'ITBI: guia emitida', ok: false },
     ],
     timeline: [
-      { t: '07/06', d: `Proposta aceita pelo proprietário — negócio passou do corretor para o time da ${demo.nomeCurto}`, ic: 'badge-check', ok: true },
+      { t: '07/06', d: `Proposta aceita pelo proprietário, o negócio passou do corretor para o time da ${demo.nomeCurto}`, ic: 'badge-check', ok: true },
       { t: '08/06', d: 'Checklist de documentação aberto · 2 de 4 itens recebidos', ic: 'clipboard-list' },
       { t: '10/06', d: 'IA lembrou o comprador dos documentos pendentes (template oficial)', ic: 'bot' },
     ],
@@ -66,12 +66,12 @@ const NEGOCIOS: any[] = [
     comissao: 'R$ 31.200 (6%) · corretor 60%: R$ 18.720',
     docs: [
       { d: 'Documentação completa', ok: true },
-      { d: 'Análise de crédito — financiamento CEF', ok: false, nota: 'banco pediu complemento de renda · 3º dia aguardando' },
+      { d: 'Análise de crédito (financiamento CEF)', ok: false, nota: 'banco pediu complemento de renda · 3º dia aguardando' },
     ],
     timeline: [
       { t: '02/06', d: 'Proposta aceita · entrada de R$ 120 mil + financiamento', ic: 'badge-check', ok: true },
       { t: '04/06', d: 'Dossiê enviado ao banco (CEF)', ic: 'landmark' },
-      { t: '08/06', d: 'Banco solicitou complemento — prazo estimado +5 dias úteis', ic: 'alarm-clock', warn: true },
+      { t: '08/06', d: 'Banco solicitou complemento, prazo estimado +5 dias úteis', ic: 'alarm-clock', warn: true },
     ],
   },
   {
@@ -80,7 +80,7 @@ const NEGOCIOS: any[] = [
     comissao: '1º aluguel · corretor 60%: R$ 3.300',
     docs: [
       { d: 'Sindicância do locatário (CNPJ)', ok: true },
-      { d: 'Seguro-fiança do parceiro aprovado — score 812', ok: true },
+      { d: 'Seguro-fiança do parceiro aprovado, score 812', ok: true },
       { d: 'Minuta de contrato em revisão jurídica', ok: false, nota: 'jurídico devolve até amanhã' },
     ],
     timeline: [
@@ -93,7 +93,7 @@ const NEGOCIOS: any[] = [
     id: 'n4', cliente: 'Carlos Mendes', imovel: 'Casa · Candeias', ref: `${demo.sigla}-1411`, tipo: 'Venda',
     valor: 'R$ 890.000', etapa: 'Assinatura', resp: `Equipe ${demo.nomeCurto} · Diego M.`, corretor: 'Lucas Ferreira', dias: 14, saude: 'No prazo',
     comissao: 'R$ 53.400 (6%) · corretor 60%: R$ 32.040',
-    docs: [{ d: 'Tudo pronto — aguardando assinatura digital das partes (2 de 3 assinaram)', ok: false, nota: 'falta o vendedor · lembrete automático enviado' }],
+    docs: [{ d: 'Tudo pronto, aguardando assinatura digital das partes (2 de 3 assinaram)', ok: false, nota: 'falta o vendedor · lembrete automático enviado' }],
     timeline: [
       { t: '28/05', d: 'Proposta aceita', ic: 'badge-check', ok: true },
       { t: '09/06', d: 'Contrato liberado para assinatura digital (3 partes)', ic: 'pen-line' },
@@ -102,10 +102,10 @@ const NEGOCIOS: any[] = [
   },
   {
     id: 'n5', cliente: 'Juliana Castro', imovel: 'Apto 3q · Graças', ref: `${demo.sigla}-1287`, tipo: 'Venda',
-    valor: 'R$ 760.000', etapa: 'Proposta aceita', resp: '— a atribuir —', corretor: 'Renata Alves', dias: 0, saude: 'Novo',
+    valor: 'R$ 760.000', etapa: 'Proposta aceita', resp: 'a atribuir', corretor: 'Renata Alves', dias: 0, saude: 'Novo',
     comissao: 'R$ 45.600 (6%) · corretor 60%: R$ 27.360',
     docs: [{ d: 'Checklist será aberto ao atribuir responsável', ok: false }],
-    timeline: [{ t: 'hoje 10:15', d: 'Proposta aceita — entrou na fila de fechamento', ic: 'badge-check', ok: true }],
+    timeline: [{ t: 'hoje 10:15', d: 'Proposta aceita, entrou na fila de fechamento', ic: 'badge-check', ok: true }],
   },
 ];
 
@@ -142,7 +142,7 @@ function FcPipeline() {
   const counts: any = { 'Proposta aceita': 1, 'Documentação': 2, 'Crédito & garantia': 2, 'Contrato': 1, 'Assinatura': 1 };
   return (
     <div style={{ ...fcCard, padding: 22 }}>
-      <FcHead title="Esteira de fechamento" sub={`Da proposta aceita à assinatura — conduzida pelo time da ${demo.nomeCurto}, nunca pelo corretor`} />
+      <FcHead title="Esteira de fechamento" sub={`Da proposta aceita à assinatura, conduzida pelo time da ${demo.nomeCurto}, nunca pelo corretor`} />
       <div style={{ display: 'flex', gap: 0, overflowX: 'auto', paddingBottom: 4 }}>
         {ETAPAS.map((e, i) => {
           const [fg, bg] = ETAPA_TONE[e];
@@ -173,7 +173,7 @@ function FcNegocios() {
   const rows = NEGOCIOS.filter((r) => etapa === 'Todas' || r.etapa === etapa);
   return (
     <div style={{ ...fcCard, padding: 22 }}>
-      <FcHead title="Negócios em fechamento" sub="Clique para abrir o dossiê — checklist, partes e linha do tempo" />
+      <FcHead title="Negócios em fechamento" sub="Clique para abrir o dossiê: checklist, partes e linha do tempo" />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         {tabs.map((x) => (
           <button key={x} onClick={() => setEtapa(x)} style={{ border: `1px solid ${etapa === x ? fc.primary : fc.g300}`, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, padding: '6px 14px', borderRadius: 999, background: etapa === x ? fc.primary : '#fff', color: etapa === x ? '#fff' : fc.g700 }}>{x}</button>
@@ -246,7 +246,7 @@ function FcNegocios() {
                             </div>
                           ))}
                           <div style={{ marginTop: 14, fontSize: 12, color: fc.g500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <CIc n="user" s={12} c={fc.g500} /> Corretor de origem: <b style={{ color: fc.g700 }}>{r.corretor}</b> — acompanha pelo painel dele, sem conduzir o contrato
+                            <CIc n="user" s={12} c={fc.g500} /> Corretor de origem: <b style={{ color: fc.g700 }}>{r.corretor}</b>, acompanha pelo painel dele, sem conduzir o contrato
                           </div>
                           <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
                             <button style={{ border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5, color: '#fff', background: fc.primary, borderRadius: 9, padding: '8px 14px' }}>Avançar etapa</button>
@@ -269,8 +269,8 @@ function FcNegocios() {
 /* ---------------- ASSINATURAS PENDENTES ---------------- */
 function FcAssinaturas() {
   const itens = [
-    { quem: 'Carlos Mendes — Casa Candeias', falta: 'Vendedor (Sr. Otávio)', enviado: '09/06', lembrete: 'hoje 08:00' },
-    { quem: 'Locação — Sala Ilha do Leite', falta: 'Fiador digital do parceiro (auto)', enviado: '10/06', lembrete: '—' },
+    { quem: 'Carlos Mendes (Casa Candeias)', falta: 'Vendedor (Sr. Otávio)', enviado: '09/06', lembrete: 'hoje 08:00' },
+    { quem: 'Locação (Sala Ilha do Leite)', falta: 'Fiador digital do parceiro (auto)', enviado: '10/06', lembrete: '—' },
   ];
   return (
     <div style={{ ...fcCard, padding: 22 }}>
@@ -300,7 +300,7 @@ function FcGargalos() {
   const max = Math.max(...itens.map((m) => m.v));
   return (
     <div style={{ ...fcCard, padding: 22 }}>
-      <FcHead title="Onde os fechamentos demoram" sub="Dias parados por causa — últimos 90 dias" />
+      <FcHead title="Onde os fechamentos demoram" sub="Dias parados por causa nos últimos 90 dias" />
       {itens.map((m) => (
         <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 11 }}>
           <span style={{ width: 168, fontSize: 12.5, color: fc.g700, flexShrink: 0, lineHeight: 1.25 }}>{m.l}</span>
@@ -312,7 +312,7 @@ function FcGargalos() {
       ))}
       <div style={{ marginTop: 14, padding: '10px 14px', background: fc.lilac1, border: `1px solid ${fc.lilac2}`, borderRadius: 10, fontSize: 12.5, color: fc.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="lightbulb" s={14} c={fc.primary} />
-        A IA cobra documentos e lembra assinaturas automaticamente pelo WhatsApp — sem ninguém precisar lembrar.
+        A IA cobra documentos e lembra assinaturas automaticamente pelo WhatsApp, sem ninguém precisar lembrar.
       </div>
     </div>
   );
@@ -327,7 +327,7 @@ export default function CeoFechamentosPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: fc.ink }}>Fechamentos</h1>
-            <div style={{ fontSize: 13.5, color: fc.g500, marginTop: 4 }}>Rede inteira · da proposta aceita à assinatura — conduzido pelo time da {demo.nomeCurto}</div>
+            <div style={{ fontSize: 13.5, color: fc.g500, marginTop: 4 }}>Rede inteira · da proposta aceita à assinatura, conduzido pelo time da {demo.nomeCurto}</div>
           </div>
           <FcBadge text="R$ 4,9 mi em negociação" fg={fc.primary} bg={fc.lilac2} ic="briefcase" />
         </div>

@@ -51,9 +51,9 @@ const FIXOS_INI: Item[] = [
 ];
 
 const VAR_INI: Item[] = [
-  { id: 'v1', nome: 'IA — atendimento completo', det: 'conversa + extração CRM + resumo + áudio + template', qtd: 6200, un: 'atendimento', vu: 0.15 },
-  { id: 'v2', nome: 'IA — resumo de reunião', det: 'transcrição + resumo', qtd: 260, un: 'reunião', vu: 0.05 },
-  { id: 'v3', nome: 'Radar — sinais + geocodificação', det: 'análise de oportunidade', qtd: 4100, un: 'oportunidade', vu: 0.02 },
+  { id: 'v1', nome: 'IA: atendimento completo', det: 'conversa + extração CRM + resumo + áudio + template', qtd: 6200, un: 'atendimento', vu: 0.15 },
+  { id: 'v2', nome: 'IA: resumo de reunião', det: 'transcrição + resumo', qtd: 260, un: 'reunião', vu: 0.05 },
+  { id: 'v3', nome: 'Radar: sinais + geocodificação', det: 'análise de oportunidade', qtd: 4100, un: 'oportunidade', vu: 0.02 },
   { id: 'v4', nome: 'Avaliação de imóvel (AVM)', det: 'comparáveis próprios + modelo de IA', qtd: 380, un: 'avaliação', vu: 0.01 },
   { id: 'v5', nome: 'Bureau de crédito', det: 'média ponderada entre bureaus', qtd: 65, un: 'consulta', vu: 10, repasse: 'repassado na taxa de análise' },
   { id: 'v6', nome: 'Validação CRECI', det: 'serviço de consulta · por uso', qtd: 14, un: 'consulta', vu: 0.8 },
@@ -159,7 +159,7 @@ export default function CeoCustosPage() {
     { l: 'Fixo (infra)', v: money(totFixo), d: `${fixos.length} serviços`, ic: 'database' },
     { l: 'Variável (por uso)', v: money(totVar), d: 'cresce com o negócio', ic: 'trending-up' },
     { l: 'Custo por corretor', v: money(total / corretores), d: 'mensalidade mínima cobre 8×', ic: 'users', good: true },
-    { l: 'Projeção no dobro (684)', v: money(totFixo + totVar * 2), d: 'fixo não dobra — escala bem', ic: 'rocket' },
+    { l: 'Projeção no dobro (684)', v: money(totFixo + totVar * 2), d: 'fixo não dobra, escala bem', ic: 'rocket' },
   ];
 
   return (
@@ -168,7 +168,7 @@ export default function CeoCustosPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: cs.ink }}>Custos do sistema</h1>
-            <div style={{ fontSize: 13.5, color: cs.g500, marginTop: 4 }}>Quanto custa rodar a plataforma — alimentado pela TI, visível só para CEO e TI</div>
+            <div style={{ fontSize: 13.5, color: cs.g500, marginTop: 4 }}>Quanto custa rodar a plataforma (alimentado pela TI, visível só para CEO e TI)</div>
           </div>
           <CsBadge text="acesso restrito: CEO + TI" fg={cs.error} bg={cs.errBg} ic="lock" />
         </div>
@@ -189,7 +189,7 @@ export default function CeoCustosPage() {
 
         {/* composição visual */}
         <div style={{ ...csCard, padding: 22 }}>
-          <CsHead title="Composição do custo mensal" sub="Fixo escala devagar; variável acompanha o uso — repassáveis em verde" />
+          <CsHead title="Composição do custo mensal" sub="Fixo escala devagar; variável acompanha o uso (repassáveis em verde)" />
           <div style={{ height: 18, borderRadius: 999, overflow: 'hidden', display: 'flex', marginBottom: 12 }}>
             <div title="Infra fixa" style={{ width: `${(totFixo / total) * 100}%`, background: cs.primary }} />
             <div title="Variável (líquido)" style={{ width: `${((totVar - totRepasse) / total) * 100}%`, background: cs.p3 }} />
@@ -204,13 +204,13 @@ export default function CeoCustosPage() {
           </div>
         </div>
 
-        <CsTabela titulo="Infra fixa" sub={`Serviços contratados — todos nas contas do CNPJ da ${demo.nomeCurto}`} itens={fixos} setItens={setFixos} fixo />
-        <CsTabela titulo="Variáveis por uso" sub="Volume editável — total recalcula na hora · valores unitários de exemplo (jun/2026)" itens={vars} setItens={setVars} />
+        <CsTabela titulo="Infra fixa" sub={`Serviços contratados, todos nas contas do CNPJ da ${demo.nomeCurto}`} itens={fixos} setItens={setFixos} fixo />
+        <CsTabela titulo="Variáveis por uso" sub="Volume editável, total recalcula na hora · valores unitários de exemplo (jun/2026)" itens={vars} setItens={setVars} />
 
         <div style={{ ...csCard, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <CIc n="history" s={16} c={cs.primary} />
           <span style={{ fontSize: 12.5, color: cs.g700, flex: 1 }}>
-            Toda alteração fica registrada (quem mudou, o quê, quando) — no sistema real, com trilha de auditoria e histórico mensal para comparar a evolução.
+            Toda alteração fica registrada (quem mudou, o quê, quando). No sistema real, isso vem com trilha de auditoria e histórico mensal para comparar a evolução.
           </span>
           <button style={btnO}>Exportar (planilha)</button>
           <button style={btnP}>Salvar fechamento de junho</button>

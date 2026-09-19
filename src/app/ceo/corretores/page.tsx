@@ -32,7 +32,7 @@ const BROKERS: any[] = [
       { cod: '10271', t: 'Cobertura · 4 quartos', bairro: 'Vila Nova Conceição · SP', preco: 'R$ 4.100.000', st: 'Reservado' },
       { cod: '10260', t: 'Apartamento · 2 quartos', bairro: 'Pinheiros · SP', preco: 'R$ 890.000', st: 'Vendido' },
     ],
-    history: [{ d: '04/06/2026', t: 'Verificação de reputação concluída — risco baixo', ic: 'shield-check' }, { d: '12/01/2025', t: 'Promovido a corretor sênior', ic: 'trending-up' }, { d: '03/2024', t: 'Aprovado e ativado na Matriz', ic: 'user-check' }],
+    history: [{ d: '04/06/2026', t: 'Verificação de reputação concluída: risco baixo', ic: 'shield-check' }, { d: '12/01/2025', t: 'Promovido a corretor sênior', ic: 'trending-up' }, { d: '03/2024', t: 'Aprovado e ativado na Matriz', ic: 'user-check' }],
   },
   {
     id: 'ana', name: 'Ana Marques', creci: 'CRECI-SP 00000-F', unit: 'Matriz', uf: 'SP', score: 845, vgv: 'R$ 1,6 mi', vgl: 'R$ 150 mil', deals: 5, csat: '4,7', status: 'Ativo', carteira: 36, resp: '11 min',
@@ -73,7 +73,7 @@ const BROKERS: any[] = [
       { cod: '30012', t: 'Apartamento · 2 quartos', bairro: 'Cambuí · SP', preco: 'R$ 720.000', st: 'Despublicado' },
       { cod: '30008', t: 'Casa · 3 quartos', bairro: 'Barão Geraldo · SP', preco: 'R$ 1.100.000', st: 'Despublicado' },
     ],
-    history: [{ d: '01/06/2026', t: 'Auditoria — publicações despublicadas · leads pausados', ic: 'shield-alert' }, { d: '05/2025', t: 'Aprovado no Associado Campinas', ic: 'user-check' }],
+    history: [{ d: '01/06/2026', t: 'Auditoria: publicações despublicadas · leads pausados', ic: 'shield-alert' }, { d: '05/2025', t: 'Aprovado no Associado Campinas', ic: 'user-check' }],
   },
 ];
 
@@ -303,7 +303,7 @@ function CrProperties({ broker }: any) {
       </div>
       {broker.status === 'Suspenso' && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: cr.errBg, borderRadius: 10, padding: '10px 12px', marginBottom: 12, fontSize: 12.5, color: cr.g700, lineHeight: 1.5 }}>
-          <CIc n="shield-alert" s={15} c={cr.error} style={{ marginTop: 1, flexShrink: 0 }} /> Publicações despublicadas por auditoria — fora dos portais e do site.
+          <CIc n="shield-alert" s={15} c={cr.error} style={{ marginTop: 1, flexShrink: 0 }} /> Publicações despublicadas por auditoria, fora dos portais e do site.
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 } as React.CSSProperties}>
@@ -410,7 +410,7 @@ function CrDetail({ broker, onClose, onAudit }: any) {
                 <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 46, lineHeight: 1, color: scoreColor(broker.score) }}>{broker.score}</span>
                 <span style={{ fontSize: 13, color: cr.g500 }}>/ 1000</span>
               </div>
-              <div style={{ fontSize: 12, color: cr.g500, marginBottom: 16 }}>capturado do trabalho real — não digitado</div>
+              <div style={{ fontSize: 12, color: cr.g500, marginBottom: 16 }}>capturado do trabalho real, não digitado</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 } as React.CSSProperties}>
                 {broker.pillars.map((p: any) => (
                   <div key={p.l}>
@@ -498,7 +498,7 @@ function CrAuditModal({ broker, onClose }: any) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 44, height: 44, borderRadius: 12, background: cr.errBg, display: 'grid', placeItems: 'center', flexShrink: 0 }}><CIc n="shield-alert" s={22} c={cr.error} /></span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: cr.ink }}>Auditoria — despublicar tudo</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: cr.ink }}>Auditoria: despublicar tudo</div>
               <div style={{ fontSize: 13, color: cr.g500 }}>{broker.name} · {broker.unit}</div>
             </div>
           </div>

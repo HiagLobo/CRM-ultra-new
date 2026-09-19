@@ -344,7 +344,7 @@ export default function RelatoriosPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: re.ink }}>Relatórios</h1>
-        <div style={{ fontSize: 13.5, color: re.g500, marginTop: 4 }}>A fábrica de documentos da rede — o período fechado, gerado e agendado</div>
+        <div style={{ fontSize: 13.5, color: re.g500, marginTop: 4 }}>A fábrica de documentos da rede: o período fechado, gerado e agendado</div>
       </div>
 
       <ReTop />

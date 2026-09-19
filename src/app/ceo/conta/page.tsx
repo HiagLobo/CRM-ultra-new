@@ -40,7 +40,7 @@ const SESSOES = [
 
 const EVENTOS = [
   { d: 'Login confirmado com MFA', det: 'Chrome · macOS · Recife', t: 'hoje 08:02', ic: 'shield-check', ok: true },
-  { d: 'Login de novo dispositivo — alerta enviado por WhatsApp', det: 'Chrome · Windows · São Paulo', t: 'ontem 22:14', ic: 'alert-triangle', warn: true },
+  { d: 'Login de novo dispositivo, alerta enviado por WhatsApp', det: 'Chrome · Windows · São Paulo', t: 'ontem 22:14', ic: 'alert-triangle', warn: true },
   { d: 'Senha alterada', det: 'pelo próprio usuário', t: '28/05 16:40', ic: 'key-round' },
 ];
 
@@ -74,7 +74,7 @@ function McPerfil() {
 function McSeguranca() {
   return (
     <div style={{ ...mcCard, padding: 22 }}>
-      <McHead title="Segurança" sub="MFA é obrigatório para papéis administrativos — não dá para desligar, só reconfigurar" />
+      <McHead title="Segurança" sub="MFA é obrigatório para papéis administrativos: não dá para desligar, só reconfigurar" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: mc.successBg, borderRadius: 12, marginBottom: 12 }}>
         <span style={{ width: 38, height: 38, borderRadius: 10, background: '#fff', display: 'grid', placeItems: 'center' }}><CIc n="smartphone" s={18} c={mc.success} /></span>
         <div style={{ flex: 1 }}>
@@ -123,7 +123,7 @@ function McSessoes() {
       ))}
       <div style={{ marginTop: 12, padding: '10px 14px', background: mc.lilac1, border: `1px solid ${mc.lilac2}`, borderRadius: 10, fontSize: 12.5, color: mc.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="info" s={14} c={mc.primary} />
-        Encerrar uma sessão derruba o acesso na hora — inclusive em quem estiver com a tela aberta.
+        Encerrar uma sessão derruba o acesso na hora, inclusive em quem estiver com a tela aberta.
       </div>
     </div>
   );

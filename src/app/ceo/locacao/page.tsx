@@ -180,7 +180,7 @@ function LgRisk() {
   const max = Math.max(...types.map(t => t.v));
   return (
     <div style={{ ...lgCard, padding: 22 }}>
-      <LgHead title="Garantias dos contratos" sub="Seguro-fiança e fiador digital são emitidos por parceiros — o risco é deles" />
+      <LgHead title="Garantias dos contratos" sub="Seguro-fiança e fiador digital são emitidos por parceiros: o risco é deles" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 } as React.CSSProperties}>
         {types.map(t => (
           <div key={t.l} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -329,7 +329,7 @@ function LgContract({ contract, onClose }: any) {
         <div style={{ marginBottom: 24 }}>
           <div style={lgSecLabel}>Garantia</div>
           {c.guar === 'Sem garantia' ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: lg.warnBg, borderRadius: 10, padding: '12px 14px', fontSize: 13, color: lg.g700 }}><CIc n="shield-off" s={16} c={lg.warning} /> Contrato sem garantia — o risco de inadimplência fica com o proprietário.</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: lg.warnBg, borderRadius: 10, padding: '12px 14px', fontSize: 13, color: lg.g700 }}><CIc n="shield-off" s={16} c={lg.warning} /> Contrato sem garantia: o risco de inadimplência fica com o proprietário.</div>
           ) : (
             <div style={{ background: lg.page, borderRadius: 12, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -404,7 +404,7 @@ function LocacaoPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' } as React.CSSProperties}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: lg.ink }}>Locação &amp; Garantia</h1>
-          <div style={{ fontSize: 13.5, color: lg.g500, marginTop: 4 }}>A carteira de aluguel administrada — as garantias são dos parceiros</div>
+          <div style={{ fontSize: 13.5, color: lg.g500, marginTop: 4 }}>A carteira de aluguel administrada (as garantias são dos parceiros)</div>
         </div>
         <LgPeriod />
       </div>

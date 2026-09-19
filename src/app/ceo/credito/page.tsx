@@ -52,20 +52,20 @@ const FILA: any[] = [
   },
   {
     id: 'an3', nome: 'Pedro Nunes', doc: 'CPF ***.***.***-71', fin: 'Seguro-fiança do parceiro · renovação', ctx: 'Apto Pina · contrato #C-088',
-    status: 'Concluída', espera: '—', dedup: 'consulta de 28/05 reaproveitada — sem novo custo',
+    status: 'Concluída', espera: '—', dedup: 'consulta de 28/05 reaproveitada, sem novo custo',
     resultado: { bureau: 'Serasa Experian', score: 780, faixa: 'Baixo risco', pend: 'nenhuma negativação', renda: 'compatível (3,4× o aluguel)', decisao: 'Aprovado', quando: '28/05 · por Marina C.' },
   },
   {
     id: 'an4', nome: 'Juliana Castro', doc: 'CPF ***.***.***-19', fin: 'Fechamento · financiamento', ctx: 'Apto Graças · entrada R$ 230 mil',
     status: 'Concluída', espera: '—', dedup: null,
-    resultado: { bureau: 'SPC Brasil', score: 612, faixa: 'Risco moderado', pend: '1 protesto (R$ 1.240 · 2024) — quitado', renda: 'não avaliada pelo SPC', decisao: 'Aprovado com ressalva', quando: 'hoje 09:12 · por Marina C.' },
+    resultado: { bureau: 'SPC Brasil', score: 612, faixa: 'Risco moderado', pend: '1 protesto (R$ 1.240 · 2024), quitado', renda: 'não avaliada pelo SPC', decisao: 'Aprovado com ressalva', quando: 'hoje 09:12 · por Marina C.' },
   },
 ];
 
 const CRECI: any[] = [
   { nome: 'Joana Reis', creci: 'CRECI-PE 00000-F', st: 'Validado', ev: 'consulta ao Conselho · 10/06', tone: 'ok' },
   { nome: 'Marcos Lima', creci: 'CRECI-PE 00000-F', st: 'Divergência de nome', ev: 'registro: "Marcos A. de Lima" × cadastro: "Marcos Lima"', tone: 'warn' },
-  { nome: 'Helena Rocha', creci: 'CRECI-PE 00000-F', st: 'Aguardando evidência', ev: 'candidata enviou carteirinha — conferir validade', tone: 'info' },
+  { nome: 'Helena Rocha', creci: 'CRECI-PE 00000-F', st: 'Aguardando evidência', ev: 'candidata enviou carteirinha, conferir validade', tone: 'info' },
 ];
 
 const CUSTOS = [
@@ -106,7 +106,7 @@ function CrFila() {
   const [bureau, setBureau] = useState<string | null>(null);
   return (
     <div style={{ ...crCard, padding: 22 }}>
-      <CrHead title="Fila de análises" sub="Garantia, fechamento e candidatos — o analista escolhe o bureau na hora, vendo o custo"
+      <CrHead title="Fila de análises" sub="Garantia, fechamento e candidatos. O analista escolhe o bureau na hora, vendo o custo"
         right={<CrBadge text="resultado nunca aparece ao corretor" fg={cr.error} bg={cr.errBg} ic="eye-off" />} />
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
@@ -165,7 +165,7 @@ function CrFila() {
                                 {bureau ? `Consultar no ${bureau}` : 'Selecione um bureau'}
                               </button>
                               <span style={{ fontSize: 12, color: cr.g500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <CIc n="info" s={13} c={cr.g500} /> Se houver consulta dos últimos 30 dias, o sistema reaproveita — sem cobrar de novo.
+                                <CIc n="info" s={13} c={cr.g500} /> Se houver consulta dos últimos 30 dias, o sistema reaproveita, sem cobrar de novo.
                               </span>
                             </div>
                           </>
@@ -205,7 +205,7 @@ function CrFila() {
                                 <CIc n="file-lock-2" s={14} c={cr.g700} /> Ver retorno bruto do bureau
                               </button>
                               <div style={{ fontSize: 11.5, color: cr.g500, marginTop: 7, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <CIc n="eye" s={12} c={cr.g500} /> Abrir o dado bruto fica registrado na trilha de auditoria — quem viu, quando e por quê.
+                                <CIc n="eye" s={12} c={cr.g500} /> Abrir o dado bruto fica registrado na trilha de auditoria: quem viu, quando e por quê.
                               </div>
                             </div>
                           </div>
@@ -228,7 +228,7 @@ function CrCreci() {
   const TONE: any = { ok: [cr.success, cr.successBg], warn: [cr.warning, cr.warnBg], info: [cr.info, cr.infoBg] };
   return (
     <div style={{ ...crCard, padding: 22 }}>
-      <CrHead title="Reputação & CRECI" sub="Validação de registro profissional — exige evidência antes de aprovar" />
+      <CrHead title="Reputação & CRECI" sub="Validação de registro profissional: exige evidência antes de aprovar" />
       {CRECI.map((c, i) => {
         const [fg, bg] = TONE[c.tone];
         return (
@@ -253,7 +253,7 @@ function CrCustos() {
   const total = CUSTOS.reduce((s, c) => s + c.v, 0);
   return (
     <div style={{ ...crCard, padding: 22 }}>
-      <CrHead title="Custo das consultas — junho" sub="Por bureau · o reuso de 30 dias derruba o custo por análise"
+      <CrHead title="Custo das consultas em junho" sub="Por bureau · o reuso de 30 dias derruba o custo por análise"
         right={<CrBadge text={`Total R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} fg={cr.primary} bg={cr.lilac2} />} />
       {CUSTOS.map((c) => (
         <div key={c.b} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>

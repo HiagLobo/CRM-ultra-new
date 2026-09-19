@@ -40,7 +40,7 @@ const SECOES_SITE: any[] = [
     st: 'Publicado', quando: '02/06 · por Camila (Marketing)', metr: '4,8% de clique',
   },
   {
-    id: 's2', n: 'Faixa de destaque', desc: 'Campanha "Junho sem caução" — termina em 30/06',
+    id: 's2', n: 'Faixa de destaque', desc: 'Campanha "Junho sem caução", termina em 30/06',
     st: 'Publicado', quando: '01/06 · por Camila (Marketing)', metr: '2,1% de clique', expira: 'expira 30/06',
   },
   {
@@ -99,7 +99,7 @@ function MkSite() {
   const [sel, setSel] = useState('s4');
   return (
     <div style={{ ...mkCard, padding: 22 }}>
-      <MkHead title={`Site público — ${demo.dominio}`} sub="Banners e textos editados aqui aparecem no site na hora, sem precisar de programador"
+      <MkHead title={`Site público: ${demo.dominio}`} sub="Banners e textos editados aqui aparecem no site na hora, sem precisar de programador"
         right={<MkBadge text="toda publicação é auditada" fg={mk.g700} bg={mk.g100} ic="scroll-text" />} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {SECOES_SITE.map((s) => {
@@ -147,7 +147,7 @@ function MkSite() {
 function MkPecas() {
   return (
     <div style={{ ...mkCard, padding: 22 }}>
-      <MkHead title="Materiais da rede" sub="Peças geradas pelos corretores nos templates oficiais — com QR rastreável até o lead" />
+      <MkHead title="Materiais da rede" sub="Peças geradas pelos corretores nos templates oficiais, com QR rastreável até o lead" />
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
           <thead><tr>
@@ -173,7 +173,7 @@ function MkPecas() {
         </table>
       </div>
       <div style={{ marginTop: 14, fontSize: 12, color: mk.g500, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <CIc n="info" s={13} c={mk.g500} /> Cada QR identifica corretor e peça — o lead que escaneia já cai distribuído para quem gerou.
+        <CIc n="info" s={13} c={mk.g500} /> Cada QR identifica corretor e peça: o lead que escaneia já cai distribuído para quem gerou.
       </div>
     </div>
   );
@@ -183,7 +183,7 @@ function MkUnidades() {
   const max = Math.max(...TOP_UNIDADES.map((u) => u.pecas));
   return (
     <div style={{ ...mkCard, padding: 22 }}>
-      <MkHead title="Engajamento por unidade" sub="Peças geradas × leads — junho" />
+      <MkHead title="Engajamento por unidade" sub="Peças geradas × leads em junho" />
       {TOP_UNIDADES.map((u) => (
         <div key={u.u} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
           <span style={{ width: 140, fontSize: 12.5, color: mk.g700, flexShrink: 0 }}>{u.u}</span>
@@ -195,7 +195,7 @@ function MkUnidades() {
       ))}
       <div style={{ marginTop: 14, padding: '10px 14px', background: mk.lilac1, border: `1px solid ${mk.lilac2}`, borderRadius: 10, fontSize: 12.5, color: mk.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="lightbulb" s={14} c={mk.primary} />
-        Corretor que usa os materiais oficiais gera 1,8× mais leads — e ganha pontos de marketing no Score.
+        Corretor que usa os materiais oficiais gera 1,8× mais leads, e ganha pontos de marketing no Score.
       </div>
     </div>
   );
@@ -209,7 +209,7 @@ export default function CeoMarketingPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: mk.ink }}>Marketing & Site</h1>
-            <div style={{ fontSize: 13.5, color: mk.g500, marginTop: 4 }}>O site público nas mãos do Marketing e os materiais da rede — tudo rastreado até o lead</div>
+            <div style={{ fontSize: 13.5, color: mk.g500, marginTop: 4 }}>O site público nas mãos do Marketing e os materiais da rede, tudo rastreado até o lead</div>
           </div>
           <MkBadge text="site no ar · atualiza sem deploy" fg={mk.success} bg={mk.successBg} ic="globe" />
         </div>

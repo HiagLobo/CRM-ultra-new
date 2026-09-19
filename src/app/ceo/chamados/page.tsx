@@ -52,7 +52,7 @@ const CHAMADOS: any[] = [
     anteriores: '3 chamados · satisfação média 5,0',
     thread: [
       { de: 'corretor', t: '09:12', m: 'Oi! O boleto do meu cliente (contrato #C-204) foi pago ontem mas continua como atrasado no sistema. Ele tá me cobrando, podem verificar?' },
-      { de: 'suporte', t: '09:31', m: 'Oi Renata! Localizei aqui — o aviso de pagamento do banco atrasou. A conferência diária já baixou a cobrança agora de manhã. Pede pra ele conferir, e o comprovante já aparece no painel dele. 😊' },
+      { de: 'suporte', t: '09:31', m: 'Oi Renata! Localizei aqui: o aviso de pagamento do banco atrasou. A conferência diária já baixou a cobrança agora de manhã. Pede pra ele conferir, e o comprovante já aparece no painel dele. 😊' },
       { de: 'corretor', t: '09:40', m: 'Apareceu sim! Mas a multa que ele pagou vai ser devolvida? Pagou um dia depois.' },
     ],
   },
@@ -62,12 +62,12 @@ const CHAMADOS: any[] = [
     anteriores: '1 chamado · satisfação 4,0',
     thread: [
       { de: 'corretor', t: '08:55', m: `O upload trava em 80% nas fotos do ${demo.sigla}-1502. Já tentei pelo celular e pelo notebook. Anexei o print do erro.`, anexo: 'print-erro-upload.png' },
-      { de: 'suporte', t: '09:20', m: 'Bom dia, Lucas! Recebemos o print. As fotos têm mais de 25 MB cada — o limite por arquivo. Pode reduzir a resolução ou mandar que a gente otimiza por aqui.' },
+      { de: 'suporte', t: '09:20', m: 'Bom dia, Lucas! Recebemos o print. As fotos têm mais de 25 MB cada, que é o limite por arquivo. Pode reduzir a resolução ou mandar que a gente otimiza por aqui.' },
     ],
   },
   {
     id: '#1039', titulo: 'Como funciona o rateio na co-corretagem?', corretor: 'Bruno Tavares', unidade: `${demo.nomeCurto} Caruaru`, tier: 'Consolidado',
-    cat: 'Dúvida', pri: 'Baixa', status: 'Aberto', atribuido: '— não atribuído —', sla: '7h 10min', slaTone: 'ok', aberto: 'hoje 07:48',
+    cat: 'Dúvida', pri: 'Baixa', status: 'Aberto', atribuido: 'não atribuído', sla: '7h 10min', slaTone: 'ok', aberto: 'hoje 07:48',
     anteriores: '5 chamados · satisfação média 4,6',
     thread: [
       { de: 'corretor', t: '07:48', m: `Fechei uma venda em parceria com a Joana (${demo.nomeCurto} Boa Viagem). Como o sistema divide a comissão entre a gente? 50/50 automático?` },
@@ -79,7 +79,7 @@ const CHAMADOS: any[] = [
     anteriores: 'primeiro chamado',
     thread: [
       { de: 'corretor', t: '15:30', m: 'Recebi um lead de Garanhuns, mas atendo só Olinda e Paulista. Tem como ajustar?' },
-      { de: 'suporte', t: '16:05', m: 'Oi Helena! Sua área de atuação estava como "PE inteiro" no cadastro. Já ajustei para Olinda + Paulista — os próximos leads respeitam isso. O de Garanhuns voltou para a fila e foi redistribuído. ✅' },
+      { de: 'suporte', t: '16:05', m: 'Oi Helena! Sua área de atuação estava como "PE inteiro" no cadastro. Já ajustei para Olinda + Paulista. Os próximos leads respeitam isso. O de Garanhuns voltou para a fila e foi redistribuído. ✅' },
       { de: 'corretor', t: '17:34', m: 'Perfeito, obrigada!' },
     ],
   },
@@ -126,7 +126,7 @@ function ChFila() {
   const rows = CHAMADOS.filter((r) => f === 'Todos' || r.status === f);
   return (
     <div style={{ ...chCard, padding: 22 }}>
-      <ChHead title="Fila de chamados" sub="Ordenada por SLA — quem está estourando aparece primeiro"
+      <ChHead title="Fila de chamados" sub="Ordenada por SLA: quem está estourando aparece primeiro"
         right={<ChBadge text="reabrir vale por 7 dias após resolver" fg={ch.g700} bg={ch.g100} ic="rotate-ccw" />} />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         {filtros.map((x) => (
@@ -162,7 +162,7 @@ function ChFila() {
                     <td style={td}><ChBadge text={r.sla} fg={sfg} bg={sbg} ic="alarm-clock" /></td>
                     <td style={{ ...td, fontSize: 12.5 }}>{r.atribuido}</td>
                     <td style={{ ...td, textAlign: 'right' }}>
-                      <button onClick={(e) => e.stopPropagation()} style={{ ...btnO, padding: '7px 14px', fontSize: 12, color: ch.primary }}>{r.atribuido.startsWith('—') ? 'Assumir' : 'Abrir'}</button>
+                      <button onClick={(e) => e.stopPropagation()} style={{ ...btnO, padding: '7px 14px', fontSize: 12, color: ch.primary }}>{r.atribuido === 'não atribuído' ? 'Assumir' : 'Abrir'}</button>
                     </td>
                   </tr>
                   {open && (
@@ -196,7 +196,7 @@ function ChFila() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', padding: '9px 13px', background: ch.successBg, borderRadius: 10 }}>
                               <CIc n="star" s={15} c={ch.warning} />
                               <span style={{ fontSize: 12.5, fontWeight: 700, color: ch.ink }}>Avaliado com nota {r.nota}/5</span>
-                              <span style={{ fontSize: 12, color: ch.g500 }}>· resolução exige resposta final — avaliação chega por WhatsApp</span>
+                              <span style={{ fontSize: 12, color: ch.g500 }}>· resolução exige resposta final, e a avaliação chega por WhatsApp</span>
                             </div>
                           )}
                         </div>
@@ -243,7 +243,7 @@ function ChCategorias() {
   const max = Math.max(...CATS_MES.map((m) => m.v));
   return (
     <div style={{ ...chCard, padding: 22 }}>
-      <ChHead title="Sobre o que os corretores chamam" sub="Chamados por categoria — junho" />
+      <ChHead title="Sobre o que os corretores chamam" sub="Chamados por categoria em junho" />
       {CATS_MES.map((m) => (
         <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 11 }}>
           <span style={{ width: 110, fontSize: 12.5, color: ch.g700, flexShrink: 0 }}>{m.l}</span>
@@ -255,7 +255,7 @@ function ChCategorias() {
       ))}
       <div style={{ marginTop: 14, padding: '10px 14px', background: ch.lilac1, border: `1px solid ${ch.lilac2}`, borderRadius: 10, fontSize: 12.5, color: ch.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="lightbulb" s={14} c={ch.primary} />
-        1 em cada 3 chamados é dúvida financeira — candidatos naturais para a base de conhecimento da fase 2.
+        1 em cada 3 chamados é dúvida financeira: são candidatos naturais para a base de conhecimento da fase 2.
       </div>
     </div>
   );
@@ -267,7 +267,7 @@ function ChSatisfacao() {
   ];
   return (
     <div style={{ ...chCard, padding: 22 }}>
-      <ChHead title="Satisfação do suporte" sub="Avaliação pós-resolução (1 a 5) — junho" right={<ChBadge text="CSAT 4,6" fg={ch.success} bg={ch.successBg} ic="star" />} />
+      <ChHead title="Satisfação do suporte" sub="Avaliação pós-resolução (1 a 5) em junho" right={<ChBadge text="CSAT 4,6" fg={ch.success} bg={ch.successBg} ic="star" />} />
       {notas.map((x) => (
         <div key={x.n} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
           <span style={{ width: 44, fontSize: 12.5, color: ch.g700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{x.n} <CIc n="star" s={11} c={ch.warning} /></span>

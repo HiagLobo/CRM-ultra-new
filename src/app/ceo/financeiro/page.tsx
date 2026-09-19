@@ -90,7 +90,7 @@ function FiRevenue() {
   let off = 25;
   return (
     <div style={{ ...fiCard, padding: 22 }}>
-      <FiHead title="Receita por fonte" sub="A margem é diversificada — não só comissão" right={<span style={{ fontSize: 12.5, fontWeight: 700, color: fi.primary, background: fi.lilac2, padding: '5px 12px', borderRadius: 999 }}>Total R$ 1,24 mi</span>} />
+      <FiHead title="Receita por fonte" sub="A margem é diversificada, não só comissão" right={<span style={{ fontSize: 12.5, fontWeight: 700, color: fi.primary, background: fi.lilac2, padding: '5px 12px', borderRadius: 999 }}>Total R$ 1,24 mi</span>} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
         <svg width="160" height="160" viewBox="0 0 42 42" style={{ flexShrink: 0 }}>
           <circle cx="21" cy="21" r="15.9" fill="none" stroke={fi.g100} strokeWidth="5" />
@@ -184,7 +184,7 @@ function FiAdvances() {
   ];
   return (
     <div style={{ ...fiCard, padding: 22 }}>
-      <FiHead title="Antecipações" sub="Adiantadas por parceiro financeiro — a rede não empresta, só intermedeia (taxa de 2,5%)" />
+      <FiHead title="Antecipações" sub="Adiantadas por parceiro financeiro: a rede não empresta, só intermedeia (taxa de 2,5%)" />
       <div className="fi-2x2">
         {stats.map(s => (
           <div key={s.l} style={{ background: fi.page, borderRadius: 12, padding: '14px 16px' }}>
@@ -298,7 +298,7 @@ function FiLedger() {
         })}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 14, fontSize: 12, color: fi.g500 }}>
-        <CIc n="lock" s={14} c={fi.g500} /> Registro imutável — mesmo ledger que o corretor vê no extrato dele.
+        <CIc n="lock" s={14} c={fi.g500} /> Registro imutável, mesmo ledger que o corretor vê no extrato dele.
       </div>
     </div>
   );

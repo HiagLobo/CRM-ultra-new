@@ -49,7 +49,7 @@ const SLA_TONE: any = {
 /* ---------------- DATA ---------------- */
 const FILA: any[] = [
   {
-    id: 'a1', nome: 'Pedro Nunes', fone: '(81) 9••••-••44', cat: 'Suporte cliente', motivo: '2ª via de boleto — Apto Pina (contrato #C-088)',
+    id: 'a1', nome: 'Pedro Nunes', fone: '(81) 9••••-••44', cat: 'Suporte cliente', motivo: '2ª via de boleto: Apto Pina (contrato #C-088)',
     origem: 'WhatsApp', espera: '22 min', sla: 'Vencendo', vinculo: 'Inquilino · contrato ativo desde 03/2025',
     conversa: [
       { de: 'cliente', t: '09:12', m: 'Bom dia! O boleto do aluguel venceu ontem e perdi o e-mail. Conseguem me mandar a 2ª via?' },
@@ -62,11 +62,11 @@ const FILA: any[] = [
     ],
   },
   {
-    id: 'a2', nome: 'Mariana Alves', fone: '(81) 9••••-••07', cat: 'Fechamento', motivo: `Proposta aceita — Cobertura Boa Viagem (${demo.sigla}-1300)`,
+    id: 'a2', nome: 'Mariana Alves', fone: '(81) 9••••-••07', cat: 'Fechamento', motivo: `Proposta aceita: Cobertura Boa Viagem (${demo.sigla}-1300)`,
     origem: 'Site', espera: '4 min', sla: 'No prazo', vinculo: `Lead do corretor Lucas F. · ref ${demo.sigla}-1300`,
     conversa: [
       { de: 'cliente', t: '10:40', m: 'O proprietário aceitou a proposta? Como seguimos com a documentação?' },
-      { de: 'ia', t: '10:41', m: `Ótima notícia, Mariana — aceitou sim! A partir daqui o time da ${demo.nomeCurto} conduz a documentação com você. Já estou te conectando. 🎉` },
+      { de: 'ia', t: '10:41', m: `Ótima notícia, Mariana: aceitou sim! A partir daqui o time da ${demo.nomeCurto} conduz a documentação com você. Já estou te conectando. 🎉` },
     ],
     timeline: [
       { t: '10:40', d: `Identificada por refPublica ${demo.sigla}-1300 (degrau 1)`, ic: 'fingerprint' },
@@ -87,19 +87,19 @@ const FILA: any[] = [
     ],
   },
   {
-    id: 'a4', nome: 'Construtora parceira A', fone: '(81) 3•••-••20', cat: 'Transferência', motivo: 'Dúvida jurídica sobre minuta de permuta — corretor pediu apoio',
+    id: 'a4', nome: 'Construtora parceira A', fone: '(81) 3•••-••20', cat: 'Transferência', motivo: 'Dúvida jurídica sobre minuta de permuta, corretor pediu apoio',
     origem: 'Corretor (Renata A.)', espera: '31 min', sla: 'Estourado', vinculo: 'Parceiro · 3 negócios fechados',
     conversa: [
       { de: 'cliente', t: '10:31', m: `Renata, nosso jurídico apontou uma cláusula na permuta. Quem da ${demo.nomeCurto} pode alinhar com a gente?` },
     ],
     timeline: [
       { t: '10:31', d: 'Renata A. transferiu com nota: "precisa do jurídico, cliente grande"', ic: 'arrow-right-left' },
-      { t: '10:46', d: 'SLA interno de 15 min estourado — ninguém assumiu', ic: 'alarm-clock', warn: true },
+      { t: '10:46', d: 'SLA interno de 15 min estourado, ninguém assumiu', ic: 'alarm-clock', warn: true },
       { t: '11:02', d: 'Escalado: alerta enviado ao gestor da Operação', ic: 'bell-ring', warn: true },
     ],
   },
   {
-    id: 'a5', nome: 'Fernanda Souza', fone: '(81) 9••••-••18', cat: 'Suporte cliente', motivo: 'Vistoria de saída — agendamento (contrato #C-141)',
+    id: 'a5', nome: 'Fernanda Souza', fone: '(81) 9••••-••18', cat: 'Suporte cliente', motivo: 'Vistoria de saída: agendamento (contrato #C-141)',
     origem: 'WhatsApp', espera: '2 min', sla: 'No prazo', vinculo: 'Inquilina · aviso de saída registrado',
     conversa: [
       { de: 'cliente', t: '11:04', m: 'Oi! Preciso agendar a vistoria de saída, entrego as chaves dia 30.' },
@@ -112,7 +112,7 @@ const FILA: any[] = [
 
 const ANTIDESINT: any[] = [
   { id: 'd1', quem: 'Ricardo M. (corretor) → lead', trecho: '"me chama no meu zap pessoal 9 9821-…"', acao: 'Mensagem bloqueada', quando: 'hoje 09:48', risco: 'Alto' },
-  { id: 'd2', quem: 'Lead → Bruno T. (corretor)', trecho: 'Lead enviou o próprio número — mascarado automaticamente', acao: 'Número mascarado', quando: 'hoje 08:15', risco: 'Baixo' },
+  { id: 'd2', quem: 'Lead → Bruno T. (corretor)', trecho: 'Lead enviou o próprio número, mascarado automaticamente', acao: 'Número mascarado', quando: 'hoje 08:15', risco: 'Baixo' },
   { id: 'd3', quem: 'Carlos R. (corretor) → lead', trecho: '"te passo meu e-mail pra gente seguir por lá"', acao: 'Retida p/ revisão', quando: 'ontem 17:22', risco: 'Médio' },
 ];
 
@@ -160,7 +160,7 @@ function OpFila() {
     <div style={{ ...opCard, padding: 22 }}>
       <OpHead
         title="Fila de atendimento"
-        sub="Conversas do WhatsApp oficial que a IA transferiu para uma pessoa — categoria editável na triagem"
+        sub="Conversas do WhatsApp oficial que a IA transferiu para uma pessoa, categoria editável na triagem"
         right={
           <button style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 13, color: '#fff', background: op.primary, borderRadius: 10, padding: '9px 16px' }}>
             <CIc n="shuffle" s={15} c="#fff" /> Redistribuir vencidos
@@ -263,7 +263,7 @@ function OpAntiDesint() {
   const RISCO_TONE: any = { Alto: [op.error, op.errBg], 'Médio': [op.warning, op.warnBg], Baixo: [op.success, op.successBg] };
   return (
     <div style={{ ...opCard, padding: 22 }}>
-      <OpHead title="Anti-desintermediação" sub="Tentativas de levar a conversa para fora do WhatsApp oficial — bloqueio automático, revisão humana" />
+      <OpHead title="Anti-desintermediação" sub="Tentativas de levar a conversa para fora do WhatsApp oficial: bloqueio automático, revisão humana" />
       {ANTIDESINT.map((d, i) => {
         const [fg, bg] = RISCO_TONE[d.risco];
         return (
@@ -285,7 +285,7 @@ function OpAntiDesint() {
       })}
       <div style={{ marginTop: 14, padding: '10px 14px', background: op.lilac1, border: `1px solid ${op.lilac2}`, borderRadius: 10, fontSize: 12.5, color: op.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="info" s={14} c={op.primary} />
-        O telefone do lead fica mascarado para o corretor até a fase de visita — toda revelação é registrada na trilha de auditoria.
+        O telefone do lead fica mascarado para o corretor até a fase de visita. Toda revelação é registrada na trilha de auditoria.
       </div>
     </div>
   );
@@ -296,7 +296,7 @@ function OpBotSaude() {
   const max = Math.max(...TRANSFER_MOTIVOS.map((m) => m.v));
   return (
     <div style={{ ...opCard, padding: 22 }}>
-      <OpHead title="Saúde do atendimento IA" sub="Por que as conversas chegam a um humano — hoje" right={<OpBadge text="janela 24h: 96% dentro" fg={op.success} bg={op.successBg} ic="clock" />} />
+      <OpHead title="Saúde do atendimento IA" sub="Por que as conversas chegam a um humano hoje" right={<OpBadge text="janela 24h: 96% dentro" fg={op.success} bg={op.successBg} ic="clock" />} />
       {TRANSFER_MOTIVOS.map((m) => (
         <div key={m.l} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 11 }}>
           <span style={{ width: 168, fontSize: 12.5, color: op.g700, flexShrink: 0, lineHeight: 1.25 }}>{m.l}</span>

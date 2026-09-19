@@ -41,9 +41,9 @@ const ST_TONE: any = {
 
 /* ---------------- DATA ---------------- */
 const DIVERGENCIAS: any[] = [
-  { id: 'dv1', tipo: 'Valor a maior', ref: 'aluguel:c-204:2026-06', quem: 'Apto Espinheiro · M. Souza', nosso: 'R$ 3.200,00', asaas: 'R$ 3.350,00', causa: 'Provável multa+juros pagos no boleto — confirmar antes de baixar', sev: 'warn' },
+  { id: 'dv1', tipo: 'Valor a maior', ref: 'aluguel:c-204:2026-06', quem: 'Apto Espinheiro · M. Souza', nosso: 'R$ 3.200,00', asaas: 'R$ 3.350,00', causa: 'Provável multa+juros pagos no boleto, confirmar antes de baixar', sev: 'warn' },
   { id: 'dv2', tipo: 'Cobrança desconhecida', ref: 'pay_99812 (só no Asaas)', quem: '—', nosso: '—', asaas: 'R$ 99,00', causa: 'Pagamento sem cobrança correspondente no sistema', sev: 'err' },
-  { id: 'dv3', tipo: 'Estorno c/ repasse liquidado', ref: 'aluguel:c-088:2026-05', quem: 'Apto Pina · P. Nunes', nosso: 'R$ 2.400,00', asaas: 'estornado', causa: 'Repasse ao proprietário já foi pago — decidir compensação no próximo ciclo', sev: 'err' },
+  { id: 'dv3', tipo: 'Estorno c/ repasse liquidado', ref: 'aluguel:c-088:2026-05', quem: 'Apto Pina · P. Nunes', nosso: 'R$ 2.400,00', asaas: 'estornado', causa: 'Repasse ao proprietário já foi pago, decidir compensação no próximo ciclo', sev: 'err' },
   { id: 'dv4', tipo: 'Pago após cancelamento', ref: 'assinatura:u-12:2026-06', quem: 'Unidade Caruaru', nosso: 'cancelada', asaas: 'R$ 1.900,00', causa: 'Boleto antigo pago após troca de plano', sev: 'warn' },
 ];
 
@@ -52,7 +52,7 @@ const COBRANCAS: any[] = [
     id: 'c1', quem: 'Maria Souza', det: 'Aluguel · Apto Espinheiro', ref: 'aluguel:c-204:2026-06', tipo: 'Aluguel',
     valor: 'R$ 3.200,00', venc: '10/06', status: 'Paga', metodo: 'Boleto',
     trilha: [
-      { t: '01/06', d: 'Cobrança criada (chave idempotente — reprocessar não duplica)', ic: 'file-plus' },
+      { t: '01/06', d: 'Cobrança criada (chave idempotente: reprocessar não duplica)', ic: 'file-plus' },
       { t: '01/06', d: 'Boleto enviado por WhatsApp + e-mail', ic: 'send' },
       { t: '11/06', d: 'Webhook Asaas: PAGA · R$ 3.350,00 (multa+juros) → divergência aberta', ic: 'alert-triangle', warn: true },
     ],
@@ -79,7 +79,7 @@ const COBRANCAS: any[] = [
   {
     id: 'c4', quem: 'Tech Soluções Ltda', det: '1º aluguel · Sala Ilha do Leite', ref: 'aluguel:c-310:2026-06', tipo: 'Aluguel',
     valor: 'R$ 5.500,00', venc: '15/06', status: 'Em aberto', metodo: 'Boleto',
-    trilha: [{ t: '10/06', d: 'Cobrança criada junto com o contrato (mesma transação — ou tudo, ou nada)', ic: 'file-plus' }],
+    trilha: [{ t: '10/06', d: 'Cobrança criada junto com o contrato (mesma transação: ou tudo, ou nada)', ic: 'file-plus' }],
   },
   {
     id: 'c5', quem: 'Lucas Ferreira (corretor)', det: 'Pacote de créditos Radar · 5.000', ref: 'credito:lf-9:2026-06', tipo: 'Créditos',
@@ -93,14 +93,14 @@ const COBRANCAS: any[] = [
 
 const REPASSES: any[] = [
   { quem: 'Heloísa Quintas', det: 'Apto Madalena · junho', liq: 'R$ 2.540,00', st: 'Transferido', tone: ['', ''] },
-  { quem: 'Rodrigo Tenório', det: 'Casa Setúbal · junho', liq: 'R$ 3.190,00', st: 'Sem dado bancário', nota: 'IA pediu os dados por WhatsApp — 2º lembrete hoje' },
-  { quem: 'Beatriz Nóbrega', det: 'Apto Casa Amarela · junho', liq: 'R$ 1.640,00', st: 'Falhou — reprocessar', nota: 'conta encerrada no banco · retry é idempotente, não paga 2×' },
+  { quem: 'Rodrigo Tenório', det: 'Casa Setúbal · junho', liq: 'R$ 3.190,00', st: 'Sem dado bancário', nota: 'IA pediu os dados por WhatsApp, 2º lembrete hoje' },
+  { quem: 'Beatriz Nóbrega', det: 'Apto Casa Amarela · junho', liq: 'R$ 1.640,00', st: 'Falhou (reprocessar)', nota: 'conta encerrada no banco · retry é idempotente, não paga 2×' },
 ];
-const REP_TONE: any = { 'Transferido': [cb.success, cb.successBg], 'Sem dado bancário': [cb.warning, cb.warnBg], 'Falhou — reprocessar': [cb.error, cb.errBg] };
+const REP_TONE: any = { 'Transferido': [cb.success, cb.successBg], 'Sem dado bancário': [cb.warning, cb.warnBg], 'Falhou (reprocessar)': [cb.error, cb.errBg] };
 
 const ANTECIPACOES: any[] = [
-  { quem: 'Lucas Ferreira', tier: 'Elite · score 912', base: 'Comissão confirmada — Casa Candeias', val: 'R$ 40.000,00', liq: 'R$ 39.000,00', alerta: 'acima do limite de auto-aprovação (R$ 25 mil)' },
-  { quem: 'Renata Alves', tier: 'Consolidado · score 740', base: 'Comissão confirmada — Apto Graças', val: 'R$ 15.000,00', liq: 'R$ 14.625,00', alerta: 'teto mensal da rede em 82% — conferido na aprovação' },
+  { quem: 'Lucas Ferreira', tier: 'Elite · score 912', base: 'Comissão confirmada (Casa Candeias)', val: 'R$ 40.000,00', liq: 'R$ 39.000,00', alerta: 'acima do limite de auto-aprovação (R$ 25 mil)' },
+  { quem: 'Renata Alves', tier: 'Consolidado · score 740', base: 'Comissão confirmada (Apto Graças)', val: 'R$ 15.000,00', liq: 'R$ 14.625,00', alerta: 'teto mensal da rede em 82%, conferido na aprovação' },
 ];
 
 /* ---------------- SUMMARY ---------------- */
@@ -133,7 +133,7 @@ function CbSummary() {
 function CbConciliacao() {
   return (
     <div style={{ ...cbCard, padding: 22 }}>
-      <CbHead title="Conciliação — fila de divergências" sub="O que o sistema registra × o que o Asaas confirma. O caso seguro se autocorrige; estes precisam de você"
+      <CbHead title="Conciliação: fila de divergências" sub="O que o sistema registra × o que o Asaas confirma. O caso seguro se autocorrige; estes precisam de você"
         right={<CbBadge text="resolução exige justificativa" fg={cb.warning} bg={cb.warnBg} ic="file-text" />} />
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
@@ -159,7 +159,7 @@ function CbConciliacao() {
       </div>
       <div style={{ marginTop: 14, padding: '10px 14px', background: cb.lilac1, border: `1px solid ${cb.lilac2}`, borderRadius: 10, fontSize: 12.5, color: cb.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="shield-check" s={14} c={cb.primary} />
-        Todo dia o sistema confere com o Asaas as cobranças que mudaram — se um aviso de pagamento se perder, a conferência diária pega. Nenhum pagamento fica para trás.
+        Todo dia o sistema confere com o Asaas as cobranças que mudaram. Se um aviso de pagamento se perder, a conferência diária pega. Nenhum pagamento fica para trás.
       </div>
     </div>
   );
@@ -173,7 +173,7 @@ function CbCobrancas() {
   const rows = COBRANCAS.filter((r) => f === 'Todas' || r.status === f);
   return (
     <div style={{ ...cbCard, padding: 22 }}>
-      <CbHead title="Cobranças" sub="Aluguel, assinaturas, créditos e taxas — clique para ver a trilha completa" />
+      <CbHead title="Cobranças" sub="Aluguel, assinaturas, créditos e taxas. Clique para ver a trilha completa" />
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         {filtros.map((x) => (
           <button key={x} onClick={() => setF(x)} style={{ border: `1px solid ${f === x ? cb.primary : cb.g300}`, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, padding: '6px 14px', borderRadius: 999, background: f === x ? cb.primary : '#fff', color: f === x ? '#fff' : cb.g700 }}>{x}</button>
@@ -205,7 +205,7 @@ function CbCobrancas() {
                     <td style={td}><CbBadge text={r.status} fg={sfg} bg={sbg} /></td>
                     <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button onClick={(e) => e.stopPropagation()} style={{ ...btnO, padding: '6px 11px', fontSize: 12, marginRight: 6 }}>2ª via</button>
-                      <button onClick={(e) => e.stopPropagation()} disabled={!podeEstornar} title={podeEstornar ? 'Estornar (exige justificativa)' : 'Só cobrança paga pode ser estornada — o servidor recusa as demais'}
+                      <button onClick={(e) => e.stopPropagation()} disabled={!podeEstornar} title={podeEstornar ? 'Estornar (exige justificativa)' : 'Só cobrança paga pode ser estornada: o servidor recusa as demais'}
                         style={{ ...btnO, padding: '6px 11px', fontSize: 12, color: podeEstornar ? cb.error : cb.g300, borderColor: podeEstornar ? cb.error : cb.g100, cursor: podeEstornar ? 'pointer' : 'not-allowed' }}>Estornar</button>
                     </td>
                   </tr>
@@ -213,7 +213,7 @@ function CbCobrancas() {
                     <tr><td colSpan={7} style={{ padding: 0, borderBottom: `1px solid ${cb.g100}` }}>
                       <div style={{ background: cb.lilac1, padding: '18px 22px' }}>
                         <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: cb.g500, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <CIc n="history" s={13} c={cb.g500} /> Trilha — <span style={{ fontFamily: 'monospace', textTransform: 'none', letterSpacing: 0 }}>{r.ref}</span>
+                          <CIc n="history" s={13} c={cb.g500} /> Trilha: <span style={{ fontFamily: 'monospace', textTransform: 'none', letterSpacing: 0 }}>{r.ref}</span>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px 22px' }}>
                           {r.trilha.map((t: any, i: number) => (
@@ -239,7 +239,7 @@ function CbCobrancas() {
       </div>
       <div style={{ marginTop: 14, padding: '10px 14px', background: cb.errBg, border: `1px solid #f0c9c9`, borderRadius: 10, fontSize: 12.5, color: cb.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="undo-2" s={14} c={cb.error} />
-        <span><b style={{ color: cb.ink }}>Regra do estorno:</b> só cobrança <b>paga</b> estorna, sempre com justificativa. Se o repasse ou a comissão já foram pagos, o sistema <b>não desfaz sozinho</b> — abre uma divergência para o Financeiro decidir a compensação.</span>
+        <span><b style={{ color: cb.ink }}>Regra do estorno:</b> só cobrança <b>paga</b> estorna, sempre com justificativa. Se o repasse ou a comissão já foram pagos, o sistema <b>não desfaz sozinho</b>: abre uma divergência para o Financeiro decidir a compensação.</span>
       </div>
     </div>
   );
@@ -261,7 +261,7 @@ function CbRepasses() {
             </div>
             <span style={{ fontWeight: 800, color: cb.ink, fontFamily: 'var(--font-display)', fontSize: 14.5, whiteSpace: 'nowrap' }}>{r.liq}</span>
             <CbBadge text={r.st} fg={fg} bg={bg} />
-            {r.st === 'Falhou — reprocessar' && <button style={{ ...btnO, padding: '6px 12px', fontSize: 12 }}>Reprocessar</button>}
+            {r.st === 'Falhou (reprocessar)' && <button style={{ ...btnO, padding: '6px 12px', fontSize: 12 }}>Reprocessar</button>}
           </div>
         );
       })}
@@ -272,7 +272,7 @@ function CbRepasses() {
 function CbAntecipacoes() {
   return (
     <div style={{ ...cbCard, padding: 22 }}>
-      <CbHead title="Antecipações — aprovação" sub="Comissão confirmada · taxa de 2,5% · acima do limite de auto-aprovação" right={<CbBadge text="teto do mês: 82% usado" fg={cb.warning} bg={cb.warnBg} ic="gauge" />} />
+      <CbHead title="Antecipações para aprovação" sub="Comissão confirmada · taxa de 2,5% · acima do limite de auto-aprovação" right={<CbBadge text="teto do mês: 82% usado" fg={cb.warning} bg={cb.warnBg} ic="gauge" />} />
       {ANTECIPACOES.map((a, i) => (
         <div key={i} style={{ border: `1px solid ${cb.g300}`, borderRadius: 12, padding: '14px 16px', marginBottom: i < ANTECIPACOES.length - 1 ? 12 : 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -296,7 +296,7 @@ function CbAntecipacoes() {
       ))}
       <div style={{ marginTop: 14, padding: '10px 14px', background: cb.lilac1, border: `1px solid ${cb.lilac2}`, borderRadius: 10, fontSize: 12.5, color: cb.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
         <CIc n="shield-check" s={14} c={cb.primary} />
-        Ao aprovar, o sistema reconfere <b>na hora</b> elegibilidade, tier e teto do mês — se algo mudou desde que a tela abriu, a aprovação é recusada com o motivo.
+        Ao aprovar, o sistema reconfere <b>na hora</b> elegibilidade, tier e teto do mês. Se algo mudou desde que a tela abriu, a aprovação é recusada com o motivo.
       </div>
     </div>
   );
@@ -310,7 +310,7 @@ export default function CeoCobrancasPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: cb.ink }}>Cobranças & repasses</h1>
-            <div style={{ fontSize: 13.5, color: cb.g500, marginTop: 4 }}>Rede inteira · quinta, 11 de junho · o dia a dia do dinheiro — conciliação, estorno e aprovações</div>
+            <div style={{ fontSize: 13.5, color: cb.g500, marginTop: 4 }}>Rede inteira · quinta, 11 de junho · o dia a dia do dinheiro: conciliação, estorno e aprovações</div>
           </div>
           <CbBadge text="Asaas conectado · sandbox" fg={cb.success} bg={cb.successBg} ic="plug-zap" />
         </div>
