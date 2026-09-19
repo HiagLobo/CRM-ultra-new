@@ -24,6 +24,7 @@ import { useLeadsAdmin, type ResultadoAcao } from "./useLeadsAdmin";
 import { useAgora } from "./useAgora";
 import { pedeDetalhe, type EtapaComDetalhe } from "./etapas";
 import { abaInicial, contarPorAba, filtrarPorAba, textoContagem, type Aba } from "./filtroLeads";
+import { repetidosDaLista } from "./selosLead";
 
 const AVISO_OBSERVACAO = "Lead cadastrado, mas a observação não foi salva. Escreva de novo em Anotações.";
 
@@ -47,6 +48,7 @@ export default function PainelLeads() {
     [painel.leads, abaAtiva, busca, agora],
   );
   const aberto = abertoId ? (painel.leads.find((l) => l.id === abertoId) ?? null) : null;
+  const repetidos = React.useMemo(() => repetidosDaLista(painel.leads), [painel.leads]);
 
   // a aba de abertura é decidida uma vez, com a lista carregada — depois, só o fundador troca
   React.useEffect(() => {
@@ -121,7 +123,7 @@ export default function PainelLeads() {
             <BarraFiltros busca={busca} textoTotal={textoContagem(visiveis.length, painel.leads.length)} aoBuscar={setBusca} />
             <div id="lista-leads" role="tabpanel">
               {visiveis.length > 0 ? (
-                <TabelaLeads leads={visiveis} agora={agora} ocupado={painel.ocupado} aoAbrir={abrirLead} aoEscolherEtapa={(l, e) => void escolherNaLinha(l, e)} />
+                <TabelaLeads leads={visiveis} agora={agora} ocupados={painel.ocupados} repetidos={repetidos} aoAbrir={abrirLead} aoEscolherEtapa={(l, e) => void escolherNaLinha(l, e)} />
               ) : busca.trim() ? (
                 <Aviso icone="search-x">
                   Nenhum lead com essa busca nesta aba. <LinkAviso aoClicar={() => setBusca("")}>Limpar a busca</LinkAviso>
@@ -146,13 +148,15 @@ export default function PainelLeads() {
           key={aberto.id}
           lead={aberto}
           agora={agora}
-          ocupado={painel.ocupado === aberto.id}
+          ocupado={painel.ocupados.has(aberto.id)}
+          repetido={repetidos.get(aberto.id)}
           escAtivo={!pedidoEtapa && !confirmando && !novoAberto}
           aviso={avisoGaveta}
           aoFechar={fecharGaveta}
           aoEscolherEtapa={(etapa) => escolherEtapa(aberto, etapa)}
           aoAlterarRetomar={() => setPedidoEtapa({ lead: aberto, etapa: "retomar" })}
           aoDefinirProximaAcao={(acao) => painel.definirProximaAcao(aberto.id, acao)}
+          aoConferirCreci={(conferencia) => painel.conferirCreci(aberto.id, conferencia)}
           aoExcluir={() => {
             setErroExclusao(null);
             setConfirmando(aberto);
@@ -185,7 +189,7 @@ export default function PainelLeads() {
       {confirmando && (
         <ConfirmarExclusao
           lead={confirmando}
-          ocupado={painel.ocupado === confirmando.id}
+          ocupado={painel.ocupados.has(confirmando.id)}
           erro={erroExclusao}
           aoCancelar={() => setConfirmando(null)}
           aoConfirmar={() => void excluir(confirmando)}

@@ -101,7 +101,7 @@ describe("valores estranhos", () => {
 
   it("o que o cliente manda passa no schema do servidor sem mudar", () => {
     const r = origemDaVisita(visita("?utm_source=Tik Tok&utm_medium=ç&utm_campaign=x;y,z&ref=a b", "https://x.y/"))!.origem;
-    const base = { email: "ana@exemplo.com", telefone: "(81) 99999-0000", creci: "PE 12345", consentimento: true };
+    const base = { nome: "Ana Exemplo", email: "ana@exemplo.com", telefone: "(81) 99999-0000", creci: "PE 12345", consentimento: true };
     expect(LeadInputSchema.parse({ ...base, origem: r }).origem).toEqual(r);
   });
 });

@@ -27,6 +27,20 @@ const UFS: ReadonlySet<string> = new Set(LISTA_UFS);
 export const MENSAGEM_CRECI_SEM_UF = "informe o estado do CRECI";
 
 /**
+ * Resultado da conferência do CRECI pelo fundador na busca oficial do conselho
+ * (O9). Sem valor = ainda não conferido. Não há consulta automática.
+ */
+export const CONFERENCIAS_CRECI = ["conferido", "nao_confere"] as const;
+export type ConferenciaCreci = (typeof CONFERENCIAS_CRECI)[number];
+
+/** Valor gravado → conferência conhecida; qualquer outro vira "não conferido". */
+export function normalizarConferencia(valor: unknown): ConferenciaCreci | undefined {
+  return typeof valor === "string" && (CONFERENCIAS_CRECI as readonly string[]).includes(valor)
+    ? (valor as ConferenciaCreci)
+    : undefined;
+}
+
+/**
  * Sufixo de categoria → forma canônica: F (pessoa física), J (jurídica),
  * E (estagiário). "PF"/"PJ" são a grafia longa de F/J.
  */

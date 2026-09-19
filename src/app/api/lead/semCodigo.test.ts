@@ -32,7 +32,7 @@ import { POST, maxDuration } from "./route";
 
 const EMAIL = "corretor.rota@exemplo.com";
 const TELEFONE = "(11) 90000-0000";
-const CORPO = { email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true };
+const CORPO = { nome: "Corretor Exemplo", email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true };
 
 const stores = storesTemporarias("leads-rota-lead");
 let email: EmailFake;

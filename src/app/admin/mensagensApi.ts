@@ -52,6 +52,9 @@ export function mensagemDeErro(r: RespostaApi, oQue: string): string {
   if (r.status === 409 && (r.corpo as { erro?: unknown } | null)?.erro === "fora_da_fila") {
     return "Esse lead está em Retomar depois ou Perdido: mude a etapa antes de marcar a próxima ação.";
   }
+  if (r.status === 409 && (r.corpo as { erro?: unknown } | null)?.erro === "sem_creci") {
+    return "Esse lead não tem CRECI para conferir.";
+  }
   if (r.status === 400) {
     const detalhe = primeiraMensagem(r.corpo);
     return detalhe ? `Não deu para ${oQue}: ${detalhe}.` : `Não deu para ${oQue}. Tente de novo.`;
@@ -62,5 +65,7 @@ export function mensagemDeErro(r: RespostaApi, oQue: string): string {
 
 /** 409 do cadastro manual: diz qual dado repetiu, sem repetir o dado. */
 export function mensagemDuplicado(campo: unknown): string {
-  return campo === "email" ? "Já existe um lead com esse e-mail." : "Já existe um lead com esse telefone.";
+  if (campo === "email") return "Já existe um lead com esse e-mail.";
+  if (campo === "creci") return "Já existe um lead com esse CRECI.";
+  return "Já existe um lead com esse telefone.";
 }

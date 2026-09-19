@@ -1,83 +1,64 @@
 /**
- * Caso de uso: solicitar acesso ao demo (criar/atualizar lead + disparar código).
+ * Caso de uso: solicitar acesso ao demo (criar o lead + disparar código).
  * Sem HTTP — as dependências (store, e-mail, rate-limit, anti-robô) são injetadas,
  * então é testável sem rede/Resend. A rota fina (POST /api/lead) só faz o wiring.
  *
- * Ordem (O7·S1) — do mais barato ao mais caro, e nada é gravado antes de passar:
- * 1. isca (honeypot) preenchida → robô: sucesso falso, nada gravado nem enviado;
- * 2. Turnstile, se ligado → sem pessoa do outro lado, para aqui;
- * 3. limite por e-mail (3/30 min) e por IP (10/30 min), atômicos entre si;
- * 4. provedor de e-mail não sobe (ex.: produção sem RESEND_API_KEY) → grava o
- *    lead SEM código (o fundador liga), sem gastar vaga do teto diário;
- * 5. teto global diário estourado → idem;
- * 6. envio do código falhou ou passou do prazo → idem: nunca perde o contato;
- * 7. e-mail saiu → persiste o código novo.
+ * Ordem (O7·S1, O9) — do mais barato ao mais caro, e nada é gravado antes de passar:
+ * 1–3. isca → Turnstile → limite por e-mail e por IP (`portaria`);
+ * 4. e-mail que JÁ tem lead → vira "entrar": só um código novo, nenhum dado
+ *    regravado (os dados novos vão no verify, depois do código certo);
+ * 5. e-mail novo com WhatsApp de outro lead → barrado, com a dica do e-mail
+ *    mascarado do dono; CRECI de outro lead → barrado, SEM dica (o CRECI é
+ *    público: a dica exporia o e-mail de outro corretor);
+ * 6–8. provedor → teto diário → envio com prazo (`enviarComTeto`). Falhou →
+ *    - e-mail NOVO: lead gravado SEM código (o fundador liga) → `recebido_sem_codigo`;
+ *    - e-mail que JÁ tinha lead (ou criado por outro pedido nesse meio): nada é
+ *      gravado → `envio_indisponivel` (a rota responde 503, nunca "recebemos seus
+ *      dados": não havia nada a receber — emenda do contrato da O9);
+ * 9. e-mail saiu → persiste o código novo (`novo` = este pedido criou o lead).
  */
+import { formasEquivalentesCreci } from "./creci";
+import { enviarComTeto, portaria, type Barrado, type DepsEnvioCodigo, type MotivoSemCodigo } from "./envioCodigo";
+import { mascararEmail } from "./mascaraEmail";
+import type { LeadInput, PedidoAcesso } from "./schema";
+import { prepararSolicitacao } from "./lead";
 import type { LeadStore } from "../../lib/leadStore";
-import type { ProvedorEmail } from "../../lib/email";
-import type { RateLimiter, RegraRate } from "../../lib/ratelimit";
-import type { VerificadorHumano } from "../../lib/turnstile";
-import type { BrandConfig } from "../../config/brand";
-import { causaDoErro } from "../../lib/erros";
-import { comPrazo } from "../../lib/prazo";
-import type { PedidoAcesso } from "./schema";
-import { prepararSolicitacao, type SolicitacaoPreparada } from "./lead";
 
-const JANELA_ENVIO_MS = 30 * 60_000;
+export {
+  REGRA_ENVIO_POR_EMAIL,
+  REGRA_ENVIO_POR_IP,
+  CHAVE_TETO_DIARIO,
+  regraTetoDiario,
+  PRAZO_ENVIO_CODIGO_MS,
+} from "./envioCodigo";
+export type { MotivoSemCodigo } from "./envioCodigo";
 
-/** Por e-mail: 3 envios / 30 min — protege a caixa de quem recebe (e a cota). */
-export const REGRA_ENVIO_POR_EMAIL: RegraRate = { max: 3, janelaMs: JANELA_ENVIO_MS };
-/** Por IP: 10 envios / 30 min — escritório e CGNAT móvel dividem o mesmo IP. */
-export const REGRA_ENVIO_POR_IP: RegraRate = { max: 10, janelaMs: JANELA_ENVIO_MS };
+/** As mesmas dependências do "entrar" (a portaria e o envio são os mesmos). */
+export type DepsSolicitarAcesso = DepsEnvioCodigo;
 
-/** Teto global: uma chave só (sem PII), janela de 24h. Conta TODO e-mail do app. */
-export const CHAVE_TETO_DIARIO = "global:envio:dia";
-const JANELA_TETO_DIARIO_MS = 24 * 60 * 60_000;
-
-/** Regra do teto diário — o máximo vem do env (`LIMITE_ENVIOS_DIA`). */
-export function regraTetoDiario(max: number): RegraRate {
-  return { max, janelaMs: JANELA_TETO_DIARIO_MS };
-}
-
-/**
- * Prazo do envio do código. O SDK do Resend não tem timeout: travou, desistimos
- * e gravamos o lead sem código antes de a plataforma cortar a função.
- */
-export const PRAZO_ENVIO_CODIGO_MS = 8_000;
-
-export interface DepsSolicitarAcesso {
-  store: LeadStore;
-  /**
-   * Provedor sob demanda: configuração faltando (ex.: produção sem
-   * `RESEND_API_KEY`) também cai no "grava sem código" — nunca num 500.
-   */
-  email: () => ProvedorEmail;
-  limiter: RateLimiter;
-  brand: BrandConfig;
-  /** APP_SECRET (HMAC do código) — injetado pela rota a partir do env validado. */
-  secret: string;
-  /** Máximo de e-mails do app em 24h (`LIMITE_ENVIOS_DIA`). */
-  limiteEnviosDia: number;
-  /** Turnstile. Ausente = não exigido (as chaves não estão no env). */
-  verificarHumano?: VerificadorHumano;
-  /** Relógio injetável (testes). */
-  agora?: Date;
-  /** Prazo do envio (testes). Padrão: `PRAZO_ENVIO_CODIGO_MS`. */
-  prazoEnvioMs?: number;
-}
-
-/** Por que o e-mail não saiu (o lead foi gravado mesmo assim). */
-export type MotivoSemCodigo = "falha_envio" | "teto_diario";
+/** Cadastro barrado por repetido (O9). `dica`: e-mail mascarado do dono do WhatsApp, ou `null`. */
+export type Repetido = { status: "telefone_em_uso"; dica: string | null } | { status: "creci_em_uso" };
 
 export type ResultadoSolicitacao =
+  /** `novo: false` = o e-mail já tinha lead (a rota responde `existente: true`). */
   | { status: "enviado"; novo: boolean; codigo: string }
-  /** Lead gravado, e-mail não saiu. `causa` é categoria segura para log (sem PII). */
+  /** E-mail NOVO, código não saiu: lead gravado sem código. `causa` é categoria segura para log (sem PII). */
   | { status: "recebido_sem_codigo"; motivo: MotivoSemCodigo; causa: string }
-  | { status: "limitado" }
-  /** Isca preenchida: a rota finge sucesso e nada foi tocado. */
-  | { status: "robo" }
-  | { status: "desafio_recusado" }
-  | { status: "desafio_indisponivel" };
+  /** E-mail que JÁ tinha lead, código não saiu: nada gravado. `causa` idem. */
+  | { status: "envio_indisponivel"; motivo: MotivoSemCodigo; causa: string }
+  | Repetido
+  | Barrado;
+
+/**
+ * WhatsApp e CRECI de um cadastro NOVO não podem ser de outro lead (O9 · F1, F2).
+ * Sem índice UNIQUE (o banco já tem repetidos de teste): a regra mora aqui.
+ */
+async function acharRepetido(store: LeadStore, input: LeadInput): Promise<Repetido | null> {
+  const dono = await store.buscarPorTelefone(input.telefone);
+  if (dono) return { status: "telefone_em_uso", dica: dono.email ? mascararEmail(dono.email) : null };
+  if (await store.buscarPorCreci(formasEquivalentesCreci(input.creci))) return { status: "creci_em_uso" };
+  return null;
+}
 
 export async function solicitarAcesso(
   deps: DepsSolicitarAcesso,
@@ -87,60 +68,28 @@ export async function solicitarAcesso(
   const agora = deps.agora ?? new Date();
   const { website, turnstileToken, ...input } = pedido;
 
-  // 1. a isca é invisível para gente — preenchida, só pode ser robô
-  if (website?.trim()) return { status: "robo" };
-
-  // 2. anti-robô antes de gastar vaga de rate-limit de quem divide o IP
-  if (deps.verificarHumano) {
-    const desafio = await deps.verificarHumano(turnstileToken);
-    if (desafio === "recusado") return { status: "desafio_recusado" };
-    if (desafio === "indisponivel") return { status: "desafio_indisponivel" };
-  }
-
-  // 3. regras separadas, checagem atômica: barrar pelo e-mail não gasta a vaga do IP
-  const permitido = await deps.limiter.permitirCada(
-    [
-      { chave: `email:${input.email}`, regra: REGRA_ENVIO_POR_EMAIL },
-      { chave: `ip:${ctx.ip}`, regra: REGRA_ENVIO_POR_IP },
-    ],
-    agora,
-  );
-  if (!permitido) return { status: "limitado" };
+  const barrado = await portaria(deps, { website, turnstileToken }, input.email, ctx.ip, agora);
+  if (barrado) return barrado;
 
   const prep = await prepararSolicitacao(deps.store, input, { ip: ctx.ip, secret: deps.secret, agora });
-
-  // 4. provedor antes do teto: config quebrada não gasta vaga do dia (consertada, a cota está lá)
-  let provedor: ProvedorEmail;
-  try {
-    provedor = deps.email();
-  } catch (erro) {
-    return gravarSemCodigo(prep, "falha_envio", causaDoErro(erro, "email"));
+  if (prep.novo) {
+    const repetido = await acharRepetido(deps.store, input);
+    if (repetido) return repetido;
   }
 
-  // 5. teto diário: a cota do provedor acabou para hoje, mas o contato não se perde
-  if (!(await deps.limiter.permitir([CHAVE_TETO_DIARIO], regraTetoDiario(deps.limiteEnviosDia), agora))) {
-    return gravarSemCodigo(prep, "teto_diario", "teto_diario");
+  const envio = await enviarComTeto(deps, input.email, prep.codigo, agora);
+  if (envio.status === "nao_enviado") {
+    const { motivo, causa } = envio;
+    // e-mail que já tinha lead: nada a gravar (o código anterior, se no prazo, segue valendo)
+    if (!prep.novo) return { status: "envio_indisponivel", motivo, causa };
+    // lead novo: o contato fica gravado mesmo assim; a causa (sem PII) vai para o log.
+    // Corrida (outro pedido criou o e-mail nesse meio): nada foi gravado → como acima.
+    const gravacao = await prep.persistirSemCodigo();
+    return gravacao === "criado"
+      ? { status: "recebido_sem_codigo", motivo, causa }
+      : { status: "envio_indisponivel", motivo, causa };
   }
 
-  // 6. envia ANTES de persistir o código: falha não sobrescreve um código válido.
-  // Só o tipo do erro vai para a causa — a mensagem pode carregar o destinatário.
-  try {
-    const envio = provedor.enviarCodigo(input.email, prep.codigo, deps.brand);
-    await comPrazo(envio, deps.prazoEnvioMs ?? PRAZO_ENVIO_CODIGO_MS);
-  } catch (erro) {
-    return gravarSemCodigo(prep, "falha_envio", causaDoErro(erro, "email"));
-  }
-
-  await prep.persistir();
-  return { status: "enviado", novo: prep.novo, codigo: prep.codigo };
-}
-
-/** O e-mail não saiu: o contato fica gravado mesmo assim, e a causa (sem PII) vai para o log. */
-async function gravarSemCodigo(
-  prep: SolicitacaoPreparada,
-  motivo: MotivoSemCodigo,
-  causa: string,
-): Promise<ResultadoSolicitacao> {
-  await prep.persistirSemCodigo();
-  return { status: "recebido_sem_codigo", motivo, causa };
+  const gravacao = await prep.persistir();
+  return { status: "enviado", novo: gravacao === "criado", codigo: prep.codigo };
 }

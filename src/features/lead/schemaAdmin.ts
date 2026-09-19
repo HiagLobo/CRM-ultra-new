@@ -1,12 +1,13 @@
 /**
  * Validação (Zod) das entradas do admin no funil (O8): etapa, próxima ação,
- * anotação e cadastro manual. Toda rota `/api/admin/*` passa por aqui antes de
+ * conferência do CRECI (O9), anotação e cadastro manual. Toda rota `/api/admin/*` passa por aqui antes de
  * qualquer lógica. CLIENT-SAFE: o formulário do painel valida com o mesmo schema.
  *
  * As mensagens nunca repetem o valor recebido (pode ser dado pessoal).
  */
 import { z } from "zod";
 import { creciSchema, emailSchema, telefoneSchema } from "./schema";
+import { CONFERENCIAS_CRECI, type ConferenciaCreci } from "./creci";
 import {
   CANAIS_MANUAIS,
   ETAPAS,
@@ -31,10 +32,14 @@ function opcional<T extends z.ZodTypeAny>(schema: T) {
   return z.preprocess((v) => (typeof v === "string" && v.trim() === "" ? undefined : v), schema.optional());
 }
 
-/** O PATCH do lead é uma de duas coisas: mudar a etapa OU definir/limpar a próxima ação. */
+/**
+ * O PATCH do lead é uma de três coisas (uma por vez): mudar a etapa, definir/limpar
+ * a próxima ação ou marcar/desfazer a conferência do CRECI (O9).
+ */
 export type PedidoPatch =
   | { tipo: "etapa"; id: string; mudanca: MudancaEtapa }
-  | { tipo: "proxima_acao"; id: string; proximaAcao: ProximaAcao | null };
+  | { tipo: "proxima_acao"; id: string; proximaAcao: ProximaAcao | null }
+  | { tipo: "creci"; id: string; conferencia: ConferenciaCreci | null };
 
 type EtapaSimples = (typeof ETAPAS_SIMPLES)[number];
 
@@ -50,12 +55,18 @@ export const PatchLeadSchema = z
       .strict()
       .nullable()
       .optional(),
+    // conferência do CRECI na busca oficial; `null` desfaz
+    creciConferencia: z
+      .enum(CONFERENCIAS_CRECI, { errorMap: () => ({ message: "conferência inválida" }) })
+      .nullable()
+      .optional(),
   })
   .strict()
   .superRefine((v, ctx) => {
     const erro = (campo: string, message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [campo], message });
-    if ((v.etapa === undefined) === (v.proximaAcao === undefined)) {
-      erro("etapa", "envie a etapa ou a próxima ação (uma das duas)");
+    const pedidos = [v.etapa, v.proximaAcao, v.creciConferencia].filter((p) => p !== undefined);
+    if (pedidos.length !== 1) {
+      erro("etapa", "envie a etapa, a próxima ação ou a conferência do CRECI (uma coisa de cada vez)");
       return;
     }
     if (v.etapa === "retomar" && !v.retomarEm) erro("retomarEm", "informe a data de retomar");
@@ -66,6 +77,7 @@ export const PatchLeadSchema = z
     }
   })
   .transform((v): PedidoPatch => {
+    if (v.creciConferencia !== undefined) return { tipo: "creci", id: v.id, conferencia: v.creciConferencia };
     if (v.etapa === undefined) return { tipo: "proxima_acao", id: v.id, proximaAcao: v.proximaAcao ?? null };
     // o superRefine já garantiu: retomar tem data, perdido tem motivo
     const mudanca: MudancaEtapa =

@@ -8,7 +8,7 @@ import {
   REGRA_ENVIO_POR_IP,
   type DepsSolicitarAcesso,
 } from "./solicitarAcesso";
-import { SECRET_TESTE as SECRET, depsSolicitar, storesTemporarias } from "./apoioTestes";
+import { SECRET_TESTE as SECRET, dadosCadastro, depsSolicitar, storesTemporarias } from "./apoioTestes";
 
 const EMAIL_TESTE = "corretor@exemplo.com";
 const T0 = new Date("2026-06-17T12:00:00.000Z");
@@ -20,14 +20,12 @@ afterEach(async () => {
 });
 
 function pedido(over: Record<string, unknown> = {}) {
-  return PedidoAcessoSchema.parse({
-    email: "Corretor@Exemplo.com",
-    telefone: "(11) 90000-0000",
-    creci: "SP 12345",
-    consentimento: true,
-    ...over,
-  });
+  return PedidoAcessoSchema.parse(dadosCadastro({ email: "Corretor@Exemplo.com", ...over }));
 }
+
+/** Corretor n: e-mail, WhatsApp e CRECI só dele (O9 barra WhatsApp e CRECI repetidos). */
+const corretor = (n: number, prefixo = "c") =>
+  pedido({ email: `${prefixo}${n}@exemplo.com`, telefone: `(11) 9${1000 + n}-${String(n).padStart(4, "0")}`, creci: `SP ${20000 + n}` });
 
 const montarDeps = (over: Partial<DepsSolicitarAcesso> = {}) => depsSolicitar(stores.nova(), { agora: T0, ...over });
 
@@ -71,20 +69,19 @@ describe("lead não se perde quando o e-mail não sai (O7·S1)", () => {
     expect(tentativa).toEqual({ status: "falha", motivo: "codigo_invalido" });
   });
 
-  it("falha num lead existente NÃO sobrescreve o código válido — ele segue valendo", async () => {
+  it("falha num lead existente NÃO sobrescreve o código válido nem grava contato — ele segue valendo", async () => {
     const { deps, email } = montarDeps();
     const r1 = await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
     if (r1.status !== "enviado") throw new Error("pré-condição: 1º envio sai");
-    const hashA = (await deps.store.buscarPorEmail(EMAIL_TESTE))!.codigo.hash;
+    const antes = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
 
     email.falharCodigo = new Error("provedor caiu");
     const r2 = await solicitarAcesso(deps, pedido({ telefone: "(21) 98888-7777" }), { ip: "5.5.5.5" });
-    expect(r2.status).toBe("recebido_sem_codigo");
+    // emenda da O9: e-mail que já existe e o código não saiu → 503, nada gravado
+    expect(r2).toEqual({ status: "envio_indisponivel", motivo: "falha_envio", causa: "email:Error" });
 
-    const salvo = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
-    expect(salvo.codigo.hash).toBe(hashA); // código anterior preservado
-    expect(salvo.telefone).toBe("+5521988887777"); // contato novo gravado
-    expect(await deps.store.listar()).toHaveLength(1); // upsert, sem duplicar
+    expect(await deps.store.buscarPorEmail(EMAIL_TESTE)).toEqual(antes); // nem código, nem contato
+    expect(await deps.store.listar()).toHaveLength(1); // sem duplicar
     const v = await verificarCodigo(
       { store: deps.store, limiter: new MemoriaRateLimiter(), secret: SECRET, agora: T0 },
       { email: EMAIL_TESTE, codigo: r1.codigo },
@@ -111,8 +108,7 @@ describe("lead não se perde quando o e-mail não sai (O7·S1)", () => {
 describe("teto global diário (LIMITE_ENVIOS_DIA)", () => {
   it("estourou: não envia, mas grava o lead sem código", async () => {
     const { deps, email } = montarDeps({ limiteEnviosDia: 2 });
-    const pedir = (n: number) =>
-      solicitarAcesso(deps, pedido({ email: `corretor${n}@exemplo.com` }), { ip: `10.0.0.${n}` });
+    const pedir = (n: number) => solicitarAcesso(deps, corretor(n, "corretor"), { ip: `10.0.0.${n}` });
 
     expect((await pedir(1)).status).toBe("enviado");
     expect((await pedir(2)).status).toBe("enviado");
@@ -125,8 +121,7 @@ describe("teto global diário (LIMITE_ENVIOS_DIA)", () => {
 
   it("a janela é de 24h: no dia seguinte volta a enviar", async () => {
     const { deps } = montarDeps({ limiteEnviosDia: 1 });
-    const pedir = (n: number, agora: Date) =>
-      solicitarAcesso({ ...deps, agora }, pedido({ email: `c${n}@exemplo.com` }), { ip: `10.0.1.${n}` });
+    const pedir = (n: number, agora: Date) => solicitarAcesso({ ...deps, agora }, corretor(n), { ip: `10.0.1.${n}` });
 
     expect((await pedir(1, T0)).status).toBe("enviado");
     expect((await pedir(2, new Date(T0.getTime() + 23 * 3_600_000))).status).toBe("recebido_sem_codigo");
@@ -151,7 +146,7 @@ describe("rate-limit por pessoa: e-mail 3/30 min, IP 10/30 min", () => {
 
   it("mesmo IP (escritório/CGNAT): 10 corretores passam, o 11º barra; outro IP segue", async () => {
     const { deps } = montarDeps();
-    const pedir = (n: number, ip: string) => solicitarAcesso(deps, pedido({ email: `c${n}@exemplo.com` }), { ip });
+    const pedir = (n: number, ip: string) => solicitarAcesso(deps, corretor(n), { ip });
     for (let n = 1; n <= 10; n++) expect((await pedir(n, "200.1.1.1")).status).toBe("enviado");
     expect((await pedir(11, "200.1.1.1")).status).toBe("limitado");
     expect((await pedir(11, "200.2.2.2")).status).toBe("enviado");
@@ -164,8 +159,8 @@ describe("rate-limit por pessoa: e-mail 3/30 min, IP 10/30 min", () => {
     expect((await solicitarAcesso(deps, pedido(), { ip })).status).toBe("limitado"); // pelo e-mail
     // o IP gastou só 3 das 10 vagas: mais 7 corretores diferentes passam
     for (let n = 1; n <= 7; n++) {
-      expect((await solicitarAcesso(deps, pedido({ email: `o${n}@exemplo.com` }), { ip })).status).toBe("enviado");
+      expect((await solicitarAcesso(deps, corretor(n, "o"), { ip })).status).toBe("enviado");
     }
-    expect((await solicitarAcesso(deps, pedido({ email: "o8@exemplo.com" }), { ip })).status).toBe("limitado");
+    expect((await solicitarAcesso(deps, corretor(8, "o"), { ip })).status).toBe("limitado");
   });
 });

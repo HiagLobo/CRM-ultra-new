@@ -1,7 +1,8 @@
 "use client";
 /**
- * Gaveta do lead (abre ao clicar na linha): contato em um clique, etapa,
- * próxima ação, anotações, dados de origem e a exclusão (LGPD). Lateral no
+ * Gaveta do lead (abre ao clicar na linha): contato em um clique, CRECI com a
+ * conferência (O9), etapa, próxima ação, anotações, dados de origem (com o
+ * último acesso ao demo) e a exclusão (LGPD). Lateral no
  * computador; tela cheia no celular (`min(480px, 100%)`). Esc e o fundo fecham.
  */
 import * as React from "react";
@@ -9,28 +10,38 @@ import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { dataHoraRecife, diaBR, telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
 import { ROTULO_CANAL, type ProximaAcao, type StatusLead } from "@/features/lead/funil";
+import type { ConferenciaCreci } from "@/features/lead/creci";
 import SeletorEtapa from "./SeletorEtapa";
 import BlocoProximaAcao from "./BlocoProximaAcao";
 import BlocoNotas from "./BlocoNotas";
+import BlocoCreci from "./BlocoCreci";
+import Dados from "./Dados";
+import { dataHoraCurta, textoRepetido, type Repetido } from "./selosLead";
 import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
 import { acao, botaoContorno, caixaErro, tituloSecao } from "./estilos";
 import type { ResultadoAcao } from "./useLeadsAdmin";
+
+const caixaAviso: React.CSSProperties = { ...caixaErro, background: `${p.warning}1F`, borderColor: `${p.warning}88` };
 
 export default function GavetaLead({
   lead,
   agora,
   ocupado,
+  repetido,
   escAtivo,
   aviso,
   aoFechar,
   aoEscolherEtapa,
   aoAlterarRetomar,
   aoDefinirProximaAcao,
+  aoConferirCreci,
   aoExcluir,
 }: {
   lead: LeadAdmin;
   agora: Date;
   ocupado: boolean;
+  /** O que este lead divide com outros da lista (o selo "repetido"; no celular, só aqui dá para ler o motivo). */
+  repetido?: Repetido;
   /** Desligado enquanto um diálogo está aberto por cima (o Esc é dele). */
   escAtivo: boolean;
   aviso: string | null;
@@ -38,6 +49,7 @@ export default function GavetaLead({
   aoEscolherEtapa: (etapa: StatusLead) => Promise<ResultadoAcao>;
   aoAlterarRetomar: () => void;
   aoDefinirProximaAcao: (acao: ProximaAcao | null) => Promise<ResultadoAcao>;
+  aoConferirCreci: (conferencia: ConferenciaCreci | null) => Promise<ResultadoAcao>;
   aoExcluir: () => void;
 }) {
   const [erroEtapa, setErroEtapa] = React.useState<string | null>(null);
@@ -89,7 +101,7 @@ export default function GavetaLead({
             {identificacaoLead(lead)}
           </h2>
           {lead.verificadoEm && (
-            <span title={`E-mail confirmado em ${dataHoraRecife(lead.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex" }}>
+            <span role="img" title={`E-mail confirmado em ${dataHoraRecife(lead.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex" }}>
               <Ic n="badge-check" s={18} c={p.success} />
             </span>
           )}
@@ -99,7 +111,8 @@ export default function GavetaLead({
         </header>
 
         <div style={{ padding: "18px 20px 28px", display: "grid", gap: 24 }}>
-          {aviso && <div role="status" style={{ ...caixaErro, background: `${p.warning}1F`, borderColor: `${p.warning}88` }}>{aviso}</div>}
+          {aviso && <div role="status" style={caixaAviso}>{aviso}</div>}
+          {repetido && <p style={{ ...caixaAviso, margin: 0 }}><strong>Repetido:</strong> {textoRepetido(repetido)}</p>}
 
           <section aria-label="Contato">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -118,10 +131,11 @@ export default function GavetaLead({
               itens={[
                 ["Telefone", telefoneNacional(lead.telefone)],
                 ["E-mail", lead.email ?? "—"],
-                ["CRECI", lead.creci || "—"],
               ]}
             />
           </section>
+
+          <BlocoCreci lead={lead} ocupado={ocupado} aoConferir={aoConferirCreci} />
 
           <section aria-labelledby="gaveta-etapa">
             <h3 id="gaveta-etapa" style={tituloSecao}>Etapa</h3>
@@ -167,6 +181,7 @@ export default function GavetaLead({
                 ["Campanha", origem || "—"],
                 ["Entrou em", dataHoraRecife(lead.criadoEm)],
                 ["E-mail confirmado", lead.verificadoEm ? dataHoraRecife(lead.verificadoEm) : "não"],
+                ["Último acesso ao demo", lead.ultimoAcessoEm ? dataHoraCurta(lead.ultimoAcessoEm) : "—"],
               ]}
             />
           </section>
@@ -182,15 +197,3 @@ export default function GavetaLead({
   );
 }
 
-function Dados({ itens }: { itens: ReadonlyArray<readonly [string, string]> }) {
-  return (
-    <dl style={{ display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", gap: "6px 14px", margin: 0, fontSize: 14 }}>
-      {itens.map(([rotulo, valor]) => (
-        <React.Fragment key={rotulo}>
-          <dt style={{ color: p.g500 }}>{rotulo}</dt>
-          <dd style={{ margin: 0, color: p.ink, overflowWrap: "anywhere" }}>{valor}</dd>
-        </React.Fragment>
-      ))}
-    </dl>
-  );
-}

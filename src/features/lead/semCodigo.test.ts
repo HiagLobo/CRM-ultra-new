@@ -10,7 +10,7 @@ import { LeadInputSchema, PedidoAcessoSchema } from "./schema";
 import { criarOuAtualizarLead, hashCodigo, prepararSolicitacao } from "./lead";
 import { verificarCodigo } from "./verificacao";
 import { solicitarAcesso, PRAZO_ENVIO_CODIGO_MS, type DepsSolicitarAcesso } from "./solicitarAcesso";
-import { EmailFake, SECRET_TESTE, depsSolicitar, storesTemporarias } from "./apoioTestes";
+import { EmailFake, SECRET_TESTE, dadosCadastro, depsSolicitar, storesTemporarias } from "./apoioTestes";
 
 const EMAIL = "corretor@exemplo.com";
 const T0 = new Date("2026-06-17T12:00:00.000Z");
@@ -22,13 +22,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-const dados = (over: Record<string, unknown> = {}) => ({
-  email: EMAIL,
-  telefone: "(11) 90000-0000",
-  creci: "SP 12345",
-  consentimento: true,
-  ...over,
-});
+const dados = (over: Record<string, unknown> = {}) => dadosCadastro({ email: EMAIL, ...over });
 const pedido = (over: Record<string, unknown> = {}) => PedidoAcessoSchema.parse(dados(over));
 const montarDeps = (over: Partial<DepsSolicitarAcesso> = {}) => depsSolicitar(stores.nova(), { agora: T0, ...over });
 
@@ -61,7 +55,8 @@ describe("provedor de e-mail que nem sobe ou trava", () => {
       },
     });
     for (let n = 1; n <= 3; n++) {
-      await solicitarAcesso(quebrado.deps, pedido({ email: `c${n}@exemplo.com` }), { ip: `10.0.0.${n}` });
+      const unico = { email: `c${n}@exemplo.com`, telefone: `(11) 9100${n}-0000`, creci: `SP 3000${n}` };
+      expect((await solicitarAcesso(quebrado.deps, pedido(unico), { ip: `10.0.0.${n}` })).status).toBe("recebido_sem_codigo");
     }
 
     const email = new EmailFake();
@@ -100,13 +95,14 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
     return { deps, email, r1, r2, salvo: (await deps.store.buscarPorEmail(EMAIL))! };
   }
 
-  it("sem código: status e verificadoEm ficam; o código consumido NÃO ressuscita", async () => {
+  it("sem código: status, verificadoEm e contato ficam; o código consumido NÃO ressuscita", async () => {
     const { deps, r1, r2, salvo } = await verificaDuranteOReenvio("falha");
-    expect(r2.status).toBe("recebido_sem_codigo");
+    // e-mail que já existe: nada gravado → 503 envio_indisponivel (emenda da O9)
+    expect(r2).toEqual({ status: "envio_indisponivel", motivo: "falha_envio", causa: "email:Error" });
     expect(salvo.status).toBe("novo"); // a etapa é do admin; o selo é o verificadoEm
     expect(salvo.verificadoEm).toBe(T0.toISOString());
     expect(salvo.codigo.hash).toBe(""); // consumido na verificação — uso único
-    expect(salvo.telefone).toBe("+5521988887777"); // o contato novo foi gravado
+    expect(salvo.telefone).toBe("+5511900000000"); // O9: e-mail existente não regrava o contato
     expect(await verificar(deps, r1.codigo)).toEqual({ status: "falha", motivo: "codigo_invalido" });
   });
 
@@ -119,7 +115,7 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
     expect(await verificar(deps, r2.codigo)).toMatchObject({ status: "verificado", jaVerificado: true });
   });
 
-  it("lead criado e verificado por outro pedido no meio: grava só o contato por cima", async () => {
+  it("lead criado e verificado por outro pedido no meio: nada é gravado por cima (O9: nem o contato)", async () => {
     const store = stores.nova();
     const ctx = { ip: IP, secret: SECRET_TESTE, agora: T0 };
     const prep = await prepararSolicitacao(store, LeadInputSchema.parse(dados({ creci: "PE 54321-F" })), ctx);
@@ -131,7 +127,7 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
     await prep.persistirSemCodigo();
     const salvo = (await store.buscarPorEmail(EMAIL))!;
     expect(await store.listar()).toHaveLength(1);
-    expect(salvo).toMatchObject({ id: outro.lead.id, status: "novo", creci: "PE 54321-F" });
+    expect(salvo).toMatchObject({ id: outro.lead.id, status: "novo", creci: "SP 12345" }); // o contato do outro pedido fica
     expect(salvo.verificadoEm).toBe(T0.toISOString()); // a verificação do outro pedido ficou
     expect(salvo.codigo.hash).toBe("");
   });

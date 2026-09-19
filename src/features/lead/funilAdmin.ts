@@ -1,5 +1,6 @@
 /**
- * Casos de uso do funil no admin (O8): mudar a etapa e definir a próxima ação.
+ * Casos de uso do funil no admin (O8): mudar a etapa e definir a próxima ação;
+ * e a conferência do CRECI na busca oficial do conselho (O9).
  * Sem HTTP: a rota faz authz + Zod e grava a auditoria que o caso de uso
  * devolve. Escrita direcionada (`atualizarFunil`): só as colunas do funil —
  * uma verificação ou um pedido de acesso no mesmo instante não é desfeito.
@@ -7,13 +8,14 @@
 import type { LeadStore } from "../../lib/leadStore";
 import { paraLeadAdmin, type LeadAdmin } from "./admin";
 import { diaRecife, diaValido, type MudancaEtapa, type ProximaAcao } from "./funil";
+import type { ConferenciaCreci } from "./creci";
 
 /**
  * O que a rota grava na auditoria: ids e códigos, NUNCA contato, nome, motivo
  * ou texto livre (a auditoria não pode virar uma segunda cópia da base).
  */
 export interface EventoAuditoriaAdmin {
-  acao: "lead.etapa" | "lead.proxima_acao" | "lead.nota" | "lead.manual";
+  acao: "lead.etapa" | "lead.proxima_acao" | "lead.nota" | "lead.manual" | "lead.creci";
   dados: Record<string, string>;
 }
 
@@ -23,7 +25,9 @@ export type ResultadoFunil =
   /** A data não serve: "retomar" pede dia depois de hoje; a próxima ação, hoje ou depois. */
   | { status: "data_invalida"; campo: "retomarEm" | "proximaAcao" }
   /** Lead em "retomar"/"perdido" está fora da fila: só ganha próxima ação mudando de etapa. */
-  | { status: "fora_da_fila" };
+  | { status: "fora_da_fila" }
+  /** Lead sem CRECI (cadastro manual): não há o que conferir. */
+  | { status: "sem_creci" };
 
 /**
  * Move o lead de etapa. "Retomar depois" exige um dia DEPOIS de hoje (Recife);
@@ -93,5 +97,35 @@ export async function definirProximaAcao(
     status: "ok",
     lead: paraLeadAdmin(lead),
     auditoria: { acao: "lead.proxima_acao", dados: { id, acao: acao ? "definida" : "limpa" } },
+  };
+}
+
+/**
+ * Marca (`conferido` / `nao_confere`) ou desfaz (`null`) a conferência do CRECI,
+ * feita pelo fundador na busca oficial do conselho — não há consulta automática
+ * (F5). Carimba quando foi marcada; desfazer limpa as duas colunas. Lead sem
+ * CRECI não tem o que conferir (desfazer continua valendo).
+ */
+export async function conferirCreci(
+  store: LeadStore,
+  id: string,
+  conferencia: ConferenciaCreci | null,
+  agora: Date = new Date(),
+): Promise<ResultadoFunil> {
+  const atual = await store.buscarPorId(id);
+  if (!atual) return { status: "nao_encontrado" };
+  if (conferencia && !atual.creci) return { status: "sem_creci" };
+
+  const lead = await store.atualizarFunil(id, {
+    creciConferencia: conferencia,
+    creciConferidoEm: conferencia ? agora.toISOString() : null,
+    atualizadoEm: agora.toISOString(),
+  });
+  if (!lead) return { status: "nao_encontrado" }; // excluído nesse meio
+
+  return {
+    status: "ok",
+    lead: paraLeadAdmin(lead),
+    auditoria: { acao: "lead.creci", dados: { id, resultado: conferencia ?? "desfeita" } },
   };
 }

@@ -11,6 +11,7 @@
 import type { LeadStore } from "../../lib/leadStore";
 import type { Lead } from "./lead";
 import type { Canal, StatusLead } from "./funil";
+import type { ConferenciaCreci } from "./creci";
 
 export interface ResumoLeads {
   total: number;
@@ -39,11 +40,16 @@ export interface LeadAdmin {
   telefone: string;
   /** Vazio no lead cadastrado à mão sem CRECI. */
   creci: string;
+  /** Conferência do CRECI na busca oficial (O9); ausente = não conferido. */
+  creciConferencia?: ConferenciaCreci;
+  creciConferidoEm?: string;
   nome?: string;
   canal: Canal;
   /** Etapa do funil. */
   status: StatusLead;
   verificadoEm?: string;
+  /** Última verificação com sucesso — "voltou ao demo" (O9). */
+  ultimoAcessoEm?: string;
   criadoEm: string;
   origem?: { utm?: string; ref?: string };
   /** `AAAA-MM-DD` — só na etapa "retomar". */
@@ -64,10 +70,13 @@ export function paraLeadAdmin(l: Lead): LeadAdmin {
     email: l.email,
     telefone: l.telefone,
     creci: l.creci,
+    creciConferencia: l.creciConferencia,
+    creciConferidoEm: l.creciConferidoEm,
     nome: l.nome,
     canal: l.canal,
     status: l.status,
     verificadoEm: l.verificadoEm,
+    ultimoAcessoEm: l.ultimoAcessoEm,
     criadoEm: l.criadoEm,
     origem: l.origem ? { utm: l.origem.utm, ref: l.origem.ref } : undefined,
     retomarEm: l.retomarEm,

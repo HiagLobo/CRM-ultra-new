@@ -12,7 +12,7 @@ import { MENSAGEM_CRECI_INVALIDO, MENSAGEM_CRECI_SEM_UF, normalizarCreci, ufDoCr
  * formulário exibir EXATAMENTE o texto que fica gravado no registro do lead.
  */
 export const TEXTO_CONSENTIMENTO =
-  "Autorizo o contato comercial e o tratamento dos meus dados (e-mail, telefone e CRECI) " +
+  "Autorizo o contato comercial e o tratamento dos meus dados (nome, e-mail, telefone e CRECI) " +
   "para liberar o acesso ao demo do CRM Ultra, conforme a Política de Privacidade.";
 
 /**
@@ -80,9 +80,11 @@ export const creciSchema = z
  * parte, e é a UF que diz em qual busca oficial o fundador confere. O cadastro
  * manual do admin continua aceitando sem UF (`creciSchema`).
  */
-export const creciComUfSchema = creciSchema.refine((creci) => ufDoCreci(creci) !== undefined, {
-  message: MENSAGEM_CRECI_SEM_UF,
-});
+export const creciComUfSchema = creciSchema.pipe(
+  // `pipe`, não `refine`: o refine rodaria mesmo com o CRECI já recusado e somaria
+  // uma 2ª mensagem ("informe o estado") ao "CRECI inválido"
+  z.string().refine((creci) => ufDoCreci(creci) !== undefined, { message: MENSAGEM_CRECI_SEM_UF }),
+);
 
 /** "Maria da Silva", "Ana O'Neil", "João P. Souza": duas palavras ou mais, cada uma começando por letra. */
 const NOME_COMPLETO = /^\p{L}[\p{L}'’.-]*(?: \p{L}[\p{L}'’.-]*)+$/u;
@@ -105,10 +107,15 @@ const campoOrigem = z
   .max(200)
   .transform((v) => v.replace(/[^A-Za-z0-9._-]/g, "").slice(0, 100));
 
+/**
+ * Cadastro público (O9): nome completo obrigatório e CRECI com UF. O cadastro
+ * manual do admin tem schema próprio (`schemaAdmin.ts`), mais frouxo.
+ */
 export const LeadInputSchema = z.object({
+  nome: nomeSchema,
   email: emailSchema,
   telefone: telefoneSchema,
-  creci: creciSchema,
+  creci: creciComUfSchema,
   consentimento: z.literal(true, {
     errorMap: () => ({ message: "consentimento é obrigatório" }),
   }),

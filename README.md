@@ -5,10 +5,12 @@ e comissões** — para o corretor autônomo, para a imobiliária com associados
 franquias.
 
 Esta fase entrega o **motor de entrada no mercado**: uma landing que vende o produto, um fluxo que
-captura o corretor (e-mail + telefone + CRECI, com consentimento LGPD), verificação por código
+captura o corretor (nome + e-mail + WhatsApp + CRECI com o estado, com consentimento LGPD) — um
+cadastro por pessoa, e quem já tem cadastro entra só com o e-mail —, verificação por código
 enviado por e-mail, acesso a um **demo navegável** dos três painéis, e um **painel de leads** com funil — etapas,
 "retomar depois", próxima ação, anotações e cadastro manual — onde o fundador trabalha cada contato:
-uma aba **Hoje** com o que fazer no dia, abas por etapa e a ficha de cada lead (no computador e no celular).
+uma aba **Hoje** com o que fazer no dia, abas por etapa e a ficha de cada lead (no computador e no celular),
+com a conferência do CRECI na busca oficial do conselho e os selos "repetido" e "voltou ao demo".
 
 Os painéis do CRM são **demonstração**: telas completas com dados fictícios. O backend real do
 produto é outra fase.
@@ -35,7 +37,7 @@ e o código de verificação aparece na própria tela.
 | `npm run seed` | 8 leads fictícios para o painel do admin (só dev) |
 
 **Operar, publicar e resolver problema: [`waves/RUNBOOK.md`](waves/RUNBOOK.md).** Produção: Vercel
-(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 4 migrações em `migrations/`) + Resend
+(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 5 migrações em `migrations/`) + Resend
 (`mail.crmultra.com.br`, São Paulo), domínio `crmultra.com.br` — passo a passo na seção 3.
 
 ---
@@ -79,8 +81,15 @@ adaptador — o domínio não muda.
   admin (5/5 min por IP).
 - **Anti-robô**: campo-isca sempre ligado (robô recebe sucesso falso, nada é gravado) e Cloudflare
   **Turnstile** opcional (liga com as duas chaves no env).
-- **Lead não se perde**: se o e-mail com o código não sai (falha do provedor ou teto do dia), o
-  contato é gravado assim mesmo e a pessoa recebe uma mensagem honesta, com saída pelo WhatsApp.
+- **Cadastro único** (O9): WhatsApp e CRECI (estado + número + categoria) não se repetem entre
+  leads. WhatsApp repetido é barrado com o e-mail do dono **mascarado** (`m•••••a@…`); CRECI
+  repetido, sem dica (o CRECI é público). E-mail que já existe vira "entrar": só o código muda —
+  nome, WhatsApp e CRECI novos são aplicados **depois do código certo**, e nunca por cima de outro
+  lead. Toda checagem vem depois do rate-limit (as portas não viram ferramenta de varredura).
+- **Lead novo não se perde**: se o e-mail com o código não sai (falha do provedor ou teto do dia), o
+  contato **novo** é gravado assim mesmo e a pessoa recebe uma mensagem honesta, com saída pelo
+  WhatsApp. E-mail que já tinha cadastro: nada é gravado (503 `envio_indisponivel`) e a tela diz que
+  o código não saiu, com o WhatsApp.
 - **Aviso de lead novo** opcional (`AVISO_LEADS_EMAIL`): um e-mail sem PII, só com o link do `/admin`.
 - Acesso ao demo e sessão do admin em **cookie httpOnly assinado**, validados **no servidor** (os 3
   painéis nem renderizam sem token); `/api/admin/*` inteiro atrás de
@@ -95,7 +104,7 @@ adaptador — o domínio não muda.
 - Segredos só por env, validados com Zod: sem `APP_SECRET`/`ADMIN_PASSWORD` o **build** falha. Em
   produção, `DATABASE_URL` é exigida na **primeira requisição** que usa o banco (não no boot): sem
   ela o app não cai no disco temporário, onde os leads se perderiam em silêncio — a requisição
-  responde 500 e o log diz `config:DATABASE_URL`. Sem `RESEND_API_KEY`, o código nunca vai na resposta: o lead é gravado sem
+  responde 500 e o log diz `config:DATABASE_URL`. Sem `RESEND_API_KEY`, o código nunca vai na resposta: o lead novo é gravado sem
   código, aparece no `/admin` e o log diz `config:RESEND_API_KEY`.
 - **Diagnóstico sem PII**: os erros das rotas vão ao log como uma causa curta — `config:<VARIÁVEL>`,
   `email:<código do Resend>`, `db:<SQLSTATE>`, `rede:<errno>` — nunca a mensagem, que pode ter

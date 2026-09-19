@@ -72,6 +72,8 @@ describe("resposta do cadastro", () => {
     });
     const porEmail = lerRespostaCadastro({ status: 409, corpo: { ok: false, id: "e9", campo: "email" } });
     expect(porEmail.status === "duplicado" && porEmail.mensagem).toBe("Já existe um lead com esse e-mail.");
+    const porCreci = lerRespostaCadastro({ status: 409, corpo: { ok: false, id: "e9", campo: "creci" } });
+    expect(porCreci.status === "duplicado" && porCreci.mensagem).toBe("Já existe um lead com esse CRECI.");
   });
 
   it("400 com campos → erros nos campos; 500 e sem conexão → mensagem geral", () => {

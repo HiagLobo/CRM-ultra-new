@@ -29,6 +29,10 @@ describe("resposta da API → mensagem na tela", () => {
       "Não deu para mudar a etapa: a data de retomar precisa ser depois de hoje.",
     );
     expect(mensagemDeErro({ status: 400, corpo: { gerais: ["envie a etapa ou a próxima ação (uma das duas)"] } }, "salvar")).toMatch(/uma das duas/);
+    // O9: conferência do CRECI de lead sem CRECI
+    expect(mensagemDeErro({ status: 409, corpo: { ok: false, erro: "sem_creci" } }, "marcar a conferência do CRECI")).toBe(
+      "Esse lead não tem CRECI para conferir.",
+    );
   });
 
   it("erros por campo: só os campos conhecidos e só texto", () => {

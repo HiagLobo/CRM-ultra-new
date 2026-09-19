@@ -70,6 +70,20 @@ describe("PatchLeadSchema — próxima ação", () => {
   });
 });
 
+describe("PatchLeadSchema — conferência do CRECI (O9)", () => {
+  it("conferido, nao_confere e null (desfazer) viram o pedido tipado", () => {
+    expect(PatchLeadSchema.parse({ id: "a", creciConferencia: "conferido" })).toEqual({ tipo: "creci", id: "a", conferencia: "conferido" });
+    expect(PatchLeadSchema.parse({ id: "a", creciConferencia: "nao_confere" })).toMatchObject({ conferencia: "nao_confere" });
+    expect(PatchLeadSchema.parse({ id: "a", creciConferencia: null })).toEqual({ tipo: "creci", id: "a", conferencia: null });
+  });
+
+  it("valor desconhecido ou junto com etapa/próxima ação → 400", () => {
+    expect(PatchLeadSchema.safeParse({ id: "a", creciConferencia: "talvez" }).success).toBe(false);
+    expect(PatchLeadSchema.safeParse({ id: "a", creciConferencia: "conferido", etapa: "novo" }).success).toBe(false);
+    expect(PatchLeadSchema.safeParse({ id: "a", creciConferencia: null, proximaAcao: null }).success).toBe(false);
+  });
+});
+
 describe("NotaSchema", () => {
   it("apara espaços; vazio e mais de 2.000 caracteres → 400", () => {
     expect(NotaSchema.parse({ texto: "  ligou  " })).toEqual({ texto: "ligou" });
@@ -97,6 +111,10 @@ describe("CadastroManualSchema", () => {
     expect(campos(CadastroManualSchema.safeParse({ ...base, consentimento: false }))).toHaveProperty("consentimento");
     expect(campos(CadastroManualSchema.safeParse({ ...base, email: "nao-e-email" }))).toHaveProperty("email");
     expect(campos(CadastroManualSchema.safeParse({ ...base, creci: "??" }))).toHaveProperty("creci");
+  });
+
+  it("O9: o manual continua aceitando CRECI sem UF (o público exige)", () => {
+    expect(CadastroManualSchema.parse({ ...base, creci: "12345" }).creci).toBe("12345");
   });
 
   it("campo desconhecido (ex.: tentar forçar a etapa ou o IP) é recusado", () => {

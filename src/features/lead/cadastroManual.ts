@@ -4,7 +4,8 @@
  * Sem código de verificação (quem cadastra é o admin, não o titular) e sem
  * e-mail obrigatório. O consentimento gravado diz de onde veio o registro e a
  * base legal, com `ip = "admin"` — nunca finge que a pessoa preencheu o site.
- * Deduplica por e-mail e por telefone: o mesmo contato não vira dois leads.
+ * Deduplica por e-mail, telefone e CRECI (O9, pela chave: `PE 12345` ≡
+ * `PE 12345-F`): o mesmo contato não vira dois leads.
  *
  * SERVER-ONLY (usa crypto). Nada aqui loga contato, nome ou observação.
  */
@@ -14,6 +15,7 @@ import { causaDoErro } from "../../lib/erros";
 import { paraLeadAdmin, type LeadAdmin } from "./admin";
 import { codigoInutilizado, type Lead } from "./lead";
 import { ROTULO_CANAL, type CanalManual } from "./funil";
+import { chaveCreci } from "./creci";
 import type { EventoAuditoriaAdmin } from "./funilAdmin";
 import type { CadastroManual } from "./schemaAdmin";
 
@@ -36,13 +38,16 @@ export type ResultadoCadastro =
       observacaoSalva?: boolean;
       auditoria: EventoAuditoriaAdmin;
     }
-  | { status: "duplicado"; id: string; campo: "email" | "telefone" };
+  | { status: "duplicado"; id: string; campo: "email" | "telefone" | "creci" };
 
 function acharDuplicado(leads: ReadonlyArray<Lead>, dados: CadastroManual) {
   const porEmail = dados.email ? leads.find((l) => l.email === dados.email) : undefined;
   if (porEmail) return { id: porEmail.id, campo: "email" as const };
   const porTelefone = leads.find((l) => l.telefone === dados.telefone);
-  return porTelefone ? { id: porTelefone.id, campo: "telefone" as const } : null;
+  if (porTelefone) return { id: porTelefone.id, campo: "telefone" as const };
+  const chave = dados.creci ? chaveCreci(dados.creci) : undefined;
+  const porCreci = chave ? leads.find((l) => l.creci && chaveCreci(l.creci) === chave) : undefined;
+  return porCreci ? { id: porCreci.id, campo: "creci" as const } : null;
 }
 
 export async function cadastrarManual(

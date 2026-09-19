@@ -5,7 +5,8 @@
  * A leitura tolera linha antiga (status da O7, colunas da 004 ausentes).
  */
 import { describe, it, expect, vi } from "vitest";
-import { PostgresLeadStore, diaDoBanco } from "./leadStorePostgres";
+import { PostgresLeadStore } from "./leadStorePostgres";
+import { diaDoBanco } from "./leadStorePostgresLinha";
 import type { AtualizacaoContato } from "./leadStore";
 import { leadCru } from "../features/lead/apoioTestes";
 
@@ -26,9 +27,9 @@ const loja = (pool: unknown) => new PostgresLeadStore(pool as never);
 const T = "2026-06-17T12:00:00.000Z";
 
 const CONTATO: AtualizacaoContato = {
+  nome: "Corretor Exemplo",
   telefone: "+5511900000000",
   creci: "SP 12345",
-  origem: { utm: "campanha" },
   consentimento: { texto: "texto da política", aceitoEm: "2026-06-17T12:00:00.000Z", ip: "1.2.3.4" },
   atualizadoEm: "2026-06-17T12:00:00.000Z",
 };
@@ -66,17 +67,16 @@ function linhaO7(over: Record<string, unknown> = {}) {
   };
 }
 
-describe("PostgresLeadStore.atualizarContato", () => {
-  it("sem código: atualiza só contato, origem, consentimento e atualizado_em", async () => {
+describe("PostgresLeadStore.atualizarContato (O9: só depois do código certo)", () => {
+  it("grava nome, telefone, CRECI e consentimento — e nada de código, origem, status, verificado_em", async () => {
     const { pool, consultas, cliente } = poolFake();
     await loja(pool).atualizarContato("lead-1", CONTATO);
 
     const { sql, params } = consultas[0]!;
     expect(colunasDoSet(sql)).toEqual([
+      "nome",
       "telefone",
       "creci",
-      "origem_utm",
-      "origem_ref",
       "consentimento_texto",
       "consentimento_aceito_em",
       "consentimento_ip",
@@ -84,29 +84,25 @@ describe("PostgresLeadStore.atualizarContato", () => {
     ]);
     expect(params).toEqual([
       "lead-1",
+      "Corretor Exemplo",
       "+5511900000000",
       "SP 12345",
-      "campanha",
-      null,
       "texto da política",
       "2026-06-17T12:00:00.000Z",
       "1.2.3.4",
       "2026-06-17T12:00:00.000Z",
     ]);
+    for (const intocavel of ["status", "verificado_em", "criado_em", "email", "canal", "codigo_hash", "origem_utm", "origem_ref"]) {
+      expect(colunasDoSet(sql)).not.toContain(intocavel);
+    }
     expect(cliente.release).toHaveBeenCalledTimes(1);
   });
 
-  it("com código: acrescenta as 4 colunas do código — e nada de status/verificado_em/criado_em", async () => {
+  it("campo ausente não entra no SQL (o WhatsApp de outro lead fica para trás, o resto grava)", async () => {
     const { pool, consultas } = poolFake();
-    const codigo = { hash: "a".repeat(64), expiraEm: "2026-06-17T12:10:00.000Z", tentativas: 0, enviadoEm: "2026-06-17T12:00:00.000Z" };
-    await loja(pool).atualizarContato("lead-1", { ...CONTATO, codigo });
-
-    const { sql, params } = consultas[0]!;
-    expect(colunasDoSet(sql).slice(-4)).toEqual(["codigo_hash", "codigo_expira_em", "codigo_tentativas", "codigo_enviado_em"]);
-    expect(params.slice(-4)).toEqual([codigo.hash, codigo.expiraEm, 0, codigo.enviadoEm]);
-    for (const intocavel of ["status", "verificado_em", "criado_em", "email", "canal", "retomar_em", "proxima_acao"]) {
-      expect(colunasDoSet(sql)).not.toContain(intocavel);
-    }
+    const { telefone: _t, ...semTelefone } = CONTATO;
+    await loja(pool).atualizarContato("lead-1", semTelefone);
+    expect(colunasDoSet(consultas[0]!.sql).slice(0, 2)).toEqual(["nome", "creci"]);
   });
 
   it("lead que sumiu (excluído nesse meio): erro", async () => {

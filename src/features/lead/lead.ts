@@ -7,10 +7,11 @@
  * SERVER-ONLY (usa crypto). Código de verificação NUNCA é guardado em texto puro.
  */
 import { createHmac, randomInt, randomUUID } from "crypto";
-import type { AtualizacaoContato, LeadStore } from "../../lib/leadStore";
+import type { LeadStore } from "../../lib/leadStore";
 import type { LeadInput } from "./schema";
 import { EXPIRACAO_CODIGO_MIN, TEXTO_CONSENTIMENTO } from "./schema";
 import type { Canal, StatusLead } from "./funil";
+import type { ConferenciaCreci } from "./creci";
 
 /** A etapa do funil (O8) mora em `funil.ts` (client-safe); re-exportada aqui por compatibilidade. */
 export type { StatusLead } from "./funil";
@@ -48,7 +49,13 @@ export interface Lead {
   proximaAcao?: string;
   consentimento: Consentimento;
   codigo: CodigoVerificacao;
+  /** 1ª verificação do código (selo de e-mail confirmado; nunca re-carimba). */
   verificadoEm?: string;
+  /** Última verificação com sucesso — "voltou ao demo" (O9). */
+  ultimoAcessoEm?: string;
+  /** Conferência do CRECI pelo fundador (O9). Ausente = não conferido. */
+  creciConferencia?: ConferenciaCreci;
+  creciConferidoEm?: string;
   origem?: { utm?: string; ref?: string };
   criadoEm: string;
   atualizadoEm: string;
@@ -108,41 +115,63 @@ export interface ResultadoCriacao {
   novo: boolean;
 }
 
+/**
+ * O que a gravação fez: `criado` = este pedido criou o lead; `mesclado` = o
+ * e-mail já tinha lead (antes, ou criado por outro pedido nesse meio).
+ */
+export type Gravacao = "criado" | "mesclado";
+
 export interface SolicitacaoPreparada extends ResultadoCriacao {
   /**
    * Persiste com o código novo. Separado da preparação para o chamador enviar o
    * e-mail ANTES — um envio que falha não sobrescreve um código válido anterior.
+   * Lead que já existia (ou foi criado por outro pedido nesse meio): só o código.
    */
-  persistir(): Promise<void>;
+  persistir(): Promise<Gravacao>;
   /**
-   * Persiste o contato SEM o código novo (o e-mail não saiu): o lead não se perde.
-   * Lead novo nasce com o código inutilizado; lead existente mantém o código e o
-   * status que já tinha (um código válido continua valendo; nunca rebaixa).
+   * O e-mail não saiu. Só o lead NOVO é gravado (contato + código inutilizado:
+   * o lead novo não se perde) → `criado`. E-mail que já tinha lead — antes, ou
+   * criado por outro pedido nesse meio — NÃO grava nada (o código e o status
+   * que ele já tinha continuam valendo) → `mesclado`: a rota responde 503
+   * `envio_indisponivel`, nunca "recebemos seus dados".
    */
-  persistirSemCodigo(): Promise<void>;
+  persistirSemCodigo(): Promise<Gravacao>;
+}
+
+/** Código novo: o texto puro (só para o envio) e o registro com o hash (o que se grava). */
+export function novoCodigo(secret: string, agora: Date): { codigo: string; registro: CodigoVerificacao } {
+  const codigo = gerarCodigo();
+  return { codigo, registro: montarCodigo(codigo, secret, agora) };
 }
 
 /**
- * Cria o lead; se o e-mail já foi criado por outro request nesse meio, grava só
- * o contato (e o código, se vier) por cima — nunca duplica, nunca mexe no status.
+ * Cria o lead. Se o e-mail foi criado por outro pedido nesse meio, grava por
+ * cima SÓ o código (quando o e-mail saiu) — o contato do outro pedido fica:
+ * contato só muda depois de provar o e-mail (O9). Nunca duplica, nunca mexe no status.
  */
 async function criarOuMesclar(
   store: LeadStore,
   lead: Lead & { email: string },
-  contato: AtualizacaoContato,
-): Promise<void> {
+  codigo?: CodigoVerificacao,
+): Promise<Gravacao> {
   try {
     await store.criar(lead);
+    return "criado";
   } catch (err) {
     const atual = await store.buscarPorEmail(lead.email);
     if (!atual) throw err;
-    await store.atualizarContato(atual.id, contato);
+    if (codigo) await store.atualizarCodigo(atual.id, { codigo, atualizadoEm: lead.atualizadoEm });
+    return "mesclado";
   }
 }
 
 /**
- * Monta (em memória, sem persistir) o lead novo/atualizado com um novo código.
- * Upsert por e-mail; não rebaixa o status de quem já verificou.
+ * Monta (em memória, sem persistir) o pedido de acesso com um código novo.
+ *
+ * E-mail que já tem lead (O9): NÃO regrava nome, telefone, CRECI, origem nem
+ * consentimento — quem digita o e-mail de outra pessoa não troca o WhatsApp
+ * dela. Só o código muda (`atualizarCodigo`); os dados novos viajam no verify
+ * e são aplicados depois do código certo (`atualizacaoCadastro.ts`).
  */
 export async function prepararSolicitacao(
   store: LeadStore,
@@ -150,49 +179,45 @@ export async function prepararSolicitacao(
   ctx: ContextoCriacao,
 ): Promise<SolicitacaoPreparada> {
   const agora = ctx.agora ?? new Date();
-  const codigo = gerarCodigo();
-  const codigoObj = montarCodigo(codigo, ctx.secret, agora);
-  const consentimento = registrarConsentimento(ctx.ip, agora);
+  const { codigo, registro } = novoCodigo(ctx.secret, agora);
 
   const existente = await store.buscarPorEmail(input.email);
-  // contato e consentimento sempre atualizados; o código só troca se o e-mail sair
-  const origem = input.origem ?? existente?.origem;
-  const contato: AtualizacaoContato = {
-    telefone: input.telefone,
-    creci: input.creci,
-    ...(origem ? { origem } : {}),
-    consentimento,
-    atualizadoEm: agora.toISOString(),
-  };
-
   if (existente) {
-    // Grava só as colunas de contato (+ código): entre ler e gravar há o envio do
-    // e-mail, e o lead pode ter verificado o código anterior nesse meio.
+    // Só o código: entre ler e gravar há o envio do e-mail, e o lead pode ter
+    // verificado o código anterior nesse meio (o carimbo fica — COALESCE).
     return {
-      lead: { ...existente, ...contato, codigo: codigoObj },
+      lead: { ...existente, codigo: registro },
       codigo,
       novo: false,
-      persistir: () => store.atualizarContato(existente.id, { ...contato, codigo: codigoObj }),
-      persistirSemCodigo: () => store.atualizarContato(existente.id, contato),
+      persistir: async () => {
+        await store.atualizarCodigo(existente.id, { codigo: registro, atualizadoEm: agora.toISOString() });
+        return "mesclado";
+      },
+      persistirSemCodigo: async () => "mesclado", // nada gravado
     };
   }
 
   const lead: Lead & { email: string } = {
     id: randomUUID(),
+    nome: input.nome,
     email: input.email,
+    telefone: input.telefone,
+    creci: input.creci,
     status: "novo",
     canal: "site",
-    ...contato,
-    codigo: codigoObj,
+    ...(input.origem ? { origem: input.origem } : {}),
+    consentimento: registrarConsentimento(ctx.ip, agora),
+    codigo: registro,
     criadoEm: agora.toISOString(),
+    atualizadoEm: agora.toISOString(),
   };
   return {
     lead,
     codigo,
     novo: true,
-    persistir: () => criarOuMesclar(store, lead, { ...contato, codigo: codigoObj }),
-    // corrida: se outro request criou o lead nesse meio, o código dele é preservado
-    persistirSemCodigo: () => criarOuMesclar(store, { ...lead, codigo: codigoInutilizado(agora) }, contato),
+    persistir: () => criarOuMesclar(store, lead, registro),
+    // corrida: se outro pedido criou o lead nesse meio, nada é gravado (o código dele fica)
+    persistirSemCodigo: () => criarOuMesclar(store, { ...lead, codigo: codigoInutilizado(agora) }),
   };
 }
 
@@ -206,6 +231,6 @@ export async function criarOuAtualizarLead(
   ctx: ContextoCriacao,
 ): Promise<ResultadoCriacao> {
   const prep = await prepararSolicitacao(store, input, ctx);
-  await prep.persistir();
-  return { lead: prep.lead, codigo: prep.codigo, novo: prep.novo };
+  const gravacao = await prep.persistir();
+  return { lead: prep.lead, codigo: prep.codigo, novo: gravacao === "criado" };
 }

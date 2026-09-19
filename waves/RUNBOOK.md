@@ -52,7 +52,7 @@ o sintoma:
 | `APP_SECRET` | build | o deploy falha (16+ caracteres) |
 | `ADMIN_PASSWORD` | build | o deploy falha (8+ caracteres) |
 | `DATABASE_URL` | 1ª requisição | em produção **nenhum lead é gravado**: o site abre, mas pedir acesso e entrar no `/admin` dão erro, e o log diz `config:DATABASE_URL`. Em dev, usa `data/leads.json` |
-| `RESEND_API_KEY` | 1ª requisição | em produção o site **fica no ar**, mas nenhum código sai: todo lead é gravado sem código (a pessoa vê "Recebemos seus dados") e o log diz `config:RESEND_API_KEY`. Em dev, o código aparece na tela |
+| `RESEND_API_KEY` | 1ª requisição | em produção o site **fica no ar**, mas nenhum código sai: todo lead **novo** é gravado sem código (a pessoa vê "Recebemos seus dados"); quem já tinha cadastro não tem nada gravado e vê "Não conseguimos enviar o código agora" (503). O log diz `config:RESEND_API_KEY`. Em dev, o código aparece na tela |
 | `EMAIL_FROM` | build (formato) · 1ª requisição (ausência) | formato inválido: o deploy falha. Ausente: igual à linha de cima, log `config:EMAIL_FROM` |
 | `LIMITE_ENVIOS_DIA` | build | opcional. Padrão 90 e-mails em 24h (códigos + avisos), abaixo dos 100/dia do Resend Free. Valor que não é número inteiro: o deploy falha |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | build | opcionais. Sem as duas, o formulário roda só com o campo-isca. **Uma sem a outra: o deploy falha** |
@@ -174,11 +174,11 @@ arquivo do repositório (ele é público) nem em chat.
 
    **Por que a pooled:** cada função da Vercel abre o próprio pool. Com a string direta, um pico de
    acessos estoura o limite de conexões do Postgres (log `db:53300`).
-4. **As 4 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
+4. **As 5 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
    `migrations/001-leads.sql` no GitHub, copie **tudo**, cole e clique em **Run**. Repita com
-   `002-auditoria.sql`, `003-rate-limit.sql` e `004-funil.sql`, nessa ordem. São idempotentes:
-   rodar de novo não estraga nada. (Banco que já estava no ar com as 3 primeiras: só a 004, pelo
-   passo 3.9.)
+   `002-auditoria.sql`, `003-rate-limit.sql`, `004-funil.sql` e `005-cadastro-unico.sql`, nessa
+   ordem. São idempotentes: rodar de novo não estraga nada. (Banco que já estava no ar: a 004 pelo
+   passo 3.9, a 005 pelo 3.10.)
 5. Confira no mesmo SQL Editor:
 
    ```sql
@@ -236,10 +236,12 @@ isso, o site no ar continua usando o valor antigo.
 ### 3.8. Smoke em produção (faça sempre, na ordem)
 
 1. Abrir `https://crmultra.com.br`. A landing carrega, com o cadeado no navegador.
-2. **Acessar CRM** → preencher com um e-mail **seu** (telefone e CRECI seus ou de teste). O e-mail
+2. **Acessar CRM** → preencher com nome completo e um e-mail **seu** (telefone e CRECI — com o
+   estado — seus ou de teste). O e-mail
    com o código chega de `CRM Ultra <acesso@mail.crmultra.com.br>` (olhe também o spam). Se a
-   tela disser "Recebemos seus dados. O e-mail com o código não saiu agora", o e-mail **não** saiu:
-   veja o log (seção 6).
+   tela disser "Recebemos seus dados. O e-mail com o código não saiu agora" (e-mail novo) ou "Não
+   conseguimos enviar o código agora" (e-mail que já tinha cadastro), o e-mail **não** saiu: veja o
+   log (seção 6).
 3. Digitar o código → cai na escolha dos 3 painéis → abrir um. Com `AVISO_LEADS_EMAIL`, chega também
    o aviso "novo lead confirmado".
 4. Entrar em `https://crmultra.com.br/admin/login` com a `ADMIN_PASSWORD`. O seu lead aparece na
@@ -318,6 +320,71 @@ e cria a tabela `lead_notas` das anotações. **Não apaga nada** e pode rodar d
 cadastrar à mão dão erro, com `db:42703` (coluna que não existe) ou `db:42P01` (tabela
 `lead_notas` que não existe) no log `[/api/admin/...]`. Rode a 004 (passos 3 e 4).
 
+### 3.10. Migração 005 (cadastro único) — rode a 005 ANTES de publicar a versão nova
+
+Para quem já está no ar com as migrações 001 a 004. (Banco novo: o passo 3.4 já inclui a 005.) A
+versão com o cadastro único — "Já tenho cadastro", WhatsApp e CRECI sem repetir, conferência do CRECI
+no painel e "voltou ao demo" — grava em 3 colunas que só a `005-cadastro-unico.sql` cria.
+
+**A ordem é: migrar primeiro, publicar depois** (o contrário da 004). O motivo:
+
+- a 005 só **acrescenta** (3 colunas e 2 índices): o código que está no ar ignora colunas a mais,
+  então rodá-la antes não quebra nada;
+- o código **novo** grava nelas: sem a 005, marcar "Confere"/"Não confere" no CRECI dá erro, e o
+  último acesso ao demo não é registrado (o login segue; o log avisa);
+- **a 004 tem de estar aplicada** (3.9): o cadastro novo grava o **nome**, que é coluna da 004. Sem
+  ela, **todo cadastro dá erro** (`db:42703`).
+
+Passo a passo:
+
+1. **Backup.** Neon → **Branches → Create branch** a partir do principal, com a data no nome (ex.:
+   `antes-005-2026-09-20`). Veja "Backup" na seção 4.
+2. Neon → **SQL Editor** (branch principal, database `neondb`) → abra
+   `migrations/005-cadastro-unico.sql` no GitHub → copie **tudo** → cole → **Run**.
+3. Confira, no mesmo SQL Editor:
+
+   ```sql
+   SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'leads'
+      AND column_name IN ('nome', 'creci_conferencia', 'creci_conferido_em', 'ultimo_acesso_em')
+    ORDER BY 1;
+   ```
+
+   Têm de voltar as **4** colunas. Faltou o `nome`? A 004 não rodou: faça o 3.9 antes de seguir.
+
+   ```sql
+   SELECT indexname FROM pg_indexes
+    WHERE tablename = 'leads'
+      AND indexname IN ('leads_telefone_idx', 'leads_creci_idx')
+    ORDER BY 1;
+   ```
+
+   Têm de voltar os **2** índices (a busca de WhatsApp e CRECI repetidos no cadastro).
+4. **Só então publique**: merge/push na `main` (deploy automático) e espere o deploy ficar **Ready**
+   na Vercel.
+5. Smoke: o 3.8 inteiro (agora o cadastro pede **nome completo** e o **estado** do CRECI) e, com o
+   seu e-mail, **"Já tenho cadastro"** → o código chega → entra no demo. No `/admin`, a ficha do seu
+   lead mostra o último acesso; marque **Confere** no CRECI e depois desfaça.
+
+**O que a 005 faz:** acrescenta `creci_conferencia` e `creci_conferido_em` (a conferência que você
+marca no painel) e `ultimo_acesso_em` (carimbado a cada entrada no demo), e cria os índices de
+`telefone` e `creci`. Índices **simples**, não `UNIQUE`: o banco já tem repetidos de teste, e a regra
+(barrar o repetido com a mensagem certa) mora no app. **Não apaga nada** e pode rodar de novo sem
+estrago.
+
+**Repetidos que já existem** não quebram nada: o painel mostra o selo "repetido". Para listá-los:
+
+```sql
+SELECT telefone, count(*) FROM leads GROUP BY telefone HAVING count(*) > 1 ORDER BY 2 DESC;
+```
+
+Os de teste, exclua pelo `/admin` (ficha do lead → **Excluir (LGPD)**).
+
+**Se publicar antes da 005** (ou esquecer): cadastro, "Já tenho cadastro" e login seguem. Marcar a
+conferência do CRECI dá erro, com `db:42703` no log `[/api/admin/leads] PATCH`, e cada entrada no demo
+loga `[verify] último acesso não registrado: db:42703`. Rode a 005 (passos 2 e 3); não precisa de
+Redeploy.
+
 ---
 
 ## 4. Operação do dia a dia
@@ -334,10 +401,16 @@ números do seu funil.
 
 **Lead que chegou sem código.** Se o e-mail com o código não sai (Resend fora do ar ou travado por
 mais de 8 s, domínio não verificado, cota do dia, `RESEND_API_KEY`/`EMAIL_FROM` faltando) ou o teto
-diário (`LIMITE_ENVIOS_DIA`) estourou, o lead é **gravado mesmo assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
+diário (`LIMITE_ENVIOS_DIA`) estourou, o lead **novo** é **gravado mesmo assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
 agora — tente reenviar em alguns minutos ou fale com a gente", com um botão de WhatsApp. No
 `/admin` ele aparece como qualquer lead novo: é só ligar ou chamar no WhatsApp. O motivo fica no
 log (seção 6).
+
+Já o e-mail que **já tinha cadastro** (cadastro de novo ou "Já tenho cadastro") não tem nada a
+gravar: a resposta é 503 e a pessoa vê "Não conseguimos enviar o código agora. Tente de novo em alguns minutos ou fale com a gente.",
+com o WhatsApp. O lead continua no `/admin` com os dados de antes, e um código anterior ainda no
+prazo segue valendo. Log: `[/api/lead] código não enviado; e-mail já cadastrado, nada gravado: <causa>`
+(ou `[/api/lead/entrar] código não enviado: <causa>`).
 
 **Aviso de lead novo.** Com `AVISO_LEADS_EMAIL` definida, cada lead que confirma o e-mail pela
 **primeira** vez gera um aviso "novo lead confirmado" com o link do `/admin` — sem e-mail, telefone
@@ -368,6 +441,22 @@ coluna **Próximo passo** diz o que falta em cada lead (em vermelho quando está
 **A ficha do lead.** Clique na linha (no celular, no cartão): abre a ficha, com os botões de
 WhatsApp e e-mail, a etapa, a próxima ação (editar ou limpar), as anotações, de onde o lead veio e o
 **Excluir (LGPD)**. Esc ou o X fecham.
+
+**Conferir o CRECI** (não há consulta automática: os conselhos não têm API oficial e as buscas têm
+captcha). Na ficha, bloco **CRECI**: **Copiar número** → **Conferir no CRECI-PE ↗** (abre a busca
+oficial do conselho em outra aba) → cole o número e confira nome e situação → volte e marque
+**✓ Confere** ou **✗ Não confere** ("Desfazer" limpa). A lista mostra o selo ao lado do CRECI. CRECI
+antigo sem estado: o link diz **(provável)** — a UF é palpite pelo DDD do WhatsApp; se não achar,
+confira no conselho de outro estado. O CRECI-TO não tem página de busca direta: o link abre o site
+do conselho, e ali se procura a consulta de inscritos. Se o corretor trocar o CRECI pelo site, a
+conferência antiga é desfeita sozinha (na mesma gravação do CRECI novo). Os endereços das buscas ficam em `src/config/creciConsulta.ts`.
+
+**Selos da lista.** **repetido**: outro lead tem o mesmo WhatsApp ou o mesmo CRECI (o cadastro novo
+já barra; o selo mostra os que vieram de antes — abra a ficha para ver qual dado repete e se é o
+mesmo lead nos dois; CRECI antigo sem estado aparece como "mesmo número de CRECI (sem estado)", que
+pode ser de conselhos diferentes). No celular, o ✓/✗ da conferência fica ao lado do nome.
+**voltou ao demo**: o lead entrou de novo no demo nos últimos 7 dias (a ficha mostra o "Último
+acesso ao demo") — bom momento para puxar conversa.
 
 **Funil de leads.** Cada lead está numa **etapa**: **Novo** → **Em contato** → **Demonstração** →
 **Negociação** → **Cliente**. A etapa muda no seletor da própria linha ou na ficha. Fora da fila de
@@ -472,7 +561,10 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 ```text
 [/api/lead] erro ao processar: config:DATABASE_URL
 [/api/lead] código não enviado; lead gravado sem código: email:daily_quota_exceeded
+[/api/lead] código não enviado; e-mail já cadastrado, nada gravado: email:PrazoEsgotado
 [/api/lead/verify] erro ao processar: db:42P01
+[/api/lead/entrar] código não enviado: teto_diario
+[verify] último acesso não registrado: db:42703
 [aviso-lead] aviso de lead novo não saiu: email:PrazoEsgotado
 [db] conexão ociosa caiu (o pool abre outra): db:57P01
 ```
@@ -480,8 +572,8 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | Causa | O que quebrou | O que fazer |
 |-------|---------------|-------------|
 | `config:DATABASE_URL` | produção sem a variável do banco: **nenhum lead é gravado** | criar `DATABASE_URL` em Production (3.6) → **Redeploy** (3.7) |
-| `config:RESEND_API_KEY` · `config:EMAIL_FROM` | produção sem a variável do Resend: os leads entram **sem código** | criar a variável (3.6) → **Redeploy**. Os leads desse meio estão no `/admin`: fale com eles |
-| `teto_diario` | o dia bateu o `LIMITE_ENVIOS_DIA` (a proteção da cota do Resend) | o lead está no `/admin`: fale com ele. Volta sozinho em 24 h. No plano pago do Resend, suba o limite → Redeploy |
+| `config:RESEND_API_KEY` · `config:EMAIL_FROM` | produção sem a variável do Resend: os leads **novos** entram **sem código**; quem já tinha cadastro recebe 503 e nada é gravado | criar a variável (3.6) → **Redeploy**. Os leads desse meio estão no `/admin`: fale com eles |
+| `teto_diario` | o dia bateu o `LIMITE_ENVIOS_DIA` (a proteção da cota do Resend) | o lead está no `/admin` (o novo, gravado sem código; quem já tinha cadastro, com os dados de antes): fale com ele. Volta sozinho em 24 h. No plano pago do Resend, suba o limite → Redeploy |
 | `email:daily_quota_exceeded` · `email:monthly_quota_exceeded` | acabou a cota do Resend (Free: 100 por dia, 3.000 por mês) | os leads estão no `/admin`. Espere virar o dia/mês ou mude de plano no Resend (e suba o `LIMITE_ENVIOS_DIA`) |
 | `email:rate_limit_exceeded` | envios demais por segundo | passageiro. Se repetir, pode ser robô no formulário: ligue o Turnstile (3.5) |
 | `email:validation_error` · `email:invalid_from_address` | domínio não verificado, ou `EMAIL_FROM` fora de `@mail.crmultra.com.br` | Resend → Domains: `mail.crmultra.com.br` está **Verified**? O `EMAIL_FROM` termina exatamente nele? Corrigiu a variável → Redeploy |
@@ -489,7 +581,7 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | `email:PrazoEsgotado` | o Resend não respondeu em 8 s | quase sempre passageiro. Se repetir, veja o status do Resend (resend-status.com) |
 | `email:application_error` · `email:internal_server_error` | falha do lado do Resend, ou da rede até ele | idem: status do Resend. O lead está no `/admin` |
 | `db:42P01` | uma tabela não existe: migração não rodada | rodar as migrações (3.4, passos 4 e 5; a 004 pelo 3.9) |
-| `db:42703` | uma coluna não existe: a migração 004 não rodou (o funil do `/admin` falha, o site segue captando) | rodar a 004 (3.9) |
+| `db:42703` | uma coluna não existe. Em `[/api/lead]` (todo cadastro falha) ou no funil do `/admin`: a 004 não rodou. Em `[verify] último acesso…` ou ao marcar a conferência do CRECI: a 005 não rodou (o login segue) | rodar a 004 (3.9) ou a 005 (3.10) |
 | `db:28P01` · `db:28000` | usuário ou senha do banco errados (ou a senha foi trocada no Neon) | copiar de novo a string pooled (3.4) → `DATABASE_URL` → Redeploy |
 | `db:3D000` | o banco do fim da string não existe | copiar de novo a string do Neon, sem editar o nome do banco |
 | `db:53300` | acabaram as conexões | usar a string **pooled** (host com `-pooler`) → Redeploy |
@@ -517,12 +609,13 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | Trocou uma variável e nada mudou | falta o Redeploy | 3.7 |
 | Domínio não abre, ou "Invalid Configuration" na Vercel | DNS ainda propagando, ou servidores errados no registro.br | conferir `ns1.vercel-dns.com` e `ns2.vercel-dns.com` no registro.br e esperar |
 | Site abre, mas **pedir acesso dá "algo falhou do nosso lado"** e o `/admin` não entra | log `config:DATABASE_URL`, `db:*` ou `rede:*` | tabela "Causa no log" acima |
-| **Todo** corretor vê "Recebemos seus dados…" | log `config:RESEND_API_KEY`, `config:EMAIL_FROM` ou `email:*` | tabela "Causa no log" acima |
+| **Todo** corretor novo vê "Recebemos seus dados…" (e quem já tinha cadastro, "Não conseguimos enviar o código agora") | log `config:RESEND_API_KEY`, `config:EMAIL_FROM` ou `email:*` | tabela "Causa no log" acima |
 | E-mail não chega e não há erro no log | caiu no spam, ou o endereço devolveu | Resend → Emails: veja o status do envio. Se "Delivered", peça para a pessoa olhar o spam |
 | "Código expirado" | passou de 10 min | pedir novo código (botão reenviar) |
 | "Tentativas esgotadas" | 5 erros no mesmo código | pedir novo código |
 | "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail, ou 10 pela mesma rede (IP) | esperar a janela |
-| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | log `[/api/lead] código não enviado; lead gravado sem código: <causa>` | o lead está no `/admin`: fale com ele. A causa diz o resto (tabela acima) |
+| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | e-mail novo; log `[/api/lead] código não enviado; lead gravado sem código: <causa>` | o lead está no `/admin`: fale com ele. A causa diz o resto (tabela acima) |
+| Corretor que já tinha cadastro vê "Não conseguimos enviar o código agora" (503 no `/api/lead` ou no `/api/lead/entrar`) | log `[/api/lead] código não enviado; e-mail já cadastrado, nada gravado: <causa>` ou `[/api/lead/entrar] código não enviado: <causa>` | nada foi gravado: o lead já está no `/admin`, com os dados de antes — fale com ele. A causa diz o resto (tabela acima) |
 | Tela pede "verificação de segurança" / 403 no `/api/lead` | Turnstile recusou o token (robô, ou widget expirado); log `token emitido fora do domínio: <host>` = o widget rodou fora de `brand.dominio`/subdomínio/`.vercel.app` | a pessoa refaz a verificação; se for com todo mundo, confira se a site key é do mesmo widget da secret e se o site está sendo aberto pelo domínio |
 | 503 no `/api/lead` + log `[turnstile]` | Cloudflare fora do ar, ou `TURNSTILE_SECRET_KEY` errada (log diz `config:TURNSTILE_SECRET_KEY`) | conferir a chave; se a Cloudflare estiver fora, tirar as duas chaves do Turnstile e fazer Redeploy desliga o desafio |
 | Não chega o aviso de lead novo | `AVISO_LEADS_EMAIL` vazia, teto diário atingido ou envio recusado (log `[aviso-lead]` com a causa) | conferir a variável e a causa; os leads continuam no `/admin` |
@@ -532,6 +625,9 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | Painel do demo rebate para a landing | sem cookie de acesso válido (expira em 7 dias) | pedir acesso e verificar o e-mail |
 | Painel de leads vazio em produção | `DATABASE_URL` aponta para outro banco ou branch, ou a migração não rodou | conferir a string (3.4) e o log |
 | No `/admin`, mudar etapa, anotar ou cadastrar lead dá erro (a lista abre) | log `[/api/admin/leads...]` com `db:42703` ou `db:42P01`: a migração 004 não rodou | 3.9 |
+| No `/admin`, marcar "Confere"/"Não confere" no CRECI dá erro | log `[/api/admin/leads] PATCH: db:42703`: a migração 005 não rodou | 3.10 |
+| Corretor diz que o cadastro responde "Esse WhatsApp já tem cadastro" (ou "Esse CRECI…") | é a regra do cadastro único: outro lead já tem esse WhatsApp/CRECI. Se o lead antigo tem e-mail, a tela mostra a dica mascarada e oferece "Entrar com esse e-mail" | procure o WhatsApp/CRECI no `/admin`. Mesma pessoa com outro e-mail: ela entra pelo "Já tenho cadastro" com o e-mail antigo. Lead de teste: exclua |
+| "Já tenho cadastro" diz que não achou o e-mail | não há lead com esse e-mail (a tela oferece o cadastro) | nada: é o fluxo. Erro 503 nessa tela = o e-mail não saiu (log `[/api/lead/entrar] código não enviado: <causa>`) |
 
 **Rotacionar segredos.** Trocar `APP_SECRET` derruba **todos** os acessos ao demo e sessões de admin
 (é o efeito desejado se vazar). Trocar `ADMIN_PASSWORD` só afeta logins novos — as sessões abertas
@@ -598,8 +694,9 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/config/demo.ts` | identidade fictícia da rede do demo (nunca a empresa real) |
 | `src/features/lead/` | domínio: schema Zod, criação, verificação, casos de uso do admin |
 | `src/features/lead/funil.ts` · `funilAdmin.ts` · `notas.ts` · `cadastroManual.ts` | o funil: etapas (e a tradução dos status antigos), próxima ação, anotações, cadastro manual |
-| `src/lib/leadStore.ts` | **porta** de persistência + adaptador de arquivo (dev) |
-| `src/lib/leadStorePostgres.ts` | adaptador de produção |
+| `src/lib/leadStorePorta.ts` · `leadStore.ts` | **porta** de persistência · adaptador de arquivo (dev) |
+| `src/lib/leadStorePostgres.ts` · `leadStorePostgresLinha.ts` | adaptador de produção · linha do banco ⇄ lead |
+| `src/features/lead/solicitarAcesso.ts` · `entrar.ts` · `envioCodigo.ts` | cadastro (com as regras de repetido) · "Já tenho cadastro" · portaria e envio comuns às duas portas |
 | `src/lib/db.ts` | pool do Postgres, compartilhado por todos os stores (com ouvinte para conexão que cai) |
 | `src/lib/ratelimit*.ts` | limite de uso (Postgres em prod, memória em dev) |
 | `src/lib/auditoria.ts` | registro das ações do admin (banco em prod, arquivo em dev) |
@@ -610,7 +707,7 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/lib/token.ts` / `adminAuth.ts` | HMAC do token de demo e da sessão de admin |
 | `src/components/landing/` · `acesso/` | landing e fluxo de acesso |
 | `src/app/admin/` | painel de leads |
-| `migrations/` | as 4 migrações do Postgres (seção 3.4; a 004 também no 3.9) |
+| `migrations/` | as 5 migrações do Postgres (seção 3.4; a 004 também no 3.9, a 005 no 3.10) |
 | `waves/` | o plano por ondas e o estado de cada uma |
 
 Trocar de banco = escrever um adaptador novo com a mesma interface `LeadStore` e ensinar o

@@ -99,18 +99,30 @@ export function leadCru(parcial: Partial<Lead> = {}, agora = new Date("2026-06-1
   };
 }
 
+/**
+ * Dados válidos do cadastro público (O9: nome completo e CRECI com UF), fictícios.
+ * `over` troca ou acrescenta campos (ex.: isca, token).
+ */
+export function dadosCadastro(over: Record<string, unknown> = {}) {
+  return {
+    nome: "Corretor Exemplo",
+    email: "corretor@exemplo.com",
+    telefone: "(11) 90000-0000",
+    creci: "SP 12345",
+    consentimento: true,
+    ...over,
+  };
+}
+
 /** N leads pelo fluxo público (`corretor<i>@exemplo.com`), com 1 s de diferença a partir de `t0`. */
 export async function criarLeads(store: LeadStore, n: number, t0: Date): Promise<Lead[]> {
   const criados: Lead[] = [];
   for (let i = 0; i < n; i++) {
     const { lead } = await criarOuAtualizarLead(
       store,
-      LeadInputSchema.parse({
-        email: `corretor${i}@exemplo.com`,
-        telefone: "(11) 90000-0000",
-        creci: `SP 1234${i}`,
-        consentimento: true,
-      }),
+      LeadInputSchema.parse(
+        dadosCadastro({ nome: `Corretor ${String.fromCharCode(65 + i)} Exemplo`, email: `corretor${i}@exemplo.com`, creci: `SP 1234${i}` }),
+      ),
       { ip: "1.2.3.4", secret: SECRET_TESTE, agora: new Date(t0.getTime() + i * 1000) },
     );
     criados.push(lead);
