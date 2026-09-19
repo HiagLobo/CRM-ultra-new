@@ -67,6 +67,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | **O5** | Hardening & Lançamento | Testes mínimos, build/typecheck, deploy, domínio Resend, runbook | O0–O4 |
 | **O6** | Limpeza do ex-cliente | Tirar do produto todo conteúdo, imagem e negócio do ex-cliente (pré-requisito do deploy) | O0–O5 código |
 | **O7** | Prontidão de lançamento | Cadastro que não perde lead, anti-abuso, logs com causa, CRECI flexível, celular e painel de leads prático | O6 |
+| **O8** | Funil de leads e conversão | Etapas + retomar depois + Hoje, anotações e próxima ação, cadastro manual, "Quero usar" no demo, origem da campanha | O7 |
 
 ### Sub-entregas e "Pronto quando"
 
@@ -131,6 +132,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | O5 | 🟦 em andamento — **S1 ✅** `f15ea84` (90 testes, **1 bloqueador corrigido**: fallback de e-mail valia em produção e devolvia o código na resposta) · **S2 código ✅** `c753e54` (adaptador Postgres + exclusão LGPD + README/RUNBOOK; **README ainda era do cliente antigo, com e-mail real de pessoa** — corrigido). **Falta publicar**: banco, domínio no Resend e deploy dependem das contas do fundador (checklist no ESTADO da O5 e seção 3 do RUNBOOK). |
 | O6 | ✅ concluída (2026-09-19) — S1 fotos Unsplash · S2 site de exemplo em /demo (noindex, rede fictícia) · S3/S4 painéis sem preços, produto, pessoas e empresas do ex-cliente · S5 docs anonimizados + guarda por hash · S6 repositório novo, nascido de um commit único. Ver `06-limpeza-ex-cliente/ESTADO.md`. |
 | O7 | ✅ código concluído (2026-09-19) — lead nunca se perde (falha/cota/timeout do e-mail), anti-abuso (limites, isca, Turnstile opcional), aviso de lead novo, log com causa, RUNBOOK do setup real, CRECI flexível, remetente nomeado, celular (menus, tour, Guia) e painel de leads prático (WhatsApp, busca, filtro, CSV pt-BR). 400 testes + crawl desktop/celular. Ver `07-prontidao-lancamento/ESTADO.md`. **Falta publicar (O5):** Neon, Resend, Vercel e smoke — nas contas do fundador, RUNBOOK §3. |
+| O8 | 🟦 em andamento — plano escrito (2026-09-19). Publicação exige a migração 004 no Neon ANTES do deploy. Ver `08-funil-leads/ESTADO.md`. |
 
 _Legenda: ⬜ pendente · 🟦 em andamento · ✅ concluída._
 
