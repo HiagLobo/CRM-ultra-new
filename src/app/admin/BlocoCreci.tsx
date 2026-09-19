@@ -4,6 +4,12 @@
  * busca oficial do conselho (nova aba) e o resultado — ✓ Confere / ✗ Não
  * confere / desfazer. A conferência é manual (F5): sem API oficial e com
  * captcha nas buscas, o fundador olha e marca em ~20 s.
+ *
+ * Foco (revisão da O9·S3): nenhum botão do bloco some nem fica `disabled`
+ * depois do clique — o botão marcado é `aria-pressed`, e o que não se aplica
+ * agora (salvando, nada a desfazer) é `aria-disabled` e ignora o clique. Assim
+ * o foco do teclado nunca cai para o começo da página. O resultado é anunciado
+ * (`role="status"`).
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
@@ -52,6 +58,8 @@ export default function BlocoCreci({
   }
 
   async function conferir(conferencia: ConferenciaCreci | null) {
+    // já está assim, ou há uma gravação em andamento: o clique não faz nada (e o foco fica)
+    if (ocupado || (lead.creciConferencia ?? null) === conferencia) return;
     setErro(null);
     const r = await aoConferir(conferencia);
     if (!r.ok) setErro(r.erro);
@@ -78,6 +86,9 @@ export default function BlocoCreci({
             )}
           </div>
           {copia === "falhou" && <p role="status" style={nota}>Não deu para copiar: selecione o número acima.</p>}
+          {consulta?.semBuscaDireta && (
+            <p style={nota}>O CRECI-{consulta.uf} não tem página de busca direta: procure a consulta de inscritos no site do conselho.</p>
+          )}
           {consulta?.provavel && (
             <p style={nota}>
               CRECI sem estado: o CRECI-{consulta.uf} é palpite pelo DDD do WhatsApp. Não achou? Confira no conselho de outro estado.
@@ -93,7 +104,7 @@ export default function BlocoCreci({
                   key={valor}
                   type="button"
                   aria-pressed={ativo}
-                  disabled={ocupado || ativo}
+                  aria-disabled={ocupado || undefined}
                   onClick={() => void conferir(valor)}
                   style={ativo ? { ...acao(cor, true), padding: "7px 13px", fontSize: 13, cursor: "default" } : botaoContorno(cor, ocupado)}
                 >
@@ -101,13 +112,16 @@ export default function BlocoCreci({
                 </button>
               );
             })}
-            {lead.creciConferencia && (
-              <button type="button" disabled={ocupado} onClick={() => void conferir(null)} style={botaoContorno(p.g700, ocupado)}>
-                Desfazer
-              </button>
-            )}
+            <button
+              type="button"
+              aria-disabled={ocupado || !lead.creciConferencia || undefined}
+              onClick={() => void conferir(null)}
+              style={botaoContorno(p.g700, ocupado || !lead.creciConferencia)}
+            >
+              Desfazer
+            </button>
           </div>
-          <p style={nota}>{resultado ?? "Ainda não conferido."}</p>
+          <p role="status" style={nota}>{resultado ?? "Ainda não conferido."}</p>
           {erro && <div role="alert" style={{ ...caixaErro, marginTop: 10 }}>{erro}</div>}
         </>
       )}

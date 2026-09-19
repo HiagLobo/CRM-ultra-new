@@ -15,7 +15,7 @@ import SeletorEtapa from "./SeletorEtapa";
 import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
 import { proximoPasso, type TomPasso } from "./hoje";
 import { textoConferencia } from "./creciPainel";
-import { dataHoraCurta, textoRepetido, voltouAoDemo, type MotivoRepetido } from "./selosLead";
+import { dataHoraCurta, textoRepetido, voltouAoDemo, type Repetido } from "./selosLead";
 
 const COR_TOM: Readonly<Record<TomPasso, string>> = {
   atrasado: p.error,
@@ -55,6 +55,7 @@ const CSS_LISTA = `
 .adm-lista table { min-width: 760px; }
 .adm-linha { cursor: pointer; }
 .adm-linha:hover > td, .adm-linha:focus-within > td { background: ${p.page}; }
+.adm-so-cartao { display: none !important; }
 @media (max-width: 640px) {
   .adm-lista { padding: 0 !important; }
   .adm-lista table, .adm-lista tbody { display: block; min-width: 0; }
@@ -65,21 +66,35 @@ const CSS_LISTA = `
   .adm-c-lead { grid-area: lead; min-width: 0; } .adm-c-etapa { grid-area: etapa; }
   .adm-c-tel { grid-area: tel; } .adm-c-passo { grid-area: passo; }
   .adm-c-creci, .adm-c-entrada { display: none !important; }
+  .adm-so-cartao { display: inline-flex !important; }
 }`;
+
+/** ✓/✗ da conferência do CRECI — ícone com nome acessível (`role="img"`: sem papel, o leitor de tela ignora o `aria-label`). */
+function SeloConferencia({ lead, className, style }: { lead: LeadAdmin; className?: string; style?: React.CSSProperties }) {
+  const texto = textoConferencia(lead);
+  if (!texto) return null;
+  const confere = lead.creciConferencia === "conferido";
+  return (
+    <span className={className} role="img" title={`CRECI: ${texto}`} aria-label={`CRECI: ${texto}`} style={{ display: "inline-flex", flexShrink: 0, ...style }}>
+      <Ic n={confere ? "check-circle-2" : "x"} s={15} c={confere ? p.success : p.error} />
+    </span>
+  );
+}
 
 export default function TabelaLeads({
   leads,
   agora,
-  ocupado,
+  ocupados,
   repetidos,
   aoAbrir,
   aoEscolherEtapa,
 }: {
   leads: LeadAdmin[];
   agora: Date;
-  ocupado: string | null;
+  /** Leads com ação em andamento (um conjunto: a ação de um nunca libera outro). */
+  ocupados: ReadonlySet<string>;
   /** Calculado sobre a lista inteira (não só a aba): o repetido pode estar em outra etapa. */
-  repetidos: ReadonlyMap<string, MotivoRepetido[]>;
+  repetidos: ReadonlyMap<string, Repetido>;
   aoAbrir: (id: string) => void;
   aoEscolherEtapa: (lead: LeadAdmin, etapa: StatusLead) => void;
 }) {
@@ -99,12 +114,11 @@ export default function TabelaLeads({
         </thead>
         <tbody>
           {leads.map((l) => {
-            const travado = ocupado === l.id;
+            const travado = ocupados.has(l.id);
             const passo = proximoPasso(l, agora);
             const whatsapp = linkWhatsappLead(l.telefone, l.canal);
             const repetido = repetidos.get(l.id);
             const voltou = voltouAoDemo(l, agora);
-            const conferencia = textoConferencia(l);
             return (
               <tr key={l.id} className="adm-linha" onClick={() => aoAbrir(l.id)} style={{ opacity: travado ? 0.5 : 1 }}>
                 <td className="adm-c-lead" style={{ ...td, maxWidth: 260 }}>
@@ -120,10 +134,12 @@ export default function TabelaLeads({
                       {identificacaoLead(l)}
                     </button>
                     {l.verificadoEm && (
-                      <span title={`E-mail confirmado em ${dataHoraRecife(l.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex", flexShrink: 0 }}>
+                      <span role="img" title={`E-mail confirmado em ${dataHoraRecife(l.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex", flexShrink: 0 }}>
                         <Ic n="badge-check" s={15} c={p.success} />
                       </span>
                     )}
+                    {/* no cartão do celular a coluna CRECI some: a conferência vem para junto do nome */}
+                    <SeloConferencia lead={l} className="adm-so-cartao" />
                   </div>
                   {l.nome && l.email && (
                     <a href={linkEmailLead(l.email)} onClick={pararClique} title="Escrever e-mail" style={{ ...link, display: "block", fontSize: 12.5, color: p.g500, overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -153,11 +169,7 @@ export default function TabelaLeads({
                 </td>
                 <td className="adm-c-creci" style={{ ...td, color: p.g700 }}>
                   {l.creci || "—"}
-                  {conferencia && (
-                    <span title={`CRECI: ${conferencia}`} aria-label={`CRECI: ${conferencia}`} style={{ display: "inline-flex", verticalAlign: "-2px", marginLeft: 6 }}>
-                      <Ic n={l.creciConferencia === "conferido" ? "check-circle-2" : "x"} s={15} c={l.creciConferencia === "conferido" ? p.success : p.error} />
-                    </span>
-                  )}
+                  <SeloConferencia lead={l} style={{ verticalAlign: "-2px", marginLeft: 6 }} />
                 </td>
                 <td className="adm-c-entrada" style={{ ...td, color: p.g700, fontSize: 13 }}>
                   {dataHoraRecife(l.criadoEm).slice(0, 10)}

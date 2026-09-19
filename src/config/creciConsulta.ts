@@ -41,6 +41,9 @@ export const CONSULTA_CRECI: Readonly<Record<Uf, string>> = {
   SC: conselhoNet("sc"),
   SE: conselhoNet("se"),
   SP: "https://www.crecisp.gov.br/cidadao/buscaporcorretores",
-  // sem página de busca direta: o link abre o site do conselho
+  // sem página de busca direta: o link abre o site do conselho (ver UFS_SEM_BUSCA_DIRETA)
   TO: "https://crecito.gov.br/",
 };
+
+/** Conselhos sem página de busca direta: o link abre o site, e a ficha diz onde procurar. */
+export const UFS_SEM_BUSCA_DIRETA: ReadonlyArray<Uf> = ["TO"];

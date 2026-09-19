@@ -447,11 +447,14 @@ captcha). Na ficha, bloco **CRECI**: **Copiar número** → **Conferir no CRECI-
 oficial do conselho em outra aba) → cole o número e confira nome e situação → volte e marque
 **✓ Confere** ou **✗ Não confere** ("Desfazer" limpa). A lista mostra o selo ao lado do CRECI. CRECI
 antigo sem estado: o link diz **(provável)** — a UF é palpite pelo DDD do WhatsApp; se não achar,
-confira no conselho de outro estado. Se o corretor trocar o CRECI pelo site, a conferência antiga é
-desfeita sozinha. Os endereços das buscas ficam em `src/config/creciConsulta.ts`.
+confira no conselho de outro estado. O CRECI-TO não tem página de busca direta: o link abre o site
+do conselho, e ali se procura a consulta de inscritos. Se o corretor trocar o CRECI pelo site, a
+conferência antiga é desfeita sozinha (na mesma gravação do CRECI novo). Os endereços das buscas ficam em `src/config/creciConsulta.ts`.
 
 **Selos da lista.** **repetido**: outro lead tem o mesmo WhatsApp ou o mesmo CRECI (o cadastro novo
-já barra; o selo mostra os que vieram de antes — passe o mouse para ver qual dado repete).
+já barra; o selo mostra os que vieram de antes — abra a ficha para ver qual dado repete e se é o
+mesmo lead nos dois; CRECI antigo sem estado aparece como "mesmo número de CRECI (sem estado)", que
+pode ser de conselhos diferentes). No celular, o ✓/✗ da conferência fica ao lado do nome.
 **voltou ao demo**: o lead entrou de novo no demo nos últimos 7 dias (a ficha mostra o "Último
 acesso ao demo") — bom momento para puxar conversa.
 

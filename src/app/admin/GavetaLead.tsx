@@ -15,15 +15,19 @@ import SeletorEtapa from "./SeletorEtapa";
 import BlocoProximaAcao from "./BlocoProximaAcao";
 import BlocoNotas from "./BlocoNotas";
 import BlocoCreci from "./BlocoCreci";
-import { dataHoraCurta } from "./selosLead";
+import Dados from "./Dados";
+import { dataHoraCurta, textoRepetido, type Repetido } from "./selosLead";
 import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
 import { acao, botaoContorno, caixaErro, tituloSecao } from "./estilos";
 import type { ResultadoAcao } from "./useLeadsAdmin";
+
+const caixaAviso: React.CSSProperties = { ...caixaErro, background: `${p.warning}1F`, borderColor: `${p.warning}88` };
 
 export default function GavetaLead({
   lead,
   agora,
   ocupado,
+  repetido,
   escAtivo,
   aviso,
   aoFechar,
@@ -36,6 +40,8 @@ export default function GavetaLead({
   lead: LeadAdmin;
   agora: Date;
   ocupado: boolean;
+  /** O que este lead divide com outros da lista (o selo "repetido"; no celular, só aqui dá para ler o motivo). */
+  repetido?: Repetido;
   /** Desligado enquanto um diálogo está aberto por cima (o Esc é dele). */
   escAtivo: boolean;
   aviso: string | null;
@@ -95,7 +101,7 @@ export default function GavetaLead({
             {identificacaoLead(lead)}
           </h2>
           {lead.verificadoEm && (
-            <span title={`E-mail confirmado em ${dataHoraRecife(lead.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex" }}>
+            <span role="img" title={`E-mail confirmado em ${dataHoraRecife(lead.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex" }}>
               <Ic n="badge-check" s={18} c={p.success} />
             </span>
           )}
@@ -105,7 +111,8 @@ export default function GavetaLead({
         </header>
 
         <div style={{ padding: "18px 20px 28px", display: "grid", gap: 24 }}>
-          {aviso && <div role="status" style={{ ...caixaErro, background: `${p.warning}1F`, borderColor: `${p.warning}88` }}>{aviso}</div>}
+          {aviso && <div role="status" style={caixaAviso}>{aviso}</div>}
+          {repetido && <p style={{ ...caixaAviso, margin: 0 }}><strong>Repetido:</strong> {textoRepetido(repetido)}</p>}
 
           <section aria-label="Contato">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
@@ -190,15 +197,3 @@ export default function GavetaLead({
   );
 }
 
-function Dados({ itens }: { itens: ReadonlyArray<readonly [string, string]> }) {
-  return (
-    <dl style={{ display: "grid", gridTemplateColumns: "max-content minmax(0, 1fr)", gap: "6px 14px", margin: 0, fontSize: 14 }}>
-      {itens.map(([rotulo, valor]) => (
-        <React.Fragment key={rotulo}>
-          <dt style={{ color: p.g500 }}>{rotulo}</dt>
-          <dd style={{ margin: 0, color: p.ink, overflowWrap: "anywhere" }}>{valor}</dd>
-        </React.Fragment>
-      ))}
-    </dl>
-  );
-}

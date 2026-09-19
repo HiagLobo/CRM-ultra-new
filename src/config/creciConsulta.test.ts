@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { LISTA_UFS } from "@/features/lead/creci";
-import { CONSULTA_CRECI } from "./creciConsulta";
+import { CONSULTA_CRECI, UFS_SEM_BUSCA_DIRETA } from "./creciConsulta";
 
 describe("busca oficial do CRECI por UF (O9·S3)", () => {
   it("cobre as 27 UFs, cada uma com URL https válida e do próprio conselho", () => {
@@ -17,5 +17,10 @@ describe("busca oficial do CRECI por UF (O9·S3)", () => {
     expect(CONSULTA_CRECI.PE).toBe("https://www.crecipe.conselho.net.br/form_pesquisa_cadastro_geral_site.php");
     expect(CONSULTA_CRECI.SP).toBe("https://www.crecisp.gov.br/cidadao/buscaporcorretores");
     expect(CONSULTA_CRECI.TO).toBe("https://crecito.gov.br/");
+  });
+
+  it("os conselhos sem busca direta são UFs do mapa (hoje, só TO)", () => {
+    expect(UFS_SEM_BUSCA_DIRETA).toEqual(["TO"]);
+    for (const uf of UFS_SEM_BUSCA_DIRETA) expect(LISTA_UFS).toContain(uf);
   });
 });

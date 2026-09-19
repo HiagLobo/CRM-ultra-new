@@ -123,7 +123,7 @@ export default function PainelLeads() {
             <BarraFiltros busca={busca} textoTotal={textoContagem(visiveis.length, painel.leads.length)} aoBuscar={setBusca} />
             <div id="lista-leads" role="tabpanel">
               {visiveis.length > 0 ? (
-                <TabelaLeads leads={visiveis} agora={agora} ocupado={painel.ocupado} repetidos={repetidos} aoAbrir={abrirLead} aoEscolherEtapa={(l, e) => void escolherNaLinha(l, e)} />
+                <TabelaLeads leads={visiveis} agora={agora} ocupados={painel.ocupados} repetidos={repetidos} aoAbrir={abrirLead} aoEscolherEtapa={(l, e) => void escolherNaLinha(l, e)} />
               ) : busca.trim() ? (
                 <Aviso icone="search-x">
                   Nenhum lead com essa busca nesta aba. <LinkAviso aoClicar={() => setBusca("")}>Limpar a busca</LinkAviso>
@@ -148,7 +148,8 @@ export default function PainelLeads() {
           key={aberto.id}
           lead={aberto}
           agora={agora}
-          ocupado={painel.ocupado === aberto.id}
+          ocupado={painel.ocupados.has(aberto.id)}
+          repetido={repetidos.get(aberto.id)}
           escAtivo={!pedidoEtapa && !confirmando && !novoAberto}
           aviso={avisoGaveta}
           aoFechar={fecharGaveta}
@@ -188,7 +189,7 @@ export default function PainelLeads() {
       {confirmando && (
         <ConfirmarExclusao
           lead={confirmando}
-          ocupado={painel.ocupado === confirmando.id}
+          ocupado={painel.ocupados.has(confirmando.id)}
           erro={erroExclusao}
           aoCancelar={() => setConfirmando(null)}
           aoConfirmar={() => void excluir(confirmando)}

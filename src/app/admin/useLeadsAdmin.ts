@@ -15,6 +15,7 @@ import type { ConferenciaCreci } from "@/features/lead/creci";
 import { comJson, pedirApi } from "./apiPainel";
 import { mensagemDeErro, respostaOk, type RespostaApi } from "./mensagensApi";
 import { lerRespostaCadastro, type FormNovoLead, type ResultadoCadastroTela } from "./formNovoLead";
+import { liberarOcupado, marcarOcupado } from "./ocupados";
 
 export type ResultadoAcao = { ok: true } | { ok: false; erro: string };
 
@@ -26,7 +27,8 @@ export function useLeadsAdmin() {
   const [carregado, setCarregado] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
   const [carregando, setCarregando] = React.useState(true);
-  const [ocupado, setOcupado] = React.useState<string | null>(null);
+  // um conjunto de ids (O9·S3): a ação de um lead nunca libera nem trava a de outro
+  const [ocupados, setOcupados] = React.useState<ReadonlySet<string>>(() => new Set());
   const [exportando, setExportando] = React.useState(false);
 
   const irParaLogin = React.useCallback(() => router.replace("/admin/login"), [router]);
@@ -59,7 +61,7 @@ export function useLeadsAdmin() {
 
   /** PATCH de um lead; a resposta traz o lead atualizado, que troca o da lista. */
   async function alterar(id: string, corpo: object, oQue: string): Promise<ResultadoAcao> {
-    setOcupado(id);
+    setOcupados((atuais) => marcarOcupado(atuais, id));
     try {
       const r = await pedir("/api/admin/leads", comJson("PATCH", { id, ...corpo }));
       if (!r) return SESSAO_ENCERRADA;
@@ -68,8 +70,8 @@ export function useLeadsAdmin() {
       setLeads((atuais) => atuais.map((l) => (l.id === id ? lead : l)));
       return { ok: true };
     } finally {
-      // só libera se ninguém marcou outro lead como ocupado nesse meio
-      setOcupado((atual) => (atual === id ? null : atual));
+      // libera só este lead: outro que esteja salvando continua travado
+      setOcupados((atuais) => liberarOcupado(atuais, id));
     }
   }
 
@@ -93,7 +95,7 @@ export function useLeadsAdmin() {
 
   /** LGPD: elimina o lead de vez (com as anotações). */
   async function excluir(id: string): Promise<ResultadoAcao> {
-    setOcupado(id);
+    setOcupados((atuais) => marcarOcupado(atuais, id));
     try {
       const r: RespostaApi | null = await pedir("/api/admin/leads", comJson("DELETE", { id }));
       if (!r) return SESSAO_ENCERRADA;
@@ -102,7 +104,7 @@ export function useLeadsAdmin() {
       setLeads((atuais) => atuais.filter((l) => l.id !== id));
       return { ok: true };
     } finally {
-      setOcupado((atual) => (atual === id ? null : atual));
+      setOcupados((atuais) => liberarOcupado(atuais, id));
     }
   }
 
@@ -138,7 +140,7 @@ export function useLeadsAdmin() {
     erro,
     mostrarErro: setErro,
     carregando,
-    ocupado,
+    ocupados,
     exportando,
     carregar,
     mudarEtapa,

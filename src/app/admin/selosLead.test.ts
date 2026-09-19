@@ -1,9 +1,10 @@
 /**
- * Regras da O9·S3 no painel: onde conferir o CRECI (UF provável pelo DDD no
- * legado), repetidos da lista e "voltou ao demo" (relógio injetado).
+ * Regras da O9·S3 no painel: onde conferir o CRECI (UF do texto, ou provável
+ * pelo DDD no legado), repetidos da lista com a dica certa e "voltou ao demo"
+ * (relógio injetado).
  */
 import { describe, it, expect } from "vitest";
-import { consultaDoCreci, numeroDoCreci, textoConferencia } from "./creciPainel";
+import { consultaDoCreci, numeroDoCreci, textoConferencia, ufDoTextoCreci } from "./creciPainel";
 import { dataHoraCurta, repetidosDaLista, textoRepetido, voltouAoDemo } from "./selosLead";
 
 const AGORA = new Date("2026-06-20T12:00:00.000Z");
@@ -15,6 +16,15 @@ describe("consultaDoCreci", () => {
       uf: "PE",
       url: "https://www.crecipe.conselho.net.br/form_pesquisa_cadastro_geral_site.php",
       provavel: false,
+      semBuscaDireta: false,
+    });
+  });
+
+  it("TO não tem busca direta: o link abre o site e a ficha avisa", () => {
+    expect(consultaDoCreci({ creci: "TO 1234", telefone: "+5563900000000" })).toMatchObject({
+      uf: "TO",
+      url: "https://crecito.gov.br/",
+      semBuscaDireta: true,
     });
   });
 
@@ -27,9 +37,19 @@ describe("consultaDoCreci", () => {
     expect(consultaDoCreci({ creci: "CRECI-SP 12.345", telefone: "+5581988887777" })).toMatchObject({ uf: "SP", provavel: false });
   });
 
-  it("sem CRECI, ou sem UF e com DDD desconhecido → null", () => {
+  it("legado que nem normaliza: a ÚNICA sigla de UF do texto vale (não é 'provável'); sem ela, o DDD", () => {
+    expect(consultaDoCreci({ creci: "SP 123456-7", telefone: "+5581988887777" })).toMatchObject({ uf: "SP", provavel: false });
+    expect(consultaDoCreci({ creci: "PE12345A", telefone: "+5511988887777" })).toMatchObject({ uf: "PE", provavel: false });
+    expect(consultaDoCreci({ creci: "abc", telefone: "+5581988887777" })).toMatchObject({ uf: "PE", provavel: true });
+    // duas UFs diferentes: não dá para saber → DDD
+    expect(consultaDoCreci({ creci: "PE/SP 123-X", telefone: "+5521988887777" })).toMatchObject({ uf: "RJ", provavel: true });
+    expect(ufDoTextoCreci("CRECI 12345")).toBeUndefined(); // o rótulo "CRECI" não conta como sigla
+  });
+
+  it("sem CRECI, ou sem UF e com DDD desconhecido (ou número estrangeiro) → null", () => {
     expect(consultaDoCreci({ creci: "", telefone: "+5581988887777" })).toBeNull();
     expect(consultaDoCreci({ creci: "12345", telefone: "+15550001111" })).toBeNull();
+    expect(consultaDoCreci({ creci: "abc", telefone: "+15550001111" })).toBeNull();
   });
 
   it("número para colar na busca e texto da conferência", () => {
@@ -51,19 +71,57 @@ describe("repetidosDaLista", () => {
       { id: "e", telefone: "+5581900000004", creci: "" },
       { id: "f", telefone: "+5581900000005", creci: "" },
     ]);
-    expect(Object.fromEntries(r)).toEqual({ a: ["telefone", "creci"], b: ["telefone", "creci"] });
+    expect(Object.fromEntries(r)).toEqual({
+      a: { telefone: ["b"], creci: ["b"], creciSemUf: false },
+      b: { telefone: ["a"], creci: ["a"], creciSemUf: false },
+    });
     expect(textoRepetido(r.get("a")!)).toBe("Outro lead tem o mesmo WhatsApp e o mesmo CRECI.");
   });
 
-  it("legado sem UF só casa com legado sem UF; grafia antiga é normalizada", () => {
+  it("WhatsApp de um lead e CRECI de OUTRO: a dica não diz que um só lead repete os dois", () => {
     const r = repetidosDaLista([
-      { id: "a", telefone: "+5581900000001", creci: "12345" },
-      { id: "b", telefone: "+5581900000002", creci: "12.345-F" },
+      { id: "a", telefone: "+5581900000001", creci: "PE 12345" },
+      { id: "b", telefone: "+5581900000001", creci: "PE 999" },
+      { id: "c", telefone: "+5581900000002", creci: "PE 12345-F" },
+    ]);
+    expect(r.get("a")).toEqual({ telefone: ["b"], creci: ["c"], creciSemUf: false });
+    expect(textoRepetido(r.get("a")!)).toBe("Mesmo WhatsApp de outro lead · mesmo CRECI de outro lead.");
+    expect(textoRepetido(r.get("b")!)).toBe("Outro lead tem o mesmo WhatsApp.");
+    expect(textoRepetido(r.get("c")!)).toBe("Outro lead tem o mesmo CRECI.");
+  });
+
+  it("legado sem UF só casa com legado sem UF — e a dica diz que é só o mesmo NÚMERO (sem estado)", () => {
+    const r = repetidosDaLista([
+      { id: "a", telefone: "+5581900000001", creci: "12345" }, // DDD 81
+      { id: "b", telefone: "+5511900000002", creci: "12.345-F" }, // DDD 11: pode ser outro conselho
       { id: "c", telefone: "+5581900000003", creci: "PE 12345" },
       { id: "d", telefone: "+5581900000004", creci: "CRECI-PE 12.345" },
     ]);
-    expect(Object.fromEntries(r)).toEqual({ a: ["creci"], b: ["creci"], c: ["creci"], d: ["creci"] });
-    expect(r.get("a")).toEqual(["creci"]);
+    expect(r.get("a")).toEqual({ telefone: [], creci: ["b"], creciSemUf: true });
+    expect(r.get("c")).toEqual({ telefone: [], creci: ["d"], creciSemUf: false });
+    expect(textoRepetido(r.get("a")!)).toBe("Outro lead tem o mesmo número de CRECI (sem estado).");
+    expect(textoRepetido(r.get("c")!)).toBe("Outro lead tem o mesmo CRECI.");
+  });
+
+  it("legado que nem normaliza: casa pelo texto igual; com UF no texto não é 'sem estado'", () => {
+    const r = repetidosDaLista([
+      { id: "a", telefone: "+5581900000001", creci: "abc" },
+      { id: "b", telefone: "+5581900000002", creci: "abc" },
+      { id: "c", telefone: "+5581900000003", creci: "SP 123456-7" },
+      { id: "d", telefone: "+5581900000004", creci: "SP 123456-7" },
+      { id: "e", telefone: "+5581900000005", creci: "SP 654321-7" },
+    ]);
+    expect(r.get("a")).toEqual({ telefone: [], creci: ["b"], creciSemUf: true });
+    expect(r.get("c")).toEqual({ telefone: [], creci: ["d"], creciSemUf: false });
+    expect(r.has("e")).toBe(false);
+  });
+
+  it("dois leads com o mesmo WhatsApp e o mesmo CRECI sem UF: 'e' + número (sem estado)", () => {
+    const r = repetidosDaLista([
+      { id: "a", telefone: "+5581900000001", creci: "777" },
+      { id: "b", telefone: "+5581900000001", creci: "777" },
+    ]);
+    expect(textoRepetido(r.get("a")!)).toBe("Outro lead tem o mesmo WhatsApp e o mesmo número de CRECI (sem estado).");
   });
 
   it("lista sem repetidos → vazio", () => {
