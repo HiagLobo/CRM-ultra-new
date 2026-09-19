@@ -12,12 +12,15 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { EntrarSchema } from "@/features/lead/schema";
 import { entrarComEmail } from "./apiEntrar";
-import { Aviso, AvisoErro, BotaoSubmit, BotaoTexto, Campo } from "./ui";
+import { Aviso, AvisoErro, BotaoSubmit, Campo } from "./ui";
+import { BotaoTexto } from "./pecas";
 import { PecasAntiRobo, useAntiRobo, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
 import { AvisoSemCadastro } from "./AvisosCadastro";
 import { WHATSAPP_ENTRAR_SEM_CODIGO } from "./mensagens";
 
 const ID_EMAIL = "acesso-entrar-email";
+/** A dica já vem na tela quando o foco cai no e-mail: o campo aponta para ela (leitor de tela). */
+const ID_DICA = "acesso-entrar-dica";
 
 type AvisoEntrar = { tipo: "sem_cadastro" } | { tipo: "erro"; mensagem: string; whatsapp?: boolean; envio?: boolean };
 
@@ -79,7 +82,7 @@ export default function StepEntrar({
       </p>
 
       {dica && (
-        <Aviso tipo="info">
+        <Aviso tipo="info" id={ID_DICA}>
           O WhatsApp que você digitou tem cadastro com <strong>{dica}</strong>. Entre com esse e-mail.
         </Aviso>
       )}
@@ -107,6 +110,7 @@ export default function StepEntrar({
         valor={email}
         aoMudar={setEmail}
         erro={erro}
+        aria-describedby={dica ? ID_DICA : undefined}
         autoFocus
       />
 
@@ -115,7 +119,10 @@ export default function StepEntrar({
       <BotaoSubmit carregando={carregando}>Receber código</BotaoSubmit>
 
       <p style={{ fontSize: 13.5, color: p.g700, margin: 0, textAlign: "center" }}>
-        Ainda não tem cadastro? <BotaoTexto onClick={() => aoCadastrar(email)}>Cadastre-se</BotaoTexto>
+        Ainda não tem cadastro?{" "}
+        <BotaoTexto onClick={() => aoCadastrar(email)} disabled={carregando}>
+          Cadastre-se
+        </BotaoTexto>
       </p>
     </form>
   );

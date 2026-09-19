@@ -6,7 +6,8 @@
  * gente — em vez de um erro seco que trava o fluxo.
  */
 import * as React from "react";
-import { Aviso, BotaoTexto, LinkWhatsapp } from "./ui";
+import { Aviso } from "./ui";
+import { BotaoTexto, LinkWhatsapp } from "./pecas";
 import {
   MENSAGEM_CRECI_EM_USO,
   MENSAGEM_SEM_CADASTRO,

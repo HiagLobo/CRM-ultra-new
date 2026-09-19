@@ -17,12 +17,15 @@ import { EXPIRACAO_CODIGO_MIN } from "@/features/lead/schema";
 import { liberar } from "@/lib/demoAccess";
 import { verificarCodigo } from "./api";
 import { atualizacaoDoPedido, emailDoPedido, reenviarCodigo, type PedidoCodigo } from "./apiEntrar";
-import { Campo, Aviso, AvisoSemCodigo, BotaoSubmit, BotaoTexto } from "./ui";
+import { Campo, Aviso, AvisoSemCodigo, BotaoSubmit } from "./ui";
+import { BotaoTexto } from "./pecas";
 import { PecasAntiRobo, useAntiRobo, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
 import { MENSAGEM_EXISTENTE, type CampoNaoAtualizado } from "./mensagens";
 
 /** Espera entre reenvios (o limite real é do servidor: 3 envios / 30 min). */
 const ESPERA_REENVIO_S = 60;
+/** O aviso de "já tem cadastro" já está na tela quando o foco cai no código: o campo aponta para ele. */
+const ID_AVISO_EXISTENTE = "acesso-codigo-existente";
 
 export default function StepCodigo({
   pedido,
@@ -45,6 +48,7 @@ export default function StepCodigo({
   const [semCodigo, setSemCodigo] = React.useState<string | null>(null);
   const antiRobo = useAntiRobo();
   const email = emailDoPedido(pedido);
+  const existente = pedido.tipo === "cadastro" && pedido.existente;
 
   React.useEffect(() => {
     if (espera <= 0) return;
@@ -113,7 +117,11 @@ export default function StepCodigo({
 
   return (
     <form onSubmit={conferir} noValidate style={{ display: "grid", gap: 16 }}>
-      {pedido.tipo === "cadastro" && pedido.existente && <Aviso tipo="info">{MENSAGEM_EXISTENTE}</Aviso>}
+      {existente && (
+        <Aviso tipo="info" id={ID_AVISO_EXISTENTE}>
+          {MENSAGEM_EXISTENTE}
+        </Aviso>
+      )}
 
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: 0, overflowWrap: "anywhere" }}>
         Enviamos um código de 6 dígitos para <strong style={{ color: p.ink }}>{email}</strong>.
@@ -139,6 +147,7 @@ export default function StepCodigo({
         maxLength={6}
         valor={codigo}
         aoMudar={(v) => setCodigo(v.replace(/\D/g, "").slice(0, 6))}
+        aria-describedby={existente ? ID_AVISO_EXISTENTE : undefined}
         autoFocus
         style={{ letterSpacing: 8, fontSize: 20, fontWeight: 700, textAlign: "center" }}
       />
@@ -150,7 +159,7 @@ export default function StepCodigo({
       <PecasAntiRobo antiRobo={antiRobo} comIsca={false} />
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", fontSize: 13.5 }}>
-        <BotaoTexto discreto onClick={aoVoltar}>
+        <BotaoTexto discreto onClick={aoVoltar} disabled={carregando}>
           {pedido.tipo === "entrar" ? "Usar outro e-mail" : "Corrigir meus dados"}
         </BotaoTexto>
         <BotaoTexto onClick={reenviar} disabled={carregando || espera > 0}>

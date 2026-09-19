@@ -4,7 +4,7 @@
  * do passo de origem. Sem rede (fetch falso) e sem dado real.
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { solicitarAcesso, verificarCodigo } from "./api";
+import { MENSAGEM_SEM_CODIGO, solicitarAcesso, verificarCodigo } from "./api";
 import { entrarComEmail, reenviarCodigo, type PedidoCodigo } from "./apiEntrar";
 import { MENSAGEM_CRECI_EM_USO, MENSAGEM_ENVIO_INDISPONIVEL, MENSAGEM_SEM_CADASTRO } from "./mensagens";
 import { DADOS, capturarConsole, fetchFake, fetchOffline } from "./apoioTestes";
@@ -47,6 +47,23 @@ describe("POST /api/lead — respostas novas", () => {
     expect(await solicitarAcesso(DADOS)).toMatchObject({ existente: false });
     fetchFake(200, { ok: true, status: "enviado", existente: "sim" });
     expect(await solicitarAcesso(DADOS)).toMatchObject({ existente: false });
+  });
+
+  it("503 envio_indisponivel (emenda: e-mail que já existia, código não saiu): nada de 'recebemos seus dados'", async () => {
+    fetchFake(503, { ok: false, erro: "envio_indisponivel" });
+    const r = await solicitarAcesso(DADOS);
+    expect(r).toEqual({ status: "envio_indisponivel", mensagem: MENSAGEM_ENVIO_INDISPONIVEL });
+    expect(r.status === "envio_indisponivel" && r.mensagem).not.toMatch(/Recebemos/);
+    // o 503 do anti-robô continua sendo outra coisa
+    fetchFake(503, { ok: false, erro: "verificacao_indisponivel" });
+    expect((await solicitarAcesso(DADOS)).status).toBe("desafio");
+  });
+
+  it("202 (só e-mail novo) repassa `existente` apenas se vier true — defesa para o fluxo", async () => {
+    fetchFake(202, { ok: true, status: "recebido_sem_codigo" });
+    expect(await solicitarAcesso(DADOS)).toEqual({ status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO, existente: false });
+    fetchFake(202, { ok: true, status: "recebido_sem_codigo", existente: true });
+    expect(await solicitarAcesso(DADOS)).toMatchObject({ status: "recebido_sem_codigo", existente: true });
   });
 
   it("manda o nome no corpo, junto do CRECI com UF", async () => {
@@ -132,9 +149,11 @@ describe("reenviar código — endpoint do passo de origem", () => {
     expect(chamadas[0]).toEqual({ url: "/api/lead/entrar", body: { email: DADOS.email } });
   });
 
-  it("código novo que não saiu (202 do cadastro, 503 do entrar) → sem_codigo", async () => {
+  it("código novo que não saiu (202 ou 503 do cadastro, 503 do entrar) → sem_codigo", async () => {
     fetchFake(202, { ok: true, status: "recebido_sem_codigo" });
     expect((await reenviarCodigo(doCadastro)).status).toBe("sem_codigo");
+    fetchFake(503, { ok: false, erro: "envio_indisponivel" });
+    expect(await reenviarCodigo(doCadastro)).toEqual({ status: "sem_codigo", mensagem: MENSAGEM_ENVIO_INDISPONIVEL });
     fetchFake(503, { ok: false, erro: "envio_indisponivel" });
     expect(await reenviarCodigo(doEntrar)).toEqual({ status: "sem_codigo", mensagem: MENSAGEM_ENVIO_INDISPONIVEL });
   });

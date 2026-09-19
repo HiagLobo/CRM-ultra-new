@@ -1,9 +1,10 @@
 "use client";
-/** Peças de formulário do fluxo de acesso (campo, aviso, botão de envio e botão com cara de link). */
+/** Peças de formulário do fluxo de acesso (campo, aviso, botão de envio). As miúdas estão em `pecas.tsx`. */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import { brand, linkWhatsapp } from "@/config/brand";
+import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
+import { LinkWhatsapp, estiloEntrada } from "./pecas";
 
 /**
  * Tira o DDI 55 de um número colado ou autopreenchido ("+55 81 99999-8888"),
@@ -28,22 +29,6 @@ export function mascararTelefone(valor: string): string {
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
 
-/** Visual de caixa de texto/seleção do fluxo (o `CampoCreci` usa o mesmo). */
-export function estiloEntrada(comErro: boolean): React.CSSProperties {
-  return {
-    width: "100%",
-    boxSizing: "border-box",
-    fontFamily: "var(--font-body)",
-    fontSize: 15,
-    padding: "12px 14px",
-    border: `1.5px solid ${comErro ? p.error : p.g300}`,
-    borderRadius: 10,
-    background: "#fff",
-    color: p.ink,
-    outline: "none",
-  };
-}
-
 export function Campo({
   id,
   label,
@@ -51,6 +36,8 @@ export function Campo({
   aoMudar,
   erro,
   dica,
+  style,
+  "aria-describedby": descritoPor,
   ...rest
 }: {
   id: string;
@@ -61,6 +48,8 @@ export function Campo({
   dica?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">) {
   const idErro = `${id}-erro`;
+  // o erro e o que o passo quiser ligar ao campo (ex.: um aviso já na tela) são lidos juntos
+  const descricao = [erro ? idErro : "", descritoPor ?? ""].filter(Boolean).join(" ") || undefined;
   return (
     <div>
       <label
@@ -74,9 +63,9 @@ export function Campo({
         value={valor}
         onChange={(e) => aoMudar(e.target.value)}
         aria-invalid={!!erro}
-        aria-describedby={erro ? idErro : undefined}
-        style={estiloEntrada(!!erro)}
+        aria-describedby={descricao}
         {...rest}
+        style={{ ...estiloEntrada(!!erro), ...style }} // o estilo do passo completa o base, não o troca
       />
       {erro ? (
         <div id={idErro} role="alert" style={{ fontSize: 13, color: p.error, marginTop: 6 }}>
@@ -91,15 +80,19 @@ export function Campo({
 
 export function Aviso({
   tipo,
+  id,
   children,
 }: {
   tipo: "erro" | "info" | "sucesso";
+  /** Para um campo apontar o aviso no `aria-describedby`. */
+  id?: string;
   children: React.ReactNode;
 }) {
   const cor = tipo === "erro" ? p.error : tipo === "sucesso" ? p.success : p.info;
   const icone = tipo === "erro" ? "alert-triangle" : tipo === "sucesso" ? "check-circle-2" : "help-circle";
   return (
     <div
+      id={id}
       role={tipo === "erro" ? "alert" : "status"}
       style={{
         display: "flex",
@@ -120,20 +113,6 @@ export function Aviso({
       {/* e-mail comprido (dica, código enviado) quebra em vez de estourar a largura do celular */}
       <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{children}</span>
     </div>
-  );
-}
-
-/** Saída na hora quando o fluxo trava: o WhatsApp da marca, com a mensagem já escrita (sem PII). */
-export function LinkWhatsapp({ texto }: { texto: string }) {
-  return (
-    <a
-      href={linkWhatsapp(texto)}
-      target="_blank"
-      rel="noreferrer"
-      style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}
-    >
-      Falar no WhatsApp
-    </a>
   );
 }
 
@@ -177,45 +156,18 @@ export function AvisoErro({
   );
 }
 
-/** Botão com cara de link, para as saídas do fluxo ("Já tenho cadastro", "Corrigir meus dados"…). */
-export function BotaoTexto({
-  children,
-  discreto,
-  ...rest
-}: { children: React.ReactNode; discreto?: boolean } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type">) {
-  return (
-    <button
-      type="button"
-      {...rest}
-      style={{
-        border: "none",
-        background: "none",
-        padding: 0,
-        fontFamily: "var(--font-body)",
-        fontSize: "inherit",
-        textAlign: "left",
-        color: discreto || rest.disabled ? p.g500 : p.primary,
-        fontWeight: discreto ? 400 : 600,
-        cursor: rest.disabled ? "default" : "pointer",
-        ...rest.style,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function BotaoSubmit({
   carregando,
+  disabled,
   children,
   ...rest
 }: { carregando?: boolean; children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="submit"
-      disabled={carregando || rest.disabled}
       className="ds-btnpop"
       {...rest}
+      disabled={carregando || disabled} // depois do spread: `disabled={false}` não reabre o botão enviando
       style={{
         width: "100%",
         border: "none",

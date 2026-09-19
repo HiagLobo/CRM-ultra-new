@@ -52,7 +52,7 @@ export default function AccessFlow({
           form={estado.form}
           aoMudarForm={(form) => despachar({ tipo: "form", form })}
           aoEnviado={(dados, existente, codigoDev) => despachar({ tipo: "cadastro_enviado", dados, existente, codigoDev })}
-          aoGravadoSemCodigo={(email) => despachar({ tipo: "cadastro_sem_codigo", email })}
+          aoGravadoSemCodigo={(email, existente) => despachar({ tipo: "cadastro_sem_codigo", email, existente })}
           aoIrParaEntrar={(opcoes) => despachar({ tipo: "ir_entrar", ...opcoes })}
         />
       )}

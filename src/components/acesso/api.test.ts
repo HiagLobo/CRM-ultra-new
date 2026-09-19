@@ -56,7 +56,7 @@ describe("solicitarAcesso — O7·S1 (lead sem código e anti-robô)", () => {
   it("202 vira 'recebido_sem_codigo' com a mensagem honesta", async () => {
     fetchFake(202, { ok: true, status: "recebido_sem_codigo" });
     const r = await solicitarAcesso({ ...DADOS });
-    expect(r).toEqual({ status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO });
+    expect(r).toEqual({ status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO, existente: false });
     expect(MENSAGEM_SEM_CODIGO).toMatch(/Recebemos seus dados/);
     expect(MENSAGEM_SEM_CODIGO).toMatch(/não saiu agora/);
   });

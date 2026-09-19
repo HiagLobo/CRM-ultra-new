@@ -11,7 +11,7 @@ import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { LISTA_UFS, type Uf } from "@/features/lead/creci";
 import { ID_CAMPO } from "./cadastro";
-import { estiloEntrada } from "./ui";
+import { estiloEntrada } from "./pecas";
 
 const ID_DICA = "acesso-creci-dica";
 const idErro = (id: string) => `${id}-erro`;

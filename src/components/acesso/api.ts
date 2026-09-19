@@ -8,7 +8,7 @@
  */
 import type { MotivoFalha } from "@/features/lead/verificacao";
 import { limparOrigem, type OrigemCampanha } from "@/lib/origemCampanha";
-import type { CampoNaoAtualizado } from "./mensagens";
+import { MENSAGEM_ENVIO_INDISPONIVEL, type CampoNaoAtualizado } from "./mensagens";
 
 export interface DadosSolicitacao {
   /** Nome completo (O9), já normalizado pelo `nomeSchema`. */
@@ -22,10 +22,7 @@ export interface DadosSolicitacao {
   origem?: OrigemCampanha;
 }
 
-/**
- * Dados novos de quem já tinha cadastro (O9): viajam no `verify` e o servidor
- * só os aplica DEPOIS do código certo, campo a campo.
- */
+/** Dados novos de quem já tinha cadastro (O9): vão no `verify` e só valem DEPOIS do código certo. */
 export interface Atualizacao {
   nome: string;
   telefone: string;
@@ -55,8 +52,10 @@ export type FalhaComum =
 export type ResultadoSolicitar =
   /** `existente` (O9): o e-mail já tinha cadastro — nada foi regravado; o código é para entrar. */
   | { status: "enviado"; codigoDev?: string; existente: boolean }
-  /** Lead gravado, mas o e-mail com o código não saiu (falha do provedor ou teto do dia). */
-  | { status: "recebido_sem_codigo"; mensagem: string }
+  /** Lead NOVO gravado, e-mail do código não saiu. `existente` é defesa: o 202 é só de e-mail novo. */
+  | { status: "recebido_sem_codigo"; mensagem: string; existente: boolean }
+  /** 503 (emenda O9): e-mail que já existia e o código não saiu — nada gravado; a tela oferece o WhatsApp. */
+  | { status: "envio_indisponivel"; mensagem: string }
   /** WhatsApp de outro cadastro (O9); `dica` = e-mail mascarado do dono, `null` se ele não tem e-mail. */
   | { status: "telefone_em_uso"; dica: string | null }
   /** CRECI de outro cadastro (O9) — sem dica: o CRECI é público. */
@@ -149,13 +148,14 @@ export async function solicitarAcesso(dados: DadosSolicitacao, antiRobo: AntiRob
 
   if (res.ok && corpo?.ok) {
     if (res.status === 202 || corpo.status === "recebido_sem_codigo") {
-      return { status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO };
+      return { status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO, existente: corpo.existente === true };
     }
     // robô leva um 200 falso sem `existente`: conta como cadastro novo
     return { status: "enviado", codigoDev: codigoDevDe(corpo), existente: corpo.existente === true };
   }
   if (corpo?.erro === "telefone_em_uso") return { status: "telefone_em_uso", dica: dicaDe(corpo) };
   if (corpo?.erro === "creci_em_uso") return { status: "creci_em_uso" };
+  if (corpo?.erro === "envio_indisponivel") return { status: "envio_indisponivel", mensagem: MENSAGEM_ENVIO_INDISPONIVEL };
   return falhaComum(res, corpo);
 }
 

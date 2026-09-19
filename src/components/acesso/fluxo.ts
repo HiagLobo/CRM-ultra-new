@@ -5,6 +5,9 @@
  * O formulário do cadastro mora aqui — em memória, nunca em storage — para
  * sobreviver às idas e vindas ("Corrigir meus dados", "Já tenho cadastro",
  * "Quero me cadastrar") sem a pessoa redigitar tudo.
+ *
+ * Resposta atrasada não troca de tela: o resultado de um pedido só vale no
+ * passo que o fez (cadastro, entrar ou código). Se a pessoa já saiu dali, é ignorado.
  */
 import { FORM_VAZIO, type FormCadastro } from "./cadastro";
 import type { DadosSolicitacao } from "./api";
@@ -31,25 +34,32 @@ export interface EstadoFluxo {
   codigoDev?: string;
   naoAtualizados: CampoNaoAtualizado[];
   /**
-   * E-mail cujo cadastro ESTE fluxo criou (200 novo ou 202 sem código). Se o
-   * servidor responder `existente` para ele no reenvio ou depois de corrigir os
-   * dados, é o cadastro que a pessoa acabou de fazer — não "já tinha cadastro".
+   * E-mails cujo cadastro ESTE fluxo criou (200 novo ou 202 sem código). Se o
+   * servidor responder `existente` para um deles no reenvio ou depois de corrigir
+   * os dados, é o cadastro que a pessoa acabou de fazer — não "já tinha cadastro".
+   * Todos, não só o último: A → corrigir para B → voltar para A continua sendo dela.
    */
-  emailCriado: string | null;
+  emailsCriados: string[];
 }
 
 export type AcaoFluxo =
   | { tipo: "form"; form: FormCadastro }
   | { tipo: "ir_entrar"; email?: string; dica?: string | null }
   | { tipo: "ir_cadastro"; email?: string }
-  | { tipo: "cadastro_sem_codigo"; email: string }
+  /** 202: gravado sem código. Só e-mail novo chega aqui; `existente` é defesa, se um dia vier junto. */
+  | { tipo: "cadastro_sem_codigo"; email: string; existente?: boolean }
   | { tipo: "cadastro_enviado"; dados: DadosSolicitacao; existente: boolean; codigoDev?: string }
   | { tipo: "entrar_enviado"; email: string; codigoDev?: string }
   | { tipo: "voltar" }
   | { tipo: "verificado"; naoAtualizados?: CampoNaoAtualizado[] };
 
 export function estadoInicial(passo: "dados" | "entrar" = "dados"): EstadoFluxo {
-  return { passo, form: FORM_VAZIO, emailEntrar: "", dica: null, pedido: null, naoAtualizados: [], emailCriado: null };
+  return { passo, form: FORM_VAZIO, emailEntrar: "", dica: null, pedido: null, naoAtualizados: [], emailsCriados: [] };
+}
+
+/** Guarda o e-mail na lista dos criados por este fluxo (sem repetir). */
+function comCriado(estado: EstadoFluxo, email: string): string[] {
+  return estado.emailsCriados.includes(email) ? estado.emailsCriados : [...estado.emailsCriados, email];
 }
 
 export function fluxo(estado: EstadoFluxo, acao: AcaoFluxo): EstadoFluxo {
@@ -63,18 +73,21 @@ export function fluxo(estado: EstadoFluxo, acao: AcaoFluxo): EstadoFluxo {
       return { ...estado, passo: "dados", dica: null, form: email ? { ...estado.form, email } : estado.form };
     }
     case "cadastro_sem_codigo":
-      return { ...estado, emailCriado: acao.email };
+      if (estado.passo !== "dados" || acao.existente === true) return estado;
+      return { ...estado, emailsCriados: comCriado(estado, acao.email) };
     case "cadastro_enviado": {
-      const criadoAgora = acao.dados.email === estado.emailCriado;
+      if (estado.passo !== "dados") return estado;
+      const criadoAqui = estado.emailsCriados.includes(acao.dados.email);
       return {
         ...estado,
         passo: "codigo",
         codigoDev: acao.codigoDev,
-        pedido: { tipo: "cadastro", dados: acao.dados, existente: acao.existente && !criadoAgora, atualizar: acao.existente },
-        emailCriado: acao.existente ? estado.emailCriado : acao.dados.email,
+        pedido: { tipo: "cadastro", dados: acao.dados, existente: acao.existente && !criadoAqui, atualizar: acao.existente },
+        emailsCriados: acao.existente ? estado.emailsCriados : comCriado(estado, acao.dados.email),
       };
     }
     case "entrar_enviado":
+      if (estado.passo !== "entrar") return estado;
       return {
         ...estado,
         passo: "codigo",
@@ -85,6 +98,7 @@ export function fluxo(estado: EstadoFluxo, acao: AcaoFluxo): EstadoFluxo {
     case "voltar":
       return { ...estado, passo: estado.pedido?.tipo === "entrar" ? "entrar" : "dados", codigoDev: undefined };
     case "verificado":
+      if (estado.passo !== "codigo") return estado;
       return { ...estado, passo: "ok", naoAtualizados: acao.naoAtualizados ?? [] };
   }
 }

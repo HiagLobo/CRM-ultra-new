@@ -13,8 +13,9 @@
  * Origem (O8·S3): a campanha que a landing guardou nesta aba vai junto do pedido.
  *
  * Cadastro único (O9·S2): "Já tenho cadastro" leva ao passo Entrar; WhatsApp ou
- * CRECI de outro cadastro (409) viram um aviso com a saída. Os campos moram no
- * fluxo (`AccessFlow`), só em memória: voltam preenchidos ao corrigir os dados.
+ * CRECI de outro cadastro (409) viram um aviso com a saída; e-mail que já existia
+ * sem código enviado (503) vira aviso + WhatsApp — nada foi gravado. Os campos
+ * moram no fluxo (`AccessFlow`), só em memória: voltam preenchidos ao corrigir.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
@@ -32,14 +33,16 @@ import {
   type ErrosCadastro,
   type FormCadastro,
 } from "./cadastro";
-import { Campo, AvisoErro, AvisoSemCodigo, BotaoSubmit, BotaoTexto, mascararTelefone } from "./ui";
+import { Campo, AvisoErro, AvisoSemCodigo, BotaoSubmit, mascararTelefone } from "./ui";
+import { BotaoTexto } from "./pecas";
 import { PecasAntiRobo, useAntiRobo, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
 import { AvisoRepetido, type Repetido } from "./AvisosCadastro";
+import { WHATSAPP_ENTRAR_SEM_CODIGO } from "./mensagens";
 import CampoCreci from "./CampoCreci";
 import CampoConsentimento from "./CampoConsentimento";
 
 /** Aviso geral da tela; `whatsapp` quando o pedido travou sem gravar (ver `AvisoErro`). */
-type AvisoGeral = { mensagem: string; whatsapp?: boolean };
+type AvisoGeral = { mensagem: string; whatsapp?: boolean; textoWhatsapp?: string };
 
 export default function StepDados({
   form,
@@ -52,8 +55,8 @@ export default function StepDados({
   aoMudarForm: (form: FormCadastro) => void;
   /** Código enviado: o fluxo guarda os dados (para reenvio e `verify`) e vai ao passo do código. */
   aoEnviado: (dados: DadosSolicitacao, existente: boolean, codigoDev?: string) => void;
-  /** 202: o cadastro foi gravado sem código — é desta pessoa, não "já tinha cadastro". */
-  aoGravadoSemCodigo: (email: string) => void;
+  /** 202: o cadastro NOVO foi gravado sem código — é desta pessoa, não "já tinha cadastro". */
+  aoGravadoSemCodigo: (email: string, existente: boolean) => void;
   aoIrParaEntrar: (opcoes: { email?: string; dica?: string | null }) => void;
 }) {
   const [consentimento, setConsentimento] = React.useState(false);
@@ -98,8 +101,11 @@ export default function StepDados({
     if (r.status === "enviado") return aoEnviado(dados, r.existente, r.codigoDev);
     antiRobo.renovar(); // o token do Turnstile é de uso único: qualquer outra resposta pede um novo
     if (r.status === "recebido_sem_codigo") {
-      aoGravadoSemCodigo(dados.email);
+      aoGravadoSemCodigo(dados.email, r.existente);
       return setSemCodigo(r.mensagem);
+    }
+    if (r.status === "envio_indisponivel") {
+      return setAvisoGeral({ mensagem: r.mensagem, whatsapp: true, textoWhatsapp: WHATSAPP_ENTRAR_SEM_CODIGO });
     }
     if (r.status === "telefone_em_uso") return setRepetido({ tipo: "telefone", dica: r.dica });
     if (r.status === "creci_em_uso") return setRepetido({ tipo: "creci" });
@@ -121,9 +127,10 @@ export default function StepDados({
         </p>
         <BotaoTexto
           onClick={() => aoIrParaEntrar({ email: form.email })}
+          disabled={carregando} // com o pedido no ar, sair daqui deixaria a resposta sem tela
           style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6, justifySelf: "start" }}
         >
-          Já tenho cadastro <Ic n="arrow-right" s={15} c={p.primary} />
+          Já tenho cadastro <Ic n="arrow-right" s={15} c={carregando ? p.g500 : p.primary} />
         </BotaoTexto>
       </div>
 
