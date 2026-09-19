@@ -7,11 +7,12 @@ import { FileLeadStore } from "../../lib/leadStore";
 import { registrarAuditoria, lerAuditoria } from "../../lib/auditoria";
 import { LeadInputSchema } from "./schema";
 import { criarOuAtualizarLead } from "./lead";
-import { calcularResumo, resumo, atualizarStatus, excluirLead, exportarCsv, telefoneNacional } from "./admin";
+import { calcularResumo, resumo, excluirLead, paraLeadAdmin, diaBR, telefoneNacional } from "./admin";
+import { criarLeads, leadCru, SECRET_TESTE, storesTemporarias } from "./apoioTestes";
 import type { Lead } from "./lead";
 
-const SECRET = "segredo-de-teste-1234567890";
 const T0 = new Date("2026-06-17T12:00:00.000Z");
+const stores = storesTemporarias("leads-admin");
 
 let arquivos: string[] = [];
 function novoArquivo(prefixo: string) {
@@ -20,67 +21,49 @@ function novoArquivo(prefixo: string) {
   return a;
 }
 afterEach(async () => {
+  await stores.limpar();
   await Promise.all(arquivos.map((a) => fs.rm(a, { force: true })));
   arquivos = [];
   vi.restoreAllMocks();
 });
 
-/** Cria N leads no store, com e-mails distintos. */
-async function comLeads(n: number) {
-  const store = new FileLeadStore(novoArquivo("leads-admin"));
-  const criados: Lead[] = [];
-  for (let i = 0; i < n; i++) {
-    const { lead } = await criarOuAtualizarLead(
-      store,
-      LeadInputSchema.parse({
-        email: `corretor${i}@exemplo.com`,
-        telefone: "(11) 90000-0000",
-        creci: `SP 1234${i}`,
-        consentimento: true,
-      }),
-      { ip: "1.2.3.4", secret: SECRET, agora: new Date(T0.getTime() + i * 1000) },
-    );
-    criados.push(lead);
-  }
-  return { store, criados };
-}
-
-describe("calcularResumo", () => {
-  it("conta por status e usa `verificadoEm` (não o status) para a conversão", () => {
+describe("calcularResumo (funil)", () => {
+  it("conta por etapa; em andamento = contato + demonstração + negociação; conversão = clientes / total", () => {
     const base = { codigo: {}, consentimento: {} } as unknown as Lead;
+    const verificado = { verificadoEm: "2026-06-17T12:00:00.000Z" };
     const leads = [
       { ...base, status: "novo" },
-      { ...base, status: "verificado", verificadoEm: "2026-06-17T12:00:00.000Z" },
-      // já foi contatado, mas continua sendo alguém que confirmou o e-mail
-      { ...base, status: "contatado", verificadoEm: "2026-06-17T12:00:00.000Z" },
-      { ...base, status: "descartado" },
+      { ...base, status: "em_contato", ...verificado },
+      { ...base, status: "demonstracao" },
+      { ...base, status: "negociacao", ...verificado },
+      { ...base, status: "cliente", ...verificado },
+      { ...base, status: "cliente" },
+      { ...base, status: "retomar" },
+      { ...base, status: "perdido" },
     ] as Lead[];
 
     expect(calcularResumo(leads)).toEqual({
-      total: 4,
-      verificados: 2,
-      novos: 1,
-      contatados: 1,
-      descartados: 1,
-      conversaoPct: 50,
+      total: 8,
+      verificados: 3, // e-mail confirmado é selo: conta em qualquer etapa
+      porEtapa: { novo: 1, em_contato: 1, demonstracao: 1, negociacao: 1, cliente: 2, retomar: 1, perdido: 1 },
+      emAndamento: 3,
+      clientes: 2,
+      conversaoPct: 25,
     });
   });
 
   it("base vazia não divide por zero", () => {
-    expect(calcularResumo([])).toEqual({
-      total: 0,
-      verificados: 0,
-      novos: 0,
-      contatados: 0,
-      descartados: 0,
-      conversaoPct: 0,
-    });
+    const r = calcularResumo([]);
+    expect(r.total).toBe(0);
+    expect(r.conversaoPct).toBe(0);
+    expect(Object.values(r.porEtapa).every((n) => n === 0)).toBe(true);
   });
 });
 
 describe("resumo (lista do store)", () => {
   it("devolve a lista do mais recente para o mais antigo", async () => {
-    const { store } = await comLeads(3);
+    const store = stores.nova();
+    await criarLeads(store, 3, T0);
     const r = await resumo(store);
     expect(r.resumo.total).toBe(3);
     expect(r.leads.map((l) => l.email)).toEqual([
@@ -89,31 +72,26 @@ describe("resumo (lista do store)", () => {
       "corretor0@exemplo.com",
     ]);
   });
-});
 
-describe("atualizarStatus (follow-up)", () => {
-  it("marca contatado, persiste e devolve o status anterior (para a auditoria)", async () => {
-    const { store, criados } = await comLeads(1);
-    const r = await atualizarStatus(store, criados[0]!.id, "contatado", T0);
-    expect(r.status).toBe("ok");
-    if (r.status !== "ok") return;
-    expect(r.de).toBe("novo");
-    expect(r.lead.status).toBe("contatado");
-    expect((await store.buscarPorEmail("corretor0@exemplo.com"))?.status).toBe("contatado");
-  });
-
-  it("id inexistente não cria nada nem lança", async () => {
-    const { store } = await comLeads(1);
-    expect(await atualizarStatus(store, "id-que-nao-existe", "descartado", T0)).toEqual({
-      status: "nao_encontrado",
-    });
-    expect(await store.listar()).toHaveLength(1);
+  it("lead do arquivo com status antigo aparece na etapa nova (nunca quebra o painel)", async () => {
+    const arquivo = novoArquivo("leads-legado");
+    const antigos = ["verificado", "contatado", "descartado"].map((status, i) =>
+      leadCru({ id: `l${i}`, email: `l${i}@exemplo.com`, status: status as Lead["status"] }),
+    );
+    await fs.writeFile(arquivo, JSON.stringify(antigos.map(({ canal: _canal, ...semCanal }) => semCanal)), "utf8");
+    const r = await resumo(new FileLeadStore(arquivo));
+    expect(r.leads.map((l) => [l.id, l.status, l.canal])).toEqual([
+      ["l0", "novo", "site"],
+      ["l1", "em_contato", "site"],
+      ["l2", "perdido", "site"],
+    ]);
   });
 });
 
 describe("excluirLead (LGPD art. 18 — direito à eliminação)", () => {
   it("apaga de vez: some da lista e do arquivo", async () => {
-    const { store, criados } = await comLeads(2);
+    const store = stores.nova();
+    const criados = await criarLeads(store, 2, T0);
     expect(await excluirLead(store, criados[0]!.id)).toBe(true);
 
     const restantes = await store.listar();
@@ -123,15 +101,17 @@ describe("excluirLead (LGPD art. 18 — direito à eliminação)", () => {
   });
 
   it("é idempotente: pedir a exclusão duas vezes não vira erro", async () => {
-    const { store, criados } = await comLeads(1);
-    expect(await excluirLead(store, criados[0]!.id)).toBe(true);
-    expect(await excluirLead(store, criados[0]!.id)).toBe(false);
+    const store = stores.nova();
+    const [lead] = await criarLeads(store, 1, T0);
+    expect(await excluirLead(store, lead!.id)).toBe(true);
+    expect(await excluirLead(store, lead!.id)).toBe(false);
     expect(await excluirLead(store, "nunca-existiu")).toBe(false);
   });
 
   it("o e-mail excluído pode pedir acesso de novo (nada fica bloqueado)", async () => {
-    const { store, criados } = await comLeads(1);
-    await excluirLead(store, criados[0]!.id);
+    const store = stores.nova();
+    const [antigo] = await criarLeads(store, 1, T0);
+    await excluirLead(store, antigo!.id);
     const { lead } = await criarOuAtualizarLead(
       store,
       LeadInputSchema.parse({
@@ -140,138 +120,78 @@ describe("excluirLead (LGPD art. 18 — direito à eliminação)", () => {
         creci: "SP 12340",
         consentimento: true,
       }),
-      { ip: "1.2.3.4", secret: SECRET, agora: T0 },
+      { ip: "1.2.3.4", secret: SECRET_TESTE, agora: T0 },
     );
     expect(lead.email).toBe("corretor0@exemplo.com");
     expect(await store.listar()).toHaveLength(1);
   });
 });
 
-/** Lead completo, como o fluxo público grava (com hash, IP e texto do consentimento). */
-function leadCru(parcial: Partial<Lead> = {}): Lead {
-  return {
-    id: "1",
-    email: "corretor@exemplo.com",
-    telefone: "+5581988887777",
-    creci: "PE 12345",
-    status: "novo",
-    consentimento: { texto: "texto-da-politica", aceitoEm: T0.toISOString(), ip: "203.0.113.9" },
-    codigo: { hash: "hash-do-codigo", expiraEm: T0.toISOString(), tentativas: 2, enviadoEm: T0.toISOString() },
-    criadoEm: T0.toISOString(),
-    atualizadoEm: T0.toISOString(),
-    ...parcial,
-  };
-}
-
-describe("o painel recebe só o contato (LeadAdmin)", () => {
-  it("lista e follow-up saem sem hash do código, IP e texto do consentimento", async () => {
-    const store = new FileLeadStore(novoArquivo("leads-dto"));
-    await store.criar(leadCru({ origem: { utm: "google", ref: "parceiro" } }));
+describe("o painel recebe só o contato e o funil (LeadAdmin)", () => {
+  it("a lista sai com os campos do funil e sem hash do código, IP e texto do consentimento", async () => {
+    const store = stores.nova();
+    await store.criar(
+      leadCru({
+        origem: { utm: "google", ref: "parceiro" },
+        nome: "Ana Exemplo",
+        status: "retomar",
+        retomarEm: "2026-07-01",
+        motivo: "sem orçamento agora",
+      }),
+    );
     const { leads } = await resumo(store);
-    const r = await atualizarStatus(store, "1", "contatado", T0);
-    if (r.status !== "ok") throw new Error("esperava ok");
 
-    const campos = ["creci", "criadoEm", "email", "id", "origem", "status", "telefone", "verificadoEm"];
-    for (const l of [leads[0]!, r.lead]) {
-      expect(Object.keys(l).sort()).toEqual(campos);
-      const json = JSON.stringify(l);
-      for (const sensivel of ["hash-do-codigo", "203.0.113.9", "texto-da-politica", "tentativas"]) {
-        expect(json).not.toContain(sensivel);
-      }
+    expect(Object.keys(leads[0]!).sort()).toEqual([
+      "canal",
+      "creci",
+      "criadoEm",
+      "email",
+      "id",
+      "motivo",
+      "nome",
+      "origem",
+      "proximaAcao",
+      "proximaAcaoEm",
+      "retomarEm",
+      "status",
+      "telefone",
+      "verificadoEm",
+    ]);
+    expect(leads[0]).toMatchObject({ nome: "Ana Exemplo", status: "retomar", retomarEm: "2026-07-01" });
+    const json = JSON.stringify(leads[0]);
+    for (const sensivel of ["hash-do-codigo", "203.0.113.9", "texto-da-politica", "tentativas", "consentimento"]) {
+      expect(json).not.toContain(sensivel);
     }
+  });
+
+  it("a projeção não carrega campo que não conhece (anotações de dev nunca vão junto)", () => {
+    const comExtra = { ...leadCru(), notas: [{ id: "n", texto: "segredo", em: T0.toISOString() }] } as Lead;
+    expect(JSON.stringify(paraLeadAdmin(comExtra))).not.toContain("segredo");
   });
 });
 
-/** Lê uma linha como o Excel pt-BR: separa por `;`, respeitando aspas e `""`. */
-function camposCsv(linha: string): string[] {
-  const campos: string[] = [];
-  let atual = "";
-  let dentro = false;
-  for (let i = 0; i < linha.length; i++) {
-    const c = linha[i];
-    if (dentro && c === '"' && linha[i + 1] === '"') {
-      atual += '"';
-      i++;
-    } else if (c === '"') {
-      dentro = !dentro;
-    } else if (c === ";" && !dentro) {
-      campos.push(atual);
-      atual = "";
-    } else {
-      atual += c;
-    }
-  }
-  return [...campos, atual];
-}
-
-describe("exportarCsv (Excel em português)", () => {
-  it("separa por ';', mantém o BOM e as aspas; telefone nacional sem apóstrofo", async () => {
-    const { store } = await comLeads(2);
-    const { csv, linhas } = await exportarCsv(store);
-    expect(linhas).toBe(2);
-    expect(csv.startsWith("﻿")).toBe(true);
-    const linhasCsv = csv.slice(1).trim().split("\r\n");
-    expect(linhasCsv).toHaveLength(3);
-    expect(linhasCsv[0]).toBe(
-      '"id";"email";"telefone";"creci";"status";"verificado_em";"criado_em";"origem_utm";"origem_ref"',
-    );
-    // todo campo entre aspas, inclusive os vazios
-    for (const l of linhasCsv) expect(l).toMatch(/^"(?:[^"]|"")*"(?:;"(?:[^"]|"")*")*$/);
-
-    const campos = camposCsv(linhasCsv[1]!);
-    expect(campos.slice(1, 7)).toEqual(
-      ["corretor1@exemplo.com", "(11) 90000-0000", "SP 12341", "novo", "", "17/06/2026 09:00"],
-    );
-    expect(csv).not.toContain("'+55"); // o apóstrofo de proteção não aparece no telefone
-  });
-
-  it("datas em dd/mm/aaaa hh:mm no fuso de Recife, inclusive na virada do dia", async () => {
-    const store = new FileLeadStore(novoArquivo("leads-datas"));
-    await store.criar(leadCru({ criadoEm: "2026-06-18T02:30:00.000Z", verificadoEm: "2026-06-18T03:05:00.000Z" }));
-    const campos = camposCsv((await exportarCsv(store)).csv.trim().split("\r\n")[1]!);
-    expect(campos[5]).toBe("18/06/2026 00:05");
-    expect(campos[6]).toBe("17/06/2026 23:30"); // 02:30 UTC ainda é dia 17 em Recife
-  });
-
-  it("neutraliza fórmula no início do campo, escapa aspas e prende o ';' interno", async () => {
-    const store = new FileLeadStore(novoArquivo("leads-csv"));
-    await store.criar(
-      leadCru({
-        email: '=HYPERLINK("http://mau.example")',
-        creci: '@SUM(1+1)"x',
-        origem: { utm: "x;=1+1&", ref: "-2+3;@z" },
-      }),
-    );
-    const { csv } = await exportarCsv(store);
-    expect(csv).toContain(`"'=HYPERLINK(""http://mau.example"")"`); // ' na frente + aspas dobradas
-    expect(csv).toContain(`"'@SUM(1+1)""x"`);
-
-    const campos = camposCsv(csv.trim().split("\r\n")[1]!);
-    expect(campos).toHaveLength(9); // o ';' de dentro não abriu coluna nova
-    expect(campos.slice(7)).toEqual(["x;=1+1&", "'-2+3;@z"]);
-    for (const c of campos) expect(c).not.toMatch(/^[=+\-@]/); // nenhuma célula vira fórmula
-  });
-
-  it("telefone fora do padrão brasileiro sai como veio (e ainda protegido)", async () => {
+describe("formatos do painel e do CSV", () => {
+  it("telefone nacional e dia dd/mm/aaaa", () => {
+    expect(telefoneNacional("+5581988887777")).toBe("(81) 98888-7777");
     expect(telefoneNacional("+558133334444")).toBe("(81) 3333-4444");
-    const store = new FileLeadStore(novoArquivo("leads-tel"));
-    await store.criar(leadCru({ telefone: "+15550001111" }));
-    expect((await exportarCsv(store)).csv).toContain(`"'+15550001111"`);
+    expect(diaBR("2026-09-05")).toBe("05/09/2026");
+    expect(diaBR(undefined)).toBe("");
+    expect(diaBR("lixo")).toBe("lixo");
   });
 });
 
 describe("auditoria", () => {
   it("registra o evento sem PII — só id, de/para e quando", async () => {
     const log = novoArquivo("auditoria");
-    await registrarAuditoria("lead.status", { id: "abc-123", de: "novo", para: "contatado" }, log, T0);
+    await registrarAuditoria("lead.etapa", { id: "abc-123", de: "novo", para: "em_contato" }, log, T0);
     await registrarAuditoria("lead.export", { linhas: 2 }, log, T0);
 
     const eventos = await lerAuditoria(log);
     expect(eventos).toHaveLength(2);
     expect(eventos[0]).toEqual({
       em: T0.toISOString(),
-      acao: "lead.status",
-      dados: { id: "abc-123", de: "novo", para: "contatado" },
+      acao: "lead.etapa",
+      dados: { id: "abc-123", de: "novo", para: "em_contato" },
     });
 
     const bruto = await fs.readFile(log, "utf8");

@@ -7,6 +7,7 @@ const lead = (parcial: Partial<LeadAdmin>): LeadAdmin => ({
   email: "ana.corretora@exemplo.com",
   telefone: "+5581988887777",
   creci: "PE 12.345-F",
+  canal: "site",
   status: "novo",
   criadoEm: "2026-06-17T12:00:00.000Z",
   ...parcial,
@@ -14,9 +15,9 @@ const lead = (parcial: Partial<LeadAdmin>): LeadAdmin => ({
 
 const LEADS: LeadAdmin[] = [
   lead({ id: "a" }),
-  lead({ id: "b", email: "bruno@exemplo.com", telefone: "+5511977776666", creci: "SP 54321", status: "verificado" }),
-  lead({ id: "c", email: "carla@exemplo.com", telefone: "+5521966665555", creci: "RJ 99887", status: "contatado" }),
-  lead({ id: "d", email: "davi@exemplo.com", telefone: "+5531955554444", creci: "MG 11223", status: "descartado" }),
+  lead({ id: "b", email: "bruno@exemplo.com", telefone: "+5511977776666", creci: "SP 54321", status: "demonstracao" }),
+  lead({ id: "c", email: "carla@exemplo.com", telefone: "+5521966665555", creci: "RJ 99887", status: "em_contato" }),
+  lead({ id: "d", email: "davi@exemplo.com", telefone: "+5531955554444", creci: "MG 11223", status: "perdido" }),
 ];
 
 describe("busca do painel (e-mail, telefone, CRECI)", () => {
@@ -49,15 +50,23 @@ describe("busca do painel (e-mail, telefone, CRECI)", () => {
 
 describe("filtro por status e contagem", () => {
   it("cada filtro mostra só o seu status; busca e status se somam", () => {
-    expect(filtrarLeads(LEADS, { busca: "", status: "verificado" }).map((l) => l.id)).toEqual(["b"]);
-    expect(filtrarLeads(LEADS, { busca: "", status: "descartado" }).map((l) => l.id)).toEqual(["d"]);
+    expect(filtrarLeads(LEADS, { busca: "", status: "demonstracao" }).map((l) => l.id)).toEqual(["b"]);
+    expect(filtrarLeads(LEADS, { busca: "", status: "perdido" }).map((l) => l.id)).toEqual(["d"]);
     expect(filtrarLeads(LEADS, { busca: "carla", status: "novo" })).toEqual([]);
-    expect(filtrarLeads(LEADS, { busca: "carla", status: "contatado" }).map((l) => l.id)).toEqual(["c"]);
+    expect(filtrarLeads(LEADS, { busca: "carla", status: "em_contato" }).map((l) => l.id)).toEqual(["c"]);
   });
 
   it("a contagem de cada filtro respeita a busca", () => {
-    expect(contarPorFiltro(LEADS, "")).toEqual({ todos: 4, novo: 1, verificado: 1, contatado: 1, descartado: 1 });
-    expect(contarPorFiltro(LEADS, "bruno")).toEqual({ todos: 1, novo: 0, verificado: 1, contatado: 0, descartado: 0 });
+    const zerado = { novo: 0, em_contato: 0, demonstracao: 0, negociacao: 0, cliente: 0, retomar: 0, perdido: 0 };
+    expect(contarPorFiltro(LEADS, "")).toEqual({ ...zerado, todos: 4, novo: 1, demonstracao: 1, em_contato: 1, perdido: 1 });
+    expect(contarPorFiltro(LEADS, "bruno")).toEqual({ ...zerado, todos: 1, demonstracao: 1 });
+  });
+
+  it("lead cadastrado à mão sem e-mail: a busca por telefone e CRECI segue valendo", () => {
+    const semEmail = lead({ id: "e", email: undefined, canal: "indicacao", telefone: "+5581977770000" });
+    expect(casaBusca(semEmail, "ana")).toBe(false);
+    expect(casaBusca(semEmail, "(81) 97777")).toBe(true);
+    expect(casaBusca(semEmail, "")).toBe(true);
   });
 
   it("texto da contagem visível", () => {

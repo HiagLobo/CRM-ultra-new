@@ -7,16 +7,22 @@
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
-import type { StatusLead } from "@/features/lead/lead";
-import { telefoneNacional, type LeadAdmin, type StatusDoAdmin } from "@/features/lead/admin";
+import type { MudancaEtapa, StatusLead } from "@/features/lead/funil";
+import { telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
 import { linkEmailLead, linkWhatsappLead } from "./contatoLead";
 
 const CORES: Record<StatusLead, { fundo: string; texto: string; rotulo: string }> = {
   novo: { fundo: p.g100, texto: p.g700, rotulo: "Novo" },
-  verificado: { fundo: `${p.success}1A`, texto: p.success, rotulo: "Verificado" },
-  contatado: { fundo: p.lilac1, texto: p.dark, rotulo: "Contatado" },
-  descartado: { fundo: `${p.error}14`, texto: p.error, rotulo: "Descartado" },
+  em_contato: { fundo: p.lilac1, texto: p.dark, rotulo: "Em contato" },
+  demonstracao: { fundo: p.lilac1, texto: p.dark, rotulo: "Demonstração" },
+  negociacao: { fundo: p.lilac1, texto: p.dark, rotulo: "Negociação" },
+  cliente: { fundo: `${p.success}1A`, texto: p.success, rotulo: "Cliente" },
+  retomar: { fundo: p.g100, texto: p.g700, rotulo: "Retomar depois" },
+  perdido: { fundo: `${p.error}14`, texto: p.error, rotulo: "Perdido" },
 };
+
+/** Provisório até o painel da O8·S2 (seletor de etapa com motivo): "Descartar" marca perdido. */
+const DESCARTAR: MudancaEtapa = { etapa: "perdido", motivo: "Descartado no painel" };
 
 const th: React.CSSProperties = {
   textAlign: "left",
@@ -73,7 +79,7 @@ export default function TabelaLeads({
 }: {
   leads: LeadAdmin[];
   ocupado: string | null;
-  aoMudarStatus: (id: string, status: StatusDoAdmin) => void;
+  aoMudarStatus: (id: string, mudanca: MudancaEtapa) => void;
   /** LGPD: eliminação a pedido do titular. Destrutivo — confirmado no painel. */
   aoExcluir: (lead: LeadAdmin) => void;
 }) {
@@ -98,9 +104,13 @@ export default function TabelaLeads({
             return (
               <tr key={l.id} style={{ opacity: travado ? 0.5 : 1 }}>
                 <td style={{ ...td, fontWeight: 600 }}>
-                  <a href={linkEmailLead(l.email)} title="Escrever e-mail" style={link}>
-                    {l.email}
-                  </a>
+                  {l.email ? (
+                    <a href={linkEmailLead(l.email)} title="Escrever e-mail" style={link}>
+                      {l.email}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
                   {l.verificadoEm && (
                     <span
                       title={`E-mail confirmado em ${dataCurta(l.verificadoEm)}`}
@@ -136,17 +146,17 @@ export default function TabelaLeads({
                   <div style={{ display: "inline-flex", gap: 8 }}>
                     <button
                       type="button"
-                      disabled={travado || l.status === "contatado"}
-                      onClick={() => aoMudarStatus(l.id, "contatado")}
-                      style={botao(l.status === "contatado" || travado, p.primary)}
+                      disabled={travado || l.status === "em_contato"}
+                      onClick={() => aoMudarStatus(l.id, { etapa: "em_contato" })}
+                      style={botao(l.status === "em_contato" || travado, p.primary)}
                     >
                       <Ic n="check" s={14} c="currentColor" /> Contatado
                     </button>
                     <button
                       type="button"
-                      disabled={travado || l.status === "descartado"}
-                      onClick={() => aoMudarStatus(l.id, "descartado")}
-                      style={botao(l.status === "descartado" || travado, p.g500)}
+                      disabled={travado || l.status === "perdido"}
+                      onClick={() => aoMudarStatus(l.id, DESCARTAR)}
+                      style={botao(l.status === "perdido" || travado, p.g500)}
                     >
                       <Ic n="x" s={14} c="currentColor" /> Descartar
                     </button>

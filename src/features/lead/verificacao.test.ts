@@ -45,7 +45,7 @@ async function leadPendente(agora: Date = T0) {
 const entrada = (codigo: string) => VerifyInputSchema.parse({ email: EMAIL, codigo });
 
 describe("verificarCodigo (POST /api/lead/verify, nível de domínio)", () => {
-  it("happy: código certo marca verificado e consome o código (uso único)", async () => {
+  it("happy: código certo carimba o e-mail confirmado e consome o código (uso único)", async () => {
     const { store, codigo, limiter } = await leadPendente();
     const r = await verificarCodigo({ store, limiter, secret: SECRET, agora: T0 }, entrada(codigo), {
       ip: IP,
@@ -53,7 +53,7 @@ describe("verificarCodigo (POST /api/lead/verify, nível de domínio)", () => {
 
     expect(r).toEqual({ status: "verificado", email: EMAIL, jaVerificado: false });
     const salvo = await store.buscarPorEmail(EMAIL);
-    expect(salvo?.status).toBe("verificado");
+    expect(salvo?.status).toBe("novo"); // e-mail confirmado é selo, não etapa (O8)
     expect(salvo?.verificadoEm).toBe(T0.toISOString());
     expect(salvo?.codigo.hash).toBe(""); // código consumido: não serve mais
     expect(salvo?.codigo.tentativas).toBe(0);
@@ -140,7 +140,7 @@ describe("verificarCodigo (POST /api/lead/verify, nível de domínio)", () => {
 
     expect(r2).toEqual({ status: "falha", motivo: "codigo_invalido" }); // código é de uso único
     const salvo = await store.buscarPorEmail(EMAIL);
-    expect(salvo?.status).toBe("verificado"); // segue verificado
+    expect(salvo?.status).toBe("novo"); // a etapa não é da verificação
     expect(salvo?.verificadoEm).toBe(T0.toISOString()); // carimbo original preservado
     expect(await store.listar()).toHaveLength(1);
   });
@@ -148,7 +148,7 @@ describe("verificarCodigo (POST /api/lead/verify, nível de domínio)", () => {
   it("hash salvo corrompido não derruba a rota (comparação tolera tamanhos diferentes)", async () => {
     const { store, codigo, limiter } = await leadPendente();
     const lead = (await store.buscarPorEmail(EMAIL))!;
-    await store.atualizar({ ...lead, codigo: { ...lead.codigo, hash: "abc" } });
+    await store.atualizarCodigo(lead.id, { codigo: { ...lead.codigo, hash: "abc" }, atualizadoEm: T0.toISOString() });
 
     const r = await verificarCodigo({ store, limiter, secret: SECRET, agora: T0 }, entrada(codigo), {
       ip: IP,
@@ -159,7 +159,10 @@ describe("verificarCodigo (POST /api/lead/verify, nível de domínio)", () => {
   it("expiraEm corrompido é tratado como expirado (fail-closed)", async () => {
     const { store, codigo, limiter } = await leadPendente();
     const lead = (await store.buscarPorEmail(EMAIL))!;
-    await store.atualizar({ ...lead, codigo: { ...lead.codigo, expiraEm: "nao-e-data" } });
+    await store.atualizarCodigo(lead.id, {
+      codigo: { ...lead.codigo, expiraEm: "nao-e-data" },
+      atualizadoEm: T0.toISOString(),
+    });
 
     const r = await verificarCodigo({ store, limiter, secret: SECRET, agora: T0 }, entrada(codigo), {
       ip: IP,
@@ -182,6 +185,24 @@ describe("verificarCodigo (POST /api/lead/verify, nível de domínio)", () => {
     expect(await verificarCodigo(deps, entrada(codigo), { ip: "8.8.8.8" })).not.toEqual({
       status: "limitado",
     });
+  });
+
+  it("não mexe na etapa que o admin deu, nem nos campos do funil (O8)", async () => {
+    const { store, codigo, limiter } = await leadPendente();
+    const lead = (await store.buscarPorEmail(EMAIL))!;
+    await store.atualizarFunil(lead.id, {
+      status: "negociacao",
+      proximaAcaoEm: "2026-06-20",
+      proximaAcao: "mandar proposta",
+      atualizadoEm: T0.toISOString(),
+    });
+
+    const r = await verificarCodigo({ store, limiter, secret: SECRET, agora: T0 }, entrada(codigo), { ip: IP });
+    // o desfecho da operação continua "verificado" — é dele que o aviso de lead novo depende
+    expect(r).toEqual({ status: "verificado", email: EMAIL, jaVerificado: false });
+    const salvo = (await store.buscarPorEmail(EMAIL))!;
+    expect(salvo).toMatchObject({ status: "negociacao", proximaAcaoEm: "2026-06-20", proximaAcao: "mandar proposta" });
+    expect(salvo.verificadoEm).toBe(T0.toISOString());
   });
 
   it("não loga PII (e-mail ou código) em nenhum caminho", async () => {

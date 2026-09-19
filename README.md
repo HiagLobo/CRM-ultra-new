@@ -6,8 +6,8 @@ franquias.
 
 Esta fase entrega o **motor de entrada no mercado**: uma landing que vende o produto, um fluxo que
 captura o corretor (e-mail + telefone + CRECI, com consentimento LGPD), verificação por código
-enviado por e-mail, acesso a um **demo navegável** dos três painéis, e um **painel de leads** onde o
-fundador acompanha e faz follow-up.
+enviado por e-mail, acesso a um **demo navegável** dos três painéis, e um **painel de leads** com funil — etapas,
+"retomar depois", próxima ação, anotações e cadastro manual — onde o fundador trabalha cada contato.
 
 Os painéis do CRM são **demonstração**: telas completas com dados fictícios. O backend real do
 produto é outra fase.
@@ -34,7 +34,7 @@ e o código de verificação aparece na própria tela.
 | `npm run seed` | 8 leads fictícios para o painel do admin (só dev) |
 
 **Operar, publicar e resolver problema: [`waves/RUNBOOK.md`](waves/RUNBOOK.md).** Produção: Vercel
-(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 3 migrações em `migrations/`) + Resend
+(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 4 migrações em `migrations/`) + Resend
 (`mail.crmultra.com.br`, São Paulo), domínio `crmultra.com.br` — passo a passo na seção 3.
 
 ---
@@ -50,7 +50,7 @@ src/
     admin/                painel de leads (guard no servidor)
     api/lead/             captura + verificação
     api/admin/            sessão e leads (todas atrás de authz)
-  features/lead/          domínio: Zod, criação, verificação, casos de uso do admin
+  features/lead/          domínio: Zod, criação, verificação, funil e casos de uso do admin
   lib/                    portas e adaptadores (store, e-mail, token, auditoria)
   components/
     landing/ acesso/      landing e fluxo de acesso
@@ -86,7 +86,11 @@ adaptador — o domínio não muda.
   autorização, com guard de servidor no `/admin`.
 - **PII nunca vai para log** — há teste que prova isso em cada caminho.
 - **Consentimento carimbado** com o texto exato que a pessoa leu + data/hora + IP.
-- **Exclusão de lead** (LGPD art. 18) no painel, com confirmação e auditoria.
+- **Exclusão de lead** (LGPD art. 18) no painel, com confirmação e auditoria — as anotações do
+  lead vão junto.
+- **Funil do admin** sem vazamento: cada fluxo grava só as colunas dele (a verificação do e-mail não
+  desfaz a etapa dada pelo admin, e vice-versa); a auditoria registra ids e etapas, nunca o texto de
+  anotação, motivo ou próxima ação. Lead cadastrado à mão carimba de onde veio e a base legal.
 - Segredos só por env, validados com Zod: sem `APP_SECRET`/`ADMIN_PASSWORD` o **build** falha. Em
   produção, `DATABASE_URL` é exigida na **primeira requisição** que usa o banco (não no boot): sem
   ela o app não cai no disco temporário, onde os leads se perderiam em silêncio — a requisição

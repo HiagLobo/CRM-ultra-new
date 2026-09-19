@@ -7,7 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { registrarAuditoria } from "@/lib/auditoria";
-import { exportarCsv } from "@/features/lead/admin";
+import { exportarCsv } from "@/features/lead/exportarCsv";
 import { causaDoErro } from "@/lib/erros";
 
 export const runtime = "nodejs";

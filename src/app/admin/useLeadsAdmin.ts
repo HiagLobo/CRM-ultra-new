@@ -6,7 +6,8 @@
  */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import type { LeadAdmin, ResumoLeads, StatusDoAdmin } from "@/features/lead/admin";
+import type { LeadAdmin, ResumoLeads } from "@/features/lead/admin";
+import type { MudancaEtapa } from "@/features/lead/funil";
 
 const CABECALHO_JSON = { "Content-Type": "application/json" };
 
@@ -50,14 +51,14 @@ export function useLeadsAdmin() {
     void carregar();
   }, [carregar]);
 
-  async function mudarStatus(id: string, status: StatusDoAdmin) {
+  async function mudarStatus(id: string, mudanca: MudancaEtapa) {
     setOcupado(id);
     setErro(null);
     try {
       const res = await fetch("/api/admin/leads", {
         method: "PATCH",
         headers: CABECALHO_JSON,
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ id, ...mudanca }),
       });
       if (sessaoCaiu(res)) return;
       const corpo = await res.json();

@@ -12,6 +12,9 @@ import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import type { ProvedorEmail } from "../../lib/email";
 import { brand, type BrandConfig } from "../../config/brand";
 import type { DepsSolicitarAcesso } from "./solicitarAcesso";
+import type { Lead } from "./lead";
+import { criarOuAtualizarLead } from "./lead";
+import { LeadInputSchema } from "./schema";
 
 /** APP_SECRET dos testes (HMAC do código). Fictício. */
 export const SECRET_TESTE = "segredo-de-teste-1234567890";
@@ -74,4 +77,43 @@ export function capturarConsole(): () => string {
     });
   }
   return () => linhas.join("\n");
+}
+
+/**
+ * Lead completo, como o fluxo público grava (com hash, IP e texto do
+ * consentimento) — para provar que nada disso chega ao painel. Fictício.
+ */
+export function leadCru(parcial: Partial<Lead> = {}, agora = new Date("2026-06-17T12:00:00.000Z")): Lead {
+  return {
+    id: "1",
+    email: "corretor@exemplo.com",
+    telefone: "+5581988887777",
+    creci: "PE 12345",
+    status: "novo",
+    canal: "site",
+    consentimento: { texto: "texto-da-politica", aceitoEm: agora.toISOString(), ip: "203.0.113.9" },
+    codigo: { hash: "hash-do-codigo", expiraEm: agora.toISOString(), tentativas: 2, enviadoEm: agora.toISOString() },
+    criadoEm: agora.toISOString(),
+    atualizadoEm: agora.toISOString(),
+    ...parcial,
+  };
+}
+
+/** N leads pelo fluxo público (`corretor<i>@exemplo.com`), com 1 s de diferença a partir de `t0`. */
+export async function criarLeads(store: LeadStore, n: number, t0: Date): Promise<Lead[]> {
+  const criados: Lead[] = [];
+  for (let i = 0; i < n; i++) {
+    const { lead } = await criarOuAtualizarLead(
+      store,
+      LeadInputSchema.parse({
+        email: `corretor${i}@exemplo.com`,
+        telefone: "(11) 90000-0000",
+        creci: `SP 1234${i}`,
+        consentimento: true,
+      }),
+      { ip: "1.2.3.4", secret: SECRET_TESTE, agora: new Date(t0.getTime() + i * 1000) },
+    );
+    criados.push(lead);
+  }
+  return criados;
 }

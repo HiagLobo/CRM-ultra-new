@@ -10,9 +10,12 @@ export type FiltroStatus = "todos" | StatusLead;
 export const FILTROS: ReadonlyArray<{ valor: FiltroStatus; rotulo: string }> = [
   { valor: "todos", rotulo: "Todos" },
   { valor: "novo", rotulo: "Novos" },
-  { valor: "verificado", rotulo: "Verificados" },
-  { valor: "contatado", rotulo: "Contatados" },
-  { valor: "descartado", rotulo: "Descartados" },
+  { valor: "em_contato", rotulo: "Em contato" },
+  { valor: "demonstracao", rotulo: "Demonstração" },
+  { valor: "negociacao", rotulo: "Negociação" },
+  { valor: "cliente", rotulo: "Clientes" },
+  { valor: "retomar", rotulo: "Retomar depois" },
+  { valor: "perdido", rotulo: "Perdidos" },
 ];
 
 const soLetrasEDigitos = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -27,7 +30,7 @@ const soLetrasEDigitos = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, ""
 export function casaBusca(lead: LeadAdmin, busca: string): boolean {
   const termo = busca.trim().toLowerCase();
   if (!termo) return true;
-  if (lead.email.toLowerCase().includes(termo)) return true;
+  if (lead.email?.toLowerCase().includes(termo)) return true;
 
   const compacto = soLetrasEDigitos(termo);
   if (compacto && soLetrasEDigitos(lead.creci).includes(compacto)) return true;
@@ -39,7 +42,7 @@ export function casaBusca(lead: LeadAdmin, busca: string): boolean {
 
 /** Quantos leads de cada status casam com a busca (é o número ao lado de cada filtro). */
 export function contarPorFiltro(leads: ReadonlyArray<LeadAdmin>, busca: string): Record<FiltroStatus, number> {
-  const contagem: Record<FiltroStatus, number> = { todos: 0, novo: 0, verificado: 0, contatado: 0, descartado: 0 };
+  const contagem = Object.fromEntries(FILTROS.map((f) => [f.valor, 0])) as Record<FiltroStatus, number>;
   for (const lead of leads) {
     if (!casaBusca(lead, busca)) continue;
     contagem.todos += 1;

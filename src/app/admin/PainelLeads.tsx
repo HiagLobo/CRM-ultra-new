@@ -17,11 +17,11 @@ import { useLeadsAdmin } from "./useLeadsAdmin";
 import { contarPorFiltro, filtrarLeads, textoContagem, type FiltroStatus } from "./filtroLeads";
 import { acao } from "./estilos";
 
-const CARDS: { chave: keyof ResumoLeads; rotulo: string; sufixo?: string }[] = [
+const CARDS: { chave: Exclude<keyof ResumoLeads, "porEtapa">; rotulo: string; sufixo?: string }[] = [
   { chave: "total", rotulo: "Pedidos de acesso" },
   { chave: "verificados", rotulo: "E-mail confirmado" },
-  { chave: "conversaoPct", rotulo: "Conversão", sufixo: "%" },
-  { chave: "contatados", rotulo: "Já contatados" },
+  { chave: "emAndamento", rotulo: "Em andamento" },
+  { chave: "conversaoPct", rotulo: "Conversão em cliente", sufixo: "%" },
 ];
 
 export default function PainelLeads() {

@@ -49,10 +49,11 @@ function expirou(codigo: CodigoVerificacao, agora: Date): boolean {
 }
 
 /**
- * Confere o código do lead e, no sucesso, marca-o como verificado.
+ * Confere o código do lead e, no sucesso, carimba `verificadoEm` (o selo de
+ * e-mail confirmado). A etapa do funil NÃO muda (O8): ela é do admin.
  * Falhas não distinguem "e-mail não cadastrado" de "código errado" — não revelar
- * quem é lead. Idempotente: reverificar não duplica, não rebaixa o status nem
- * re-carimba `verificadoEm`.
+ * quem é lead. Idempotente: reverificar não duplica nem re-carimba `verificadoEm`.
+ * O `status: "verificado"` do resultado é o desfecho da operação, não a etapa.
  */
 export async function verificarCodigo(
   deps: DepsVerificacao,
@@ -77,7 +78,8 @@ export async function verificarCodigo(
   if (!hashesIguais(lead.codigo.hash, hashCodigo(input.codigo, deps.secret))) {
     return consumirTentativa(deps.store, lead, agora);
   }
-  return marcarVerificado(deps.store, lead, agora);
+  // o lead foi achado por este e-mail: é ele que libera o token
+  return marcarVerificado(deps.store, lead, input.email, agora);
 }
 
 /** Gasta uma tentativa; ao atingir o limite, invalida o código (anti-força bruta). */
@@ -88,8 +90,7 @@ export async function consumirTentativa(
 ): Promise<ResultadoVerificacao> {
   const tentativas = lead.codigo.tentativas + 1;
   const estourou = tentativas >= MAX_TENTATIVAS;
-  await store.atualizar({
-    ...lead,
+  await store.atualizarCodigo(lead.id, {
     codigo: { ...lead.codigo, tentativas, hash: estourou ? SEM_CODIGO : lead.codigo.hash },
     atualizadoEm: agora.toISOString(),
   });
@@ -98,20 +99,20 @@ export async function consumirTentativa(
 
 /**
  * Carimba a verificação e consome o código (uso único: um código só libera uma vez).
- * Não rebaixa status já avançado pelo admin (contatado/descartado — O4).
+ * Grava SÓ o código e o carimbo (`atualizarCodigo`): a etapa que o admin der
+ * enquanto isso não é desfeita, e quem já tinha carimbo fica com o original.
  */
 async function marcarVerificado(
   store: LeadStore,
   lead: Lead,
+  email: string,
   agora: Date,
 ): Promise<ResultadoVerificacao> {
   const jaVerificado = Boolean(lead.verificadoEm);
-  await store.atualizar({
-    ...lead,
-    status: lead.status === "novo" ? "verificado" : lead.status,
-    verificadoEm: lead.verificadoEm ?? agora.toISOString(),
+  await store.atualizarCodigo(lead.id, {
     codigo: { ...lead.codigo, hash: SEM_CODIGO, tentativas: 0 },
+    verificadoEm: lead.verificadoEm ?? agora.toISOString(),
     atualizadoEm: agora.toISOString(),
   });
-  return { status: "verificado", email: lead.email, jaVerificado };
+  return { status: "verificado", email, jaVerificado };
 }

@@ -103,7 +103,7 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
   it("sem código: status e verificadoEm ficam; o código consumido NÃO ressuscita", async () => {
     const { deps, r1, r2, salvo } = await verificaDuranteOReenvio("falha");
     expect(r2.status).toBe("recebido_sem_codigo");
-    expect(salvo.status).toBe("verificado");
+    expect(salvo.status).toBe("novo"); // a etapa é do admin; o selo é o verificadoEm
     expect(salvo.verificadoEm).toBe(T0.toISOString());
     expect(salvo.codigo.hash).toBe(""); // consumido na verificação — uso único
     expect(salvo.telefone).toBe("+5521988887777"); // o contato novo foi gravado
@@ -113,7 +113,7 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
   it("com código novo: grava o código novo sem rebaixar o status", async () => {
     const { deps, r2, salvo } = await verificaDuranteOReenvio("sai");
     if (r2.status !== "enviado") throw new Error("o reenvio devia sair");
-    expect(salvo.status).toBe("verificado");
+    expect(salvo.status).toBe("novo"); // a etapa é do admin; o selo é o verificadoEm
     expect(salvo.verificadoEm).toBe(T0.toISOString());
     expect(salvo.codigo.hash).toBe(hashCodigo(r2.codigo, SECRET_TESTE));
     expect(await verificar(deps, r2.codigo)).toMatchObject({ status: "verificado", jaVerificado: true });
@@ -131,7 +131,8 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
     await prep.persistirSemCodigo();
     const salvo = (await store.buscarPorEmail(EMAIL))!;
     expect(await store.listar()).toHaveLength(1);
-    expect(salvo).toMatchObject({ id: outro.lead.id, status: "verificado", creci: "PE 54321-F" });
+    expect(salvo).toMatchObject({ id: outro.lead.id, status: "novo", creci: "PE 54321-F" });
+    expect(salvo.verificadoEm).toBe(T0.toISOString()); // a verificação do outro pedido ficou
     expect(salvo.codigo.hash).toBe("");
   });
 });

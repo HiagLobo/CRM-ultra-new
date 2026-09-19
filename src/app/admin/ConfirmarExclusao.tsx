@@ -6,7 +6,7 @@
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import type { LeadAdmin } from "@/features/lead/admin";
+import { telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
 import { acao } from "./estilos";
 
 export default function ConfirmarExclusao({
@@ -44,7 +44,7 @@ export default function ConfirmarExclusao({
           Excluir este lead?
         </h2>
         <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: "0 0 6px" }}>
-          Todos os dados de <strong style={{ color: p.ink }}>{lead.email}</strong> serão apagados —
+          Todos os dados de <strong style={{ color: p.ink }}>{lead.email ?? telefoneNacional(lead.telefone)}</strong> serão apagados —
           contato, consentimento e histórico. <strong>Não dá para desfazer.</strong>
         </p>
         <p style={{ fontSize: 13, color: p.g500, margin: "0 0 22px" }}>

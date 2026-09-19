@@ -10,8 +10,10 @@ import { createHmac, randomInt, randomUUID } from "crypto";
 import type { AtualizacaoContato, LeadStore } from "../../lib/leadStore";
 import type { LeadInput } from "./schema";
 import { EXPIRACAO_CODIGO_MIN, TEXTO_CONSENTIMENTO } from "./schema";
+import type { Canal, StatusLead } from "./funil";
 
-export type StatusLead = "novo" | "verificado" | "contatado" | "descartado";
+/** A etapa do funil (O8) mora em `funil.ts` (client-safe); re-exportada aqui por compatibilidade. */
+export type { StatusLead } from "./funil";
 
 export interface Consentimento {
   texto: string;
@@ -28,10 +30,22 @@ export interface CodigoVerificacao {
 
 export interface Lead {
   id: string;
-  email: string;
+  /** Ausente só no lead cadastrado à mão sem e-mail (O8). */
+  email?: string;
   telefone: string; // E.164
+  /** Forma canônica; vazio no lead cadastrado à mão sem CRECI. */
   creci: string;
+  /** Etapa do funil. A verificação do e-mail NÃO mexe aqui (é o selo `verificadoEm`). */
   status: StatusLead;
+  nome?: string;
+  canal: Canal;
+  /** Dia (`AAAA-MM-DD`) de retomar — só na etapa "retomar". */
+  retomarEm?: string;
+  /** Motivo de "retomar" ou "perdido". */
+  motivo?: string;
+  /** Próxima ação: o dia (`AAAA-MM-DD`) e o que fazer. */
+  proximaAcaoEm?: string;
+  proximaAcao?: string;
   consentimento: Consentimento;
   codigo: CodigoVerificacao;
   verificadoEm?: string;
@@ -76,7 +90,7 @@ function montarCodigo(codigo: string, secret: string, agora: Date): CodigoVerifi
 }
 
 /** Código que nunca valida (sem hash, já vencido); datas = a tentativa de envio (colunas NOT NULL). */
-function codigoInutilizado(agora: Date): CodigoVerificacao {
+export function codigoInutilizado(agora: Date): CodigoVerificacao {
   return { hash: SEM_CODIGO, expiraEm: agora.toISOString(), tentativas: 0, enviadoEm: agora.toISOString() };
 }
 
@@ -112,7 +126,11 @@ export interface SolicitacaoPreparada extends ResultadoCriacao {
  * Cria o lead; se o e-mail já foi criado por outro request nesse meio, grava só
  * o contato (e o código, se vier) por cima — nunca duplica, nunca mexe no status.
  */
-async function criarOuMesclar(store: LeadStore, lead: Lead, contato: AtualizacaoContato): Promise<void> {
+async function criarOuMesclar(
+  store: LeadStore,
+  lead: Lead & { email: string },
+  contato: AtualizacaoContato,
+): Promise<void> {
   try {
     await store.criar(lead);
   } catch (err) {
@@ -159,10 +177,11 @@ export async function prepararSolicitacao(
     };
   }
 
-  const lead: Lead = {
+  const lead: Lead & { email: string } = {
     id: randomUUID(),
     email: input.email,
     status: "novo",
+    canal: "site",
     ...contato,
     codigo: codigoObj,
     criadoEm: agora.toISOString(),
