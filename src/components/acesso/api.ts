@@ -6,12 +6,15 @@
  * Regra: PII (e-mail, telefone, CRECI, código) NUNCA vai para o console.
  */
 import type { MotivoFalha } from "@/features/lead/verificacao";
+import { limparOrigem, type OrigemCampanha } from "@/lib/origemCampanha";
 
 export interface DadosSolicitacao {
   email: string;
   telefone: string;
   creci: string;
   consentimento: true;
+  /** Campanha que trouxe a pessoa (O8·S3) — o reenvio do código manda a mesma. */
+  origem?: OrigemCampanha;
 }
 
 /** Sinais anti-robô (O7·S1) — vão junto do pedido, mas não são dado do lead. */
@@ -72,10 +75,16 @@ async function postar(url: string, dados: unknown): Promise<{ res: Response; cor
   }
 }
 
-/** `POST /api/lead` — cria/atualiza o lead e dispara o código por e-mail. */
+/**
+ * `POST /api/lead` — cria/atualiza o lead e dispara o código por e-mail.
+ * A origem vai só com campo preenchido: vazio é omitido, nunca `""`.
+ */
 export async function solicitarAcesso(dados: DadosSolicitacao, antiRobo: AntiRobo = {}): Promise<ResultadoSolicitar> {
+  const { origem, ...lead } = dados;
+  const origemLimpa = limparOrigem(origem);
   const r = await postar("/api/lead", {
-    ...dados,
+    ...lead,
+    ...(origemLimpa ? { origem: origemLimpa } : {}),
     ...(antiRobo.website ? { website: antiRobo.website } : {}),
     ...(antiRobo.turnstileToken ? { turnstileToken: antiRobo.turnstileToken } : {}),
   });

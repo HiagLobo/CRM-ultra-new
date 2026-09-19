@@ -17,7 +17,7 @@ import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
 import { TEXTO_CONSENTIMENTO, EXPIRACAO_CODIGO_MIN } from "@/features/lead/schema";
 
-const ATUALIZADA_EM = "11 de agosto de 2026";
+const ATUALIZADA_EM = "19 de setembro de 2026";
 
 function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -122,6 +122,13 @@ export default function PrivacidadePage() {
             <li>
               <strong>Data, hora e endereço IP do consentimento</strong> — prova de que a autorização
               foi dada, como a LGPD exige.
+            </li>
+            <li>
+              <strong>Origem do link</strong> — se você chegou por um anúncio, post ou link de
+              parceiro, registramos junto do pedido de acesso o identificador da campanha (os
+              parâmetros <code>utm</code> e <code>ref</code> do link) ou o site de onde você veio,
+              para sabermos quais divulgações funcionam. Até o envio do pedido, isso fica só na aba do
+              navegador em que você abriu o site (não é cookie) e some quando ela é fechada.
             </li>
           </ul>
           <p style={{ marginBottom: 0 }}>

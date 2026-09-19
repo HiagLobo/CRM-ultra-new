@@ -5,12 +5,17 @@
  * Não bloqueia a navegação de propósito — sem fundo escurecido, o visitante lê a
  * dica e continua clicando no painel atrás. Rota sem dica própria cai nos passos
  * gerais do painel, então o guia nunca abre vazio.
+ *
+ * O8·S3: o rodapé fixo tem o "Quero usar no meu time" — continua à mão para quem
+ * fechou o banner do demo, e não sai de vista quando a lista de dicas rola.
  */
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { palette as p } from "@/lib/palette";
+import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
 import { GUIA, secaoDaRota, type Painel } from "@/content/guia";
+import { BotaoQueroUsar } from "@/components/acesso/QueroUsar";
 
 export default function GuiaDrawer({
   painel,
@@ -137,6 +142,21 @@ export default function GuiaDrawer({
           </button>
         </div>
       )}
+
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          background: "#fff",
+          borderTop: `1px solid ${p.g100}`,
+          padding: "12px 16px 14px",
+        }}
+      >
+        <BotaoQueroUsar />
+        <div style={{ fontSize: 12, color: p.g500, textAlign: "center", marginTop: 6 }}>
+          Fale com a equipe do {brand.nomeCurto} no WhatsApp.
+        </div>
+      </div>
     </aside>
   );
 }
