@@ -4,7 +4,7 @@
  * segredo errado; token e segredo nunca vão para log.
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { criarVerificadorTurnstile, URL_SITEVERIFY } from "./turnstile";
+import { criarVerificadorTurnstile, hostnameAceito, URL_SITEVERIFY } from "./turnstile";
 
 const SEGREDO = "segredo-turnstile-de-teste";
 const TOKEN = "token-do-widget-de-teste";
@@ -107,5 +107,38 @@ describe("criarVerificadorTurnstile", () => {
     }
     expect(saida()).not.toContain(TOKEN);
     expect(saida()).not.toContain(SEGREDO);
+  });
+});
+
+describe("hostname do token (produção)", () => {
+  const DOMINIO = "exemplo.com.br";
+  const aprovadoEm = (hostname?: string) =>
+    fetchFalso(200, { success: true, "error-codes": [], ...(hostname ? { hostname } : {}) }).fn;
+
+  it("aceita o domínio da marca, subdomínios e o endereço .vercel.app do projeto", async () => {
+    for (const host of ["exemplo.com.br", "www.exemplo.com.br", "WWW.Exemplo.com.br", "crm-ultra.vercel.app"]) {
+      const verificar = criarVerificadorTurnstile({ secret: SEGREDO, fetch: aprovadoEm(host), dominio: DOMINIO });
+      expect(await verificar(TOKEN), host).toBe("aprovado");
+    }
+  });
+
+  it("token emitido em outro lugar (ex.: localhost liberado no widget para teste) é recusado", async () => {
+    const saida = capturarLogs();
+    for (const host of ["localhost", "exemplo.com.br.golpe.com", "outroexemplo.com.br", undefined]) {
+      const verificar = criarVerificadorTurnstile({ secret: SEGREDO, fetch: aprovadoEm(host), dominio: DOMINIO });
+      expect(await verificar(TOKEN), String(host)).toBe("recusado");
+    }
+    expect(saida()).toContain("[turnstile] token emitido fora do domínio");
+    expect(saida()).not.toContain(TOKEN);
+  });
+
+  it("sem domínio configurado (dev) não confere o hostname", async () => {
+    const verificar = criarVerificadorTurnstile({ secret: SEGREDO, fetch: aprovadoEm("localhost") });
+    expect(await verificar(TOKEN)).toBe("aprovado");
+  });
+
+  it("hostnameAceito não confunde sufixo solto com subdomínio", () => {
+    expect(hostnameAceito("golpeexemplo.com.br", DOMINIO)).toBe(false);
+    expect(hostnameAceito("a.b.exemplo.com.br", DOMINIO)).toBe(true);
   });
 });

@@ -9,12 +9,30 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
-import type { Lead } from "../features/lead/lead";
+import type { CodigoVerificacao, Consentimento, Lead } from "../features/lead/lead";
+
+/** O que um novo pedido de acesso muda num lead que já existe (O7·S1). */
+export interface AtualizacaoContato {
+  telefone: string;
+  creci: string;
+  origem?: Lead["origem"];
+  consentimento: Consentimento;
+  atualizadoEm: string;
+  /** Código novo — só quando o e-mail saiu. Ausente: o código gravado fica como está. */
+  codigo?: CodigoVerificacao;
+}
 
 export interface LeadStore {
   criar(lead: Lead): Promise<Lead>;
   buscarPorEmail(email: string): Promise<Lead | null>;
   atualizar(lead: Lead): Promise<Lead>;
+  /**
+   * Grava SÓ contato, consentimento e (se vier) o código — nunca status,
+   * `verificadoEm` nem `criadoEm`. O pedido de acesso lê o lead, espera o
+   * e-mail (segundos) e só então grava: regravar a linha inteira desfaria uma
+   * verificação feita nesse meio e ressuscitaria um código já consumido.
+   */
+  atualizarContato(id: string, dados: AtualizacaoContato): Promise<void>;
   listar(): Promise<Lead[]>;
   /**
    * Apaga o lead de vez (LGPD art. 18 — direito à eliminação).
@@ -93,6 +111,19 @@ export class FileLeadStore implements LeadStore {
       leads[i] = lead;
       await this.escrever(leads);
       return lead;
+    });
+  }
+
+  atualizarContato(id: string, dados: AtualizacaoContato): Promise<void> {
+    return this.enfileirar(async () => {
+      const leads = await this.ler();
+      const i = leads.findIndex((l) => l.id === id);
+      if (i === -1) throw new Error("lead não encontrado para atualizar");
+      const { origem, codigo, ...contato } = dados;
+      const atualizado: Lead = { ...leads[i]!, ...contato, origem, ...(codigo ? { codigo } : {}) };
+      if (!origem) delete atualizado.origem; // como no Postgres: sem origem, as colunas ficam nulas
+      leads[i] = atualizado;
+      await this.escrever(leads);
     });
   }
 

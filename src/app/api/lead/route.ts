@@ -20,11 +20,24 @@ import { criarVerificadorTurnstile } from "@/lib/turnstile";
 import { PedidoAcessoSchema, solicitarAcesso } from "@/features/lead";
 
 export const runtime = "nodejs"; // store/crypto exigem runtime Node (não Edge)
+/**
+ * Teto da função na Vercel, em segundos. Os prazos internos (Turnstile 5 s +
+ * envio do código 8 s + banco) cabem com folga: a plataforma nunca corta a
+ * requisição antes de o lead ser gravado.
+ */
+export const maxDuration = 30;
 
-/** Turnstile só com as duas chaves no env (o schema do env recusa uma sem a outra). */
+/**
+ * Turnstile só com as duas chaves no env (o schema do env recusa uma sem a outra).
+ * Em produção, o token também tem de ter sido emitido no domínio da marca.
+ */
 function verificadorHumano() {
   const secret = env.TURNSTILE_SECRET_KEY;
-  return secret ? criarVerificadorTurnstile({ secret }) : undefined;
+  if (!secret) return undefined;
+  return criarVerificadorTurnstile({
+    secret,
+    ...(env.NODE_ENV === "production" ? { dominio: brand.dominio } : {}),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -47,7 +60,7 @@ export async function POST(req: NextRequest) {
     const resultado = await solicitarAcesso(
       {
         store: leadStore(),
-        email: provedorEmail(),
+        email: provedorEmail, // sob demanda: config faltando vira "recebido sem código", não 500
         limiter: rateLimiter(),
         brand,
         secret: env.APP_SECRET,

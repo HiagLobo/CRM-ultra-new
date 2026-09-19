@@ -7,9 +7,14 @@ import os from "os";
 import path from "path";
 import { randomUUID } from "crypto";
 import { vi } from "vitest";
-import { FileLeadStore } from "../../lib/leadStore";
+import { FileLeadStore, type LeadStore } from "../../lib/leadStore";
+import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import type { ProvedorEmail } from "../../lib/email";
-import type { BrandConfig } from "../../config/brand";
+import { brand, type BrandConfig } from "../../config/brand";
+import type { DepsSolicitarAcesso } from "./solicitarAcesso";
+
+/** APP_SECRET dos testes (HMAC do código). Fictício. */
+export const SECRET_TESTE = "segredo-de-teste-1234567890";
 
 /** E-mail falso: registra o que "enviou" e falha quando mandado. */
 export class EmailFake implements ProvedorEmail {
@@ -27,6 +32,21 @@ export class EmailFake implements ProvedorEmail {
     if (this.falharAviso) throw this.falharAviso;
     this.avisos.push({ para, marca: brand.nomeCurto });
   }
+}
+
+/** Deps do `solicitarAcesso` com dublês: e-mail falso (sob demanda) e limitador em memória. */
+export function depsSolicitar(store: LeadStore, over: Partial<DepsSolicitarAcesso> = {}) {
+  const email = new EmailFake();
+  const deps: DepsSolicitarAcesso = {
+    store,
+    email: () => email,
+    limiter: new MemoriaRateLimiter(),
+    brand,
+    secret: SECRET_TESTE,
+    limiteEnviosDia: 90,
+    ...over,
+  };
+  return { deps, email };
 }
 
 /** Stores em arquivos temporários, apagados por `limpar()` (chamar no afterEach). */

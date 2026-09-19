@@ -7,6 +7,8 @@
  *
  * Três respostas, porque "robô" e "Cloudflare fora do ar" pedem mensagens
  * diferentes para a pessoa. Nas duas a porta fica fechada (fail-closed).
+ * Com `dominio`, confere também onde o token nasceu (recomendação da Cloudflare):
+ * um widget que liste `localhost` para teste não vira fábrica de tokens.
  * `fetch` injetável: o teste roda sem rede. O IP do visitante NÃO é enviado
  * (é opcional na API — minimização de dados).
  *
@@ -15,6 +17,9 @@
 import { z } from "zod";
 
 export const URL_SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+/** Prazo padrão da consulta à Cloudflare. */
+export const PRAZO_SITEVERIFY_MS = 5_000;
 
 export type ResultadoDesafio = "aprovado" | "recusado" | "indisponivel";
 
@@ -25,6 +30,8 @@ export type VerificadorHumano = (token: string | undefined) => Promise<Resultado
 const RespostaSiteverify = z.object({
   success: z.boolean(),
   "error-codes": z.array(z.string()).default([]),
+  /** Onde o desafio foi resolvido. */
+  hostname: z.string().max(253).optional(),
 });
 
 /** Códigos que indicam erro NOSSO de configuração, não robô. */
@@ -34,13 +41,27 @@ export interface OpcoesTurnstile {
   secret: string;
   /** Injetável (testes). Padrão: o `fetch` global. */
   fetch?: typeof fetch;
-  /** Prazo da consulta à Cloudflare. Padrão: 5 s. */
+  /** Prazo da consulta à Cloudflare. Padrão: `PRAZO_SITEVERIFY_MS`. */
   prazoMs?: number;
+  /**
+   * Domínio da marca (`brand.dominio`). Presente: só vale token emitido nele, num
+   * subdomínio ou num endereço `.vercel.app` (o do próprio projeto, antes de o
+   * DNS propagar). Ausente (dev): não confere.
+   */
+  dominio?: string;
+}
+
+/** O token nasceu num endereço nosso? */
+export function hostnameAceito(hostname: string | undefined, dominio: string): boolean {
+  if (!hostname) return false;
+  const host = hostname.toLowerCase();
+  const base = dominio.toLowerCase();
+  return host === base || host.endsWith(`.${base}`) || host.endsWith(".vercel.app");
 }
 
 export function criarVerificadorTurnstile(opcoes: OpcoesTurnstile): VerificadorHumano {
   const buscar = opcoes.fetch ?? fetch;
-  const prazoMs = opcoes.prazoMs ?? 5_000;
+  const prazoMs = opcoes.prazoMs ?? PRAZO_SITEVERIFY_MS;
 
   return async (token) => {
     // sem token nem pergunta: a tela sempre manda um quando o widget está ligado
@@ -69,7 +90,12 @@ export function criarVerificadorTurnstile(opcoes: OpcoesTurnstile): VerificadorH
       console.error("[turnstile] resposta fora do formato esperado do siteverify");
       return "indisponivel";
     }
-    if (corpo.data.success) return "aprovado";
+    if (corpo.data.success) {
+      if (!opcoes.dominio || hostnameAceito(corpo.data.hostname, opcoes.dominio)) return "aprovado";
+      // hostname não é PII (é onde o widget rodou) e aponta direto a causa
+      console.warn("[turnstile] token emitido fora do domínio:", corpo.data.hostname ?? "sem-hostname");
+      return "recusado";
+    }
 
     const codigos = corpo.data["error-codes"];
     if (codigos.some((c) => ERROS_DE_CONFIG.has(c))) {

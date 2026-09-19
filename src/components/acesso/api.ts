@@ -26,11 +26,15 @@ export type ResultadoSolicitar =
   | { status: "enviado"; codigoDev?: string }
   /** Lead gravado, mas o e-mail com o código não saiu (falha do provedor ou teto do dia). */
   | { status: "recebido_sem_codigo"; mensagem: string }
-  /** Anti-robô recusou ou está fora do ar: pede nova verificação. */
-  | { status: "desafio"; mensagem: string }
+  /**
+   * Anti-robô recusou (refazer a verificação) ou está fora do ar. Fora do ar,
+   * nada foi gravado e só esperar não resolve: `whatsapp` pede a saída na tela.
+   */
+  | { status: "desafio"; mensagem: string; whatsapp?: true }
   | { status: "limitado"; mensagem: string }
   | { status: "invalido"; mensagem: string; campos?: Record<string, string[] | undefined> }
-  | { status: "erro"; mensagem: string };
+  /** Falha do servidor ou da rede: o pedido pode não ter sido gravado — a tela oferece o WhatsApp. */
+  | { status: "erro"; mensagem: string; whatsapp: true };
 
 export type ResultadoVerificar =
   | { status: "verificado" }
@@ -45,7 +49,7 @@ const ERRO_SERVIDOR = "algo falhou do nosso lado. Tente novamente em instantes."
 export const MENSAGEM_SEM_CODIGO =
   "Recebemos seus dados. O e-mail com o código não saiu agora — tente reenviar em alguns minutos ou fale com a gente.";
 const DESAFIO_RECUSADO = "não conseguimos confirmar que você é uma pessoa. Refaça a verificação e tente de novo.";
-const DESAFIO_FORA = "a verificação de segurança está fora do ar agora. Tente de novo em instantes.";
+const DESAFIO_FORA = "a verificação de segurança está fora do ar agora. Tente de novo em instantes ou fale com a gente.";
 
 /** Faz o POST e devolve `{ res, corpo }`; `corpo` é `{}` se a resposta não for JSON. */
 async function postar(url: string, dados: unknown): Promise<{ res: Response; corpo: any } | null> {
@@ -75,7 +79,7 @@ export async function solicitarAcesso(dados: DadosSolicitacao, antiRobo: AntiRob
     ...(antiRobo.website ? { website: antiRobo.website } : {}),
     ...(antiRobo.turnstileToken ? { turnstileToken: antiRobo.turnstileToken } : {}),
   });
-  if (!r) return { status: "erro", mensagem: ERRO_REDE };
+  if (!r) return { status: "erro", mensagem: ERRO_REDE, whatsapp: true };
   const { res, corpo } = r;
 
   if (res.ok && corpo?.ok) {
@@ -85,7 +89,7 @@ export async function solicitarAcesso(dados: DadosSolicitacao, antiRobo: AntiRob
     return { status: "enviado", codigoDev: typeof corpo.codigoDev === "string" ? corpo.codigoDev : undefined };
   }
   if (corpo?.erro === "verificacao_humana") return { status: "desafio", mensagem: DESAFIO_RECUSADO };
-  if (corpo?.erro === "verificacao_indisponivel") return { status: "desafio", mensagem: DESAFIO_FORA };
+  if (corpo?.erro === "verificacao_indisponivel") return { status: "desafio", mensagem: DESAFIO_FORA, whatsapp: true };
   if (res.status === 429) {
     return {
       status: "limitado",
@@ -100,7 +104,7 @@ export async function solicitarAcesso(dados: DadosSolicitacao, antiRobo: AntiRob
       campos: corpo?.campos,
     };
   }
-  return { status: "erro", mensagem: ERRO_SERVIDOR };
+  return { status: "erro", mensagem: ERRO_SERVIDOR, whatsapp: true };
 }
 
 /** `POST /api/lead/verify` — confere o código e recebe o cookie de acesso ao demo. */

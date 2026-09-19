@@ -1,6 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { MemoriaRateLimiter } from "../../lib/ratelimit";
-import { brand } from "../../config/brand";
 import { PedidoAcessoSchema } from "./schema";
 import { verificarCodigo } from "./verificacao";
 import {
@@ -9,9 +8,8 @@ import {
   REGRA_ENVIO_POR_IP,
   type DepsSolicitarAcesso,
 } from "./solicitarAcesso";
-import { EmailFake, storesTemporarias } from "./apoioTestes";
+import { SECRET_TESTE as SECRET, depsSolicitar, storesTemporarias } from "./apoioTestes";
 
-const SECRET = "segredo-de-teste-1234567890";
 const EMAIL_TESTE = "corretor@exemplo.com";
 const T0 = new Date("2026-06-17T12:00:00.000Z");
 
@@ -31,20 +29,7 @@ function pedido(over: Record<string, unknown> = {}) {
   });
 }
 
-function montarDeps(over: Partial<DepsSolicitarAcesso> = {}) {
-  const email = new EmailFake();
-  const deps: DepsSolicitarAcesso = {
-    store: stores.nova(),
-    email,
-    limiter: new MemoriaRateLimiter(),
-    brand,
-    secret: SECRET,
-    limiteEnviosDia: 90,
-    agora: T0,
-    ...over,
-  };
-  return { deps, email: deps.email as EmailFake };
-}
+const montarDeps = (over: Partial<DepsSolicitarAcesso> = {}) => depsSolicitar(stores.nova(), { agora: T0, ...over });
 
 describe("solicitarAcesso — happy path", () => {
   it("cria lead, carimba consentimento e envia o código", async () => {

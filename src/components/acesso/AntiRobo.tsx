@@ -5,6 +5,9 @@
  * - `CampoIsca` (honeypot): fora da tela — não `display:none`, que robô pula —,
  *   fora do Tab, escondido do leitor de tela e sem autopreenchimento. Gente não
  *   vê; robô de formulário preenche, e o servidor finge sucesso sem gravar nada.
+ *   O nome do campo NÃO é semântico ("website", "url"…): o preenchimento de
+ *   identidade de gerenciador de senha poria um site ali, e a pessoa de verdade
+ *   levaria um sucesso falso. No JSON, a chave continua `website`.
  * - `WidgetTurnstile`: Cloudflare Turnstile, só quando a chave pública veio no
  *   build. O script oficial é carregado sob demanda, uma vez por página, e o
  *   widget só aparece se a Cloudflare pedir interação.
@@ -12,7 +15,7 @@
  * Nada aqui vai para o console; erro de carregamento vira aviso na tela.
  */
 import * as React from "react";
-import { Aviso } from "./ui";
+import { AvisoErro } from "./ui";
 
 /** Chave pública do Turnstile, inlinada no build (NEXT_PUBLIC_). Ausente = widget desligado. */
 export const SITE_KEY_TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || undefined;
@@ -21,20 +24,29 @@ export const SITE_KEY_TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.tr
 export const MENSAGEM_AGUARDE_TURNSTILE =
   "aguarde a verificação de segurança terminar (leva um segundo) e tente de novo.";
 
+// sem a verificação o pedido não sai (fail-closed): a tela oferece o WhatsApp junto
 const ERRO_SCRIPT =
-  "Não deu para carregar a verificação de segurança (bloqueador de anúncios ou conexão?). Recarregue a página ou fale com a gente pelo WhatsApp.";
-const ERRO_WIDGET = "A verificação de segurança falhou. Recarregue a página ou fale com a gente pelo WhatsApp.";
+  "Não deu para carregar a verificação de segurança (bloqueador de anúncios ou conexão?). Recarregue a página ou fale com a gente.";
+const ERRO_WIDGET = "A verificação de segurança falhou. Recarregue a página ou fale com a gente.";
+
+/** Nome do campo-isca: nada que um preenchimento automático reconheça. */
+export const NOME_CAMPO_ISCA = "acesso_isca";
 
 export function CampoIsca({ valor, aoMudar }: { valor: string; aoMudar: (v: string) => void }) {
   return (
     <div aria-hidden="true" style={{ position: "absolute", left: -10_000, top: "auto", width: 1, height: 1, overflow: "hidden" }}>
-      <label htmlFor="acesso-website">Site (deixe em branco)</label>
+      <label htmlFor="acesso-isca">Deixe em branco</label>
       <input
-        id="acesso-website"
-        name="website"
+        id="acesso-isca"
+        name={NOME_CAMPO_ISCA}
         type="text"
         tabIndex={-1}
         autoComplete="off"
+        // gerenciadores de senha: 1Password, LastPass, Bitwarden, Dashlane
+        data-1p-ignore=""
+        data-lpignore="true"
+        data-bwignore=""
+        data-form-type="other"
         value={valor}
         onChange={(e) => aoMudar(e.target.value)}
       />
@@ -128,7 +140,7 @@ export function WidgetTurnstile({
   return (
     <div style={{ display: "grid", gap: 8 }}>
       <div ref={alvo} />
-      {erro && <Aviso tipo="erro">{erro}</Aviso>}
+      {erro && <AvisoErro mensagem={erro} whatsapp />}
     </div>
   );
 }

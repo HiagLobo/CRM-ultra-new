@@ -11,6 +11,7 @@ import { env, emailModoDev } from "./env";
 import { montarEmailCodigo, type EmailCodigo } from "./emailCodigo";
 import { montarEmailAviso } from "./emailAviso";
 import { interpretarRemetente, montarRemetente, MENSAGEM_REMETENTE_INVALIDO, type Remetente } from "./remetente";
+import { ErroConfiguracao } from "./erros";
 import type { BrandConfig } from "../config/brand";
 
 export interface ProvedorEmail {
@@ -87,22 +88,28 @@ export function provedorEmail(): ProvedorEmail {
   return cache;
 }
 
-/** Seleciona o provedor: sem chave Resend → ConsoleEmail (dev); com chave → ResendEmail. */
+/**
+ * Seleciona o provedor: sem chave Resend → ConsoleEmail (dev); com chave → ResendEmail.
+ *
+ * Fail-closed: em produção o fallback de dev está desligado, então a ausência da
+ * chave lança `ErroConfiguracao` com o nome da variável — nunca cai num provedor
+ * meia-boca que "funciona" devolvendo o código na resposta. Quem chama trata:
+ * o pedido de acesso grava o lead sem código e loga `config:RESEND_API_KEY`
+ * (O7·S1 — o site fica no ar, o contato não se perde).
+ */
 export function criarProvedorEmail(): ProvedorEmail {
   if (emailModoDev) return new ConsoleEmail();
-  // fail-closed: em produção o fallback de dev está desligado, então a ausência
-  // da chave tem de parar o boot com mensagem clara — nunca cair num provedor
-  // meia-boca que "funciona" devolvendo o código na resposta.
   if (!env.RESEND_API_KEY) {
-    throw new Error(
+    throw new ErroConfiguracao(
+      "RESEND_API_KEY",
       "RESEND_API_KEY é obrigatória em produção (sem ela o código de verificação não sai por e-mail)",
     );
   }
   if (!env.EMAIL_FROM) {
-    throw new Error("EMAIL_FROM é obrigatório quando RESEND_API_KEY está definida");
+    throw new ErroConfiguracao("EMAIL_FROM", "EMAIL_FROM é obrigatório quando RESEND_API_KEY está definida");
   }
   // o env já validou o formato no boot; aqui só se chega sem validação em teste
   const remetente = interpretarRemetente(env.EMAIL_FROM);
-  if (!remetente) throw new Error(`EMAIL_FROM inválido: ${MENSAGEM_REMETENTE_INVALIDO}`);
+  if (!remetente) throw new ErroConfiguracao("EMAIL_FROM", `EMAIL_FROM inválido: ${MENSAGEM_REMETENTE_INVALIDO}`);
   return new ResendEmail(env.RESEND_API_KEY, remetente);
 }

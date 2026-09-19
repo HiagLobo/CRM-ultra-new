@@ -44,8 +44,8 @@ Detalhe completo em `.env.example`. Resumo do que **quebra** se faltar:
 | `APP_SECRET` | o app não sobe (nada de token de demo nem sessão de admin) |
 | `ADMIN_PASSWORD` | o app não sobe |
 | `DATABASE_URL` | **em produção o boot para**; em dev, usa `data/leads.json` |
-| `RESEND_API_KEY` | **em produção o boot para**; em dev, o código aparece na tela |
-| `EMAIL_FROM` | o envio falha se houver `RESEND_API_KEY` |
+| `RESEND_API_KEY` | em produção o site **fica no ar**, mas nenhum código sai: todo lead é gravado sem código (a pessoa vê "Recebemos seus dados") e o log diz `config:RESEND_API_KEY`; em dev, o código aparece na tela |
+| `EMAIL_FROM` | igual: lead gravado sem código, log `config:EMAIL_FROM` (quando há `RESEND_API_KEY`) |
 | `LIMITE_ENVIOS_DIA` | opcional — padrão 90 e-mails/24h (abaixo dos 100/dia do Resend Free) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | opcionais — sem as duas, o formulário roda sem Turnstile (só com o campo-isca); **uma sem a outra para o boot** |
 | `AVISO_LEADS_EMAIL` | opcional — sem ela, você não recebe o e-mail "novo lead confirmado" |
@@ -55,7 +55,9 @@ O contato público (e-mail, telefone, CNPJ, razão social) **não** é variável
 hardcoded em nenhum outro arquivo.
 
 As duas travas de produção são propositais: sem banco os leads se perdem em silêncio, e sem Resend
-a API devolveria o código de verificação para quem pedisse.
+a API devolveria o código de verificação para quem pedisse. A do Resend **não derruba o cadastro**:
+o código nunca vai na resposta, mas o contato é gravado e aparece no `/admin` — confira o log depois
+do primeiro deploy (seção 6) para não passar dias sem enviar código a ninguém.
 
 ---
 
@@ -140,9 +142,9 @@ faz ele não insistir; para rever, o botão **Guia** tem "Refazer o tour desta t
 recusa rodar se encontrar `NODE_ENV=production` ou `DATABASE_URL` — semear a base real falsearia os
 números do seu funil.
 
-**Lead que chegou sem código.** Se o e-mail com o código não sai (Resend fora do ar, domínio não
-verificado, cota do dia) ou o teto diário (`LIMITE_ENVIOS_DIA`) estourou, o lead é **gravado mesmo
-assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
+**Lead que chegou sem código.** Se o e-mail com o código não sai (Resend fora do ar ou travado por
+mais de 8 s, domínio não verificado, cota do dia, `RESEND_API_KEY`/`EMAIL_FROM` faltando) ou o teto
+diário (`LIMITE_ENVIOS_DIA`) estourou, o lead é **gravado mesmo assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
 agora — tente reenviar em alguns minutos ou fale com a gente", com um botão de WhatsApp. No
 `/admin` ele aparece como qualquer lead novo: é só ligar ou chamar no WhatsApp. O motivo fica no
 log (seção 6).
@@ -192,13 +194,13 @@ Em **produção** vai para a tabela `auditoria` do Postgres; em **dev**, para `d
 | App não sobe, erro `[env]` | falta `APP_SECRET`/`ADMIN_PASSWORD` | conferir as env vars do host |
 | Build falha com `EMAIL_FROM: use "endereço" ou "Nome <endereço>"` | `EMAIL_FROM` fora dos dois formatos (ex.: só o nome, sem `<…>`) | corrigir para `acesso@…` ou `Nome <acesso@…>` e refazer o deploy |
 | App não sobe: "DATABASE_URL é obrigatória" | produção sem banco | criar o Postgres e configurar |
-| App não sobe: "RESEND_API_KEY é obrigatória" | produção sem Resend | configurar a key (a trava é proposital) |
+| **Todo** corretor vê "Recebemos seus dados…" + log `config:RESEND_API_KEY` (ou `config:EMAIL_FROM`) | produção sem a variável do Resend | configurar a variável e refazer o deploy; os leads que entraram nesse meio estão no `/admin` |
 | E-mail não chega | domínio não verificado no Resend | verificar o domínio (SPF/DKIM); antes disso só chega no e-mail da conta |
 | "Código expirado" | passou de 10 min | pedir novo código (botão reenviar) |
 | "Tentativas esgotadas" | 5 erros no mesmo código | pedir novo código |
 | "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail, ou 10 pela mesma rede (IP) | esperar a janela |
-| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | log `[/api/lead] código não enviado; lead gravado sem código: <causa>` — `teto_diario` = o dia bateu o `LIMITE_ENVIOS_DIA`; `email:<tipo>` = o Resend recusou | o lead está no `/admin`: fale com ele. Teto: espere 24h ou suba o limite (se o plano deixar). Resend: confira domínio verificado, chave e cota no painel do Resend |
-| Tela pede "verificação de segurança" / 403 no `/api/lead` | Turnstile recusou o token (robô, ou widget expirado) | a pessoa refaz a verificação; se for com todo mundo, confira se a site key é do mesmo widget da secret |
+| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | log `[/api/lead] código não enviado; lead gravado sem código: <causa>` — `teto_diario` = o dia bateu o `LIMITE_ENVIOS_DIA`; `config:<VAR>` = variável do Resend faltando; `email:PrazoEsgotado` = o Resend não respondeu em 8 s; `email:<tipo>` = o Resend recusou | o lead está no `/admin`: fale com ele. Teto: espere 24h ou suba o limite (se o plano deixar). Resend: confira domínio verificado, chave e cota no painel do Resend (e o status em resend-status.com, se for prazo) |
+| Tela pede "verificação de segurança" / 403 no `/api/lead` | Turnstile recusou o token (robô, ou widget expirado); log `token emitido fora do domínio: <host>` = o widget rodou fora de `brand.dominio`/subdomínio/`.vercel.app` | a pessoa refaz a verificação; se for com todo mundo, confira se a site key é do mesmo widget da secret e se o site está sendo aberto pelo domínio |
 | 503 no `/api/lead` + log `[turnstile]` | Cloudflare fora do ar, ou `TURNSTILE_SECRET_KEY` errada (log diz `config:TURNSTILE_SECRET_KEY`) | conferir a chave; se a Cloudflare estiver fora, tirar as duas chaves do Turnstile e refazer o deploy desliga o desafio |
 | Não chega o aviso de lead novo | `AVISO_LEADS_EMAIL` vazia, teto diário atingido ou envio recusado (log `[aviso-lead]`) | conferir a variável e o log; os leads continuam no `/admin` |
 | Login do admin em 429 | 5 tentativas em 5 min | esperar 5 min |

@@ -7,17 +7,21 @@
  * 1. isca (honeypot) preenchida → robô: sucesso falso, nada gravado nem enviado;
  * 2. Turnstile, se ligado → sem pessoa do outro lado, para aqui;
  * 3. limite por e-mail (3/30 min) e por IP (10/30 min), atômicos entre si;
- * 4. teto global diário estourado → grava o lead SEM código (o fundador liga);
- * 5. envio do código falhou → idem: grava sem código, nunca perde o contato;
- * 6. e-mail saiu → persiste o código novo.
+ * 4. provedor de e-mail não sobe (ex.: produção sem RESEND_API_KEY) → grava o
+ *    lead SEM código (o fundador liga), sem gastar vaga do teto diário;
+ * 5. teto global diário estourado → idem;
+ * 6. envio do código falhou ou passou do prazo → idem: nunca perde o contato;
+ * 7. e-mail saiu → persiste o código novo.
  */
 import type { LeadStore } from "../../lib/leadStore";
 import type { ProvedorEmail } from "../../lib/email";
 import type { RateLimiter, RegraRate } from "../../lib/ratelimit";
 import type { VerificadorHumano } from "../../lib/turnstile";
 import type { BrandConfig } from "../../config/brand";
+import { causaDoErro } from "../../lib/erros";
+import { comPrazo } from "../../lib/prazo";
 import type { PedidoAcesso } from "./schema";
-import { prepararSolicitacao } from "./lead";
+import { prepararSolicitacao, type SolicitacaoPreparada } from "./lead";
 
 const JANELA_ENVIO_MS = 30 * 60_000;
 
@@ -35,9 +39,19 @@ export function regraTetoDiario(max: number): RegraRate {
   return { max, janelaMs: JANELA_TETO_DIARIO_MS };
 }
 
+/**
+ * Prazo do envio do código. O SDK do Resend não tem timeout: travou, desistimos
+ * e gravamos o lead sem código antes de a plataforma cortar a função.
+ */
+export const PRAZO_ENVIO_CODIGO_MS = 8_000;
+
 export interface DepsSolicitarAcesso {
   store: LeadStore;
-  email: ProvedorEmail;
+  /**
+   * Provedor sob demanda: configuração faltando (ex.: produção sem
+   * `RESEND_API_KEY`) também cai no "grava sem código" — nunca num 500.
+   */
+  email: () => ProvedorEmail;
   limiter: RateLimiter;
   brand: BrandConfig;
   /** APP_SECRET (HMAC do código) — injetado pela rota a partir do env validado. */
@@ -48,6 +62,8 @@ export interface DepsSolicitarAcesso {
   verificarHumano?: VerificadorHumano;
   /** Relógio injetável (testes). */
   agora?: Date;
+  /** Prazo do envio (testes). Padrão: `PRAZO_ENVIO_CODIGO_MS`. */
+  prazoEnvioMs?: number;
 }
 
 /** Por que o e-mail não saiu (o lead foi gravado mesmo assim). */
@@ -93,22 +109,38 @@ export async function solicitarAcesso(
 
   const prep = await prepararSolicitacao(deps.store, input, { ip: ctx.ip, secret: deps.secret, agora });
 
-  // 4. teto diário: a cota do provedor acabou para hoje, mas o contato não se perde
-  if (!(await deps.limiter.permitir([CHAVE_TETO_DIARIO], regraTetoDiario(deps.limiteEnviosDia), agora))) {
-    await prep.persistirSemCodigo();
-    return { status: "recebido_sem_codigo", motivo: "teto_diario", causa: "teto_diario" };
+  // 4. provedor antes do teto: config quebrada não gasta vaga do dia (consertada, a cota está lá)
+  let provedor: ProvedorEmail;
+  try {
+    provedor = deps.email();
+  } catch (erro) {
+    return gravarSemCodigo(prep, "falha_envio", causaDoErro(erro, "email"));
   }
 
-  // 5. envia ANTES de persistir o código: falha não sobrescreve um código válido
+  // 5. teto diário: a cota do provedor acabou para hoje, mas o contato não se perde
+  if (!(await deps.limiter.permitir([CHAVE_TETO_DIARIO], regraTetoDiario(deps.limiteEnviosDia), agora))) {
+    return gravarSemCodigo(prep, "teto_diario", "teto_diario");
+  }
+
+  // 6. envia ANTES de persistir o código: falha não sobrescreve um código válido.
+  // Só o tipo do erro vai para a causa — a mensagem pode carregar o destinatário.
   try {
-    await deps.email.enviarCodigo(prep.lead.email, prep.codigo, deps.brand);
+    const envio = provedor.enviarCodigo(prep.lead.email, prep.codigo, deps.brand);
+    await comPrazo(envio, deps.prazoEnvioMs ?? PRAZO_ENVIO_CODIGO_MS);
   } catch (erro) {
-    // só o tipo do erro — a mensagem de um erro qualquer pode carregar o destinatário
-    const causa = `email:${erro instanceof Error ? erro.name : "desconhecido"}`;
-    await prep.persistirSemCodigo();
-    return { status: "recebido_sem_codigo", motivo: "falha_envio", causa };
+    return gravarSemCodigo(prep, "falha_envio", causaDoErro(erro, "email"));
   }
 
   await prep.persistir();
   return { status: "enviado", novo: prep.novo, codigo: prep.codigo };
+}
+
+/** O e-mail não saiu: o contato fica gravado mesmo assim, e a causa (sem PII) vai para o log. */
+async function gravarSemCodigo(
+  prep: SolicitacaoPreparada,
+  motivo: MotivoSemCodigo,
+  causa: string,
+): Promise<ResultadoSolicitacao> {
+  await prep.persistirSemCodigo();
+  return { status: "recebido_sem_codigo", motivo, causa };
 }

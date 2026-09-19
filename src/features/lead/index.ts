@@ -26,6 +26,7 @@ export {
   REGRA_ENVIO_POR_IP,
   CHAVE_TETO_DIARIO,
   regraTetoDiario,
+  PRAZO_ENVIO_CODIGO_MS,
 } from "./solicitarAcesso";
 export type { DepsSolicitarAcesso, ResultadoSolicitacao, MotivoSemCodigo } from "./solicitarAcesso";
 export { verificarCodigo, consumirTentativa, REGRA_VERIFICACAO } from "./verificacao";

@@ -86,8 +86,9 @@ adaptador — o domínio não muda.
 - **Consentimento carimbado** com o texto exato que a pessoa leu + data/hora + IP.
 - **Exclusão de lead** (LGPD art. 18) no painel, com confirmação e auditoria.
 - Segredos só por env, validados no boot: sem `APP_SECRET`/`ADMIN_PASSWORD` o app não sobe; em
-  produção, sem `DATABASE_URL`/`RESEND_API_KEY` também não — as duas travas evitam perder leads em
-  silêncio e vazar código de verificação na resposta.
+  produção, sem `DATABASE_URL` também não (evita perder leads em silêncio). Sem `RESEND_API_KEY`, o
+  código nunca vai na resposta: o lead é gravado sem código, aparece no `/admin` e o log diz
+  `config:RESEND_API_KEY`.
 
 Pendências abertas antes de divulgar publicamente estão na **seção 7 do runbook**.
 

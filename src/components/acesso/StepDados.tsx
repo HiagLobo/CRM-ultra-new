@@ -17,10 +17,12 @@ import { brand } from "@/config/brand";
 import { LeadInputSchema, TEXTO_CONSENTIMENTO } from "@/features/lead/schema";
 import { EXEMPLO_CRECI } from "@/features/lead/creci";
 import { solicitarAcesso, type DadosSolicitacao } from "./api";
-import { Campo, Aviso, AvisoSemCodigo, BotaoSubmit, mascararTelefone } from "./ui";
+import { Campo, AvisoErro, AvisoSemCodigo, BotaoSubmit, mascararTelefone } from "./ui";
 import { CampoIsca, WidgetTurnstile, SITE_KEY_TURNSTILE, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
 
 type Campos = Record<string, string[] | undefined>;
+/** Aviso geral da tela; `whatsapp` quando o pedido travou sem gravar (ver `AvisoErro`). */
+type AvisoGeral = { mensagem: string; whatsapp?: boolean };
 
 export default function StepDados({
   aoEnviar,
@@ -33,7 +35,7 @@ export default function StepDados({
   const [creci, setCreci] = React.useState("");
   const [consentimento, setConsentimento] = React.useState(false);
   const [erros, setErros] = React.useState<Campos>({});
-  const [avisoGeral, setAvisoGeral] = React.useState<string | null>(null);
+  const [avisoGeral, setAvisoGeral] = React.useState<AvisoGeral | null>(null);
   const [semCodigo, setSemCodigo] = React.useState<string | null>(null);
   const [carregando, setCarregando] = React.useState(false);
   const [isca, setIsca] = React.useState("");
@@ -53,7 +55,7 @@ export default function StepDados({
     }
     setErros({});
     if (SITE_KEY_TURNSTILE && !tokenTurnstile) {
-      setAvisoGeral(MENSAGEM_AGUARDE_TURNSTILE);
+      setAvisoGeral({ mensagem: MENSAGEM_AGUARDE_TURNSTILE });
       return;
     }
     setCarregando(true);
@@ -76,10 +78,10 @@ export default function StepDados({
     if (r.status === "recebido_sem_codigo") return setSemCodigo(r.mensagem);
     if (r.status === "invalido") {
       setErros(r.campos ?? {});
-      setAvisoGeral(r.mensagem);
+      setAvisoGeral({ mensagem: r.mensagem });
       return;
     }
-    setAvisoGeral(r.mensagem);
+    setAvisoGeral({ mensagem: r.mensagem, whatsapp: "whatsapp" in r && r.whatsapp });
   }
 
   const erro = (campo: string) => erros[campo]?.[0];
@@ -91,7 +93,7 @@ export default function StepDados({
       </p>
 
       {semCodigo && <AvisoSemCodigo mensagem={semCodigo} />}
-      {avisoGeral && <Aviso tipo="erro">{avisoGeral}</Aviso>}
+      {avisoGeral && <AvisoErro {...avisoGeral} />}
 
       <Campo
         id="acesso-email"

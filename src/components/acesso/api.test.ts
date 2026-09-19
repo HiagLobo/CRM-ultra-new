@@ -108,6 +108,19 @@ describe("solicitarAcesso — O7·S1 (lead sem código e anti-robô)", () => {
     expect(fora.status === "desafio" && fora.mensagem).toMatch(/fora do ar/);
   });
 
+  it("travou sem gravar (anti-robô fora do ar, 500, rede): a tela oferece o WhatsApp; recusado não", async () => {
+    fetchFake(503, { ok: false, erro: "verificacao_indisponivel" });
+    expect(await solicitarAcesso({ ...DADOS })).toMatchObject({ status: "desafio", whatsapp: true });
+    fetchFake(403, { ok: false, erro: "verificacao_humana" });
+    expect(await solicitarAcesso({ ...DADOS })).not.toHaveProperty("whatsapp");
+    fetchFake(500, { ok: false });
+    expect(await solicitarAcesso({ ...DADOS })).toMatchObject({ status: "erro", whatsapp: true });
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("offline");
+    }));
+    expect(await solicitarAcesso({ ...DADOS })).toMatchObject({ status: "erro", whatsapp: true });
+  });
+
   it("503 que não é do anti-robô (ex.: plataforma) segue sendo erro genérico", async () => {
     fetchFake(503, null, { naoEhJson: true });
     expect((await solicitarAcesso({ ...DADOS })).status).toBe("erro");

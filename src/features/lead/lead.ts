@@ -7,7 +7,7 @@
  * SERVER-ONLY (usa crypto). Código de verificação NUNCA é guardado em texto puro.
  */
 import { createHmac, randomInt, randomUUID } from "crypto";
-import type { LeadStore } from "../../lib/leadStore";
+import type { AtualizacaoContato, LeadStore } from "../../lib/leadStore";
 import type { LeadInput } from "./schema";
 import { EXPIRACAO_CODIGO_MIN, TEXTO_CONSENTIMENTO } from "./schema";
 
@@ -108,14 +108,17 @@ export interface SolicitacaoPreparada extends ResultadoCriacao {
   persistirSemCodigo(): Promise<void>;
 }
 
-/** Cria o lead; se o e-mail já foi criado por outro request nesse meio, mescla em vez de duplicar. */
-async function criarOuMesclar(store: LeadStore, lead: Lead, mesclar: (atual: Lead) => Lead): Promise<void> {
+/**
+ * Cria o lead; se o e-mail já foi criado por outro request nesse meio, grava só
+ * o contato (e o código, se vier) por cima — nunca duplica, nunca mexe no status.
+ */
+async function criarOuMesclar(store: LeadStore, lead: Lead, contato: AtualizacaoContato): Promise<void> {
   try {
     await store.criar(lead);
   } catch (err) {
     const atual = await store.buscarPorEmail(lead.email);
     if (!atual) throw err;
-    await store.atualizar(mesclar(atual));
+    await store.atualizarContato(atual.id, contato);
   }
 }
 
@@ -134,53 +137,43 @@ export async function prepararSolicitacao(
   const consentimento = registrarConsentimento(ctx.ip, agora);
 
   const existente = await store.buscarPorEmail(input.email);
+  // contato e consentimento sempre atualizados; o código só troca se o e-mail sair
+  const origem = input.origem ?? existente?.origem;
+  const contato: AtualizacaoContato = {
+    telefone: input.telefone,
+    creci: input.creci,
+    ...(origem ? { origem } : {}),
+    consentimento,
+    atualizadoEm: agora.toISOString(),
+  };
+
   if (existente) {
-    // contato e consentimento atualizados; o código só troca se o e-mail sair
-    const comContato: Lead = {
-      ...existente,
-      telefone: input.telefone,
-      creci: input.creci,
-      origem: input.origem ?? existente.origem,
-      consentimento,
-      atualizadoEm: agora.toISOString(),
-    };
-    const lead: Lead = { ...comContato, codigo: codigoObj };
+    // Grava só as colunas de contato (+ código): entre ler e gravar há o envio do
+    // e-mail, e o lead pode ter verificado o código anterior nesse meio.
     return {
-      lead,
+      lead: { ...existente, ...contato, codigo: codigoObj },
       codigo,
       novo: false,
-      persistir: async () => void (await store.atualizar(lead)),
-      persistirSemCodigo: async () => void (await store.atualizar(comContato)),
+      persistir: () => store.atualizarContato(existente.id, { ...contato, codigo: codigoObj }),
+      persistirSemCodigo: () => store.atualizarContato(existente.id, contato),
     };
   }
 
   const lead: Lead = {
     id: randomUUID(),
     email: input.email,
-    telefone: input.telefone,
-    creci: input.creci,
     status: "novo",
-    consentimento,
+    ...contato,
     codigo: codigoObj,
-    origem: input.origem,
     criadoEm: agora.toISOString(),
-    atualizadoEm: agora.toISOString(),
   };
   return {
     lead,
     codigo,
     novo: true,
-    persistir: () => criarOuMesclar(store, lead, (atual) => ({ ...lead, id: atual.id, criadoEm: atual.criadoEm })),
-    persistirSemCodigo: () =>
-      criarOuMesclar(store, { ...lead, codigo: codigoInutilizado(agora) }, (atual) => ({
-        // corrida: o outro request pode ter deixado um código válido — preserva
-        ...lead,
-        id: atual.id,
-        criadoEm: atual.criadoEm,
-        status: atual.status,
-        codigo: atual.codigo,
-        ...(atual.verificadoEm ? { verificadoEm: atual.verificadoEm } : {}),
-      })),
+    persistir: () => criarOuMesclar(store, lead, { ...contato, codigo: codigoObj }),
+    // corrida: se outro request criou o lead nesse meio, o código dele é preservado
+    persistirSemCodigo: () => criarOuMesclar(store, { ...lead, codigo: codigoInutilizado(agora) }, contato),
   };
 }
 

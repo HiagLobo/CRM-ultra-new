@@ -13,6 +13,8 @@
 import type { ProvedorEmail } from "../../lib/email";
 import type { RateLimiter } from "../../lib/ratelimit";
 import type { BrandConfig } from "../../config/brand";
+import { causaDoErro } from "../../lib/erros";
+import { comPrazo } from "../../lib/prazo";
 import type { ResultadoVerificacao } from "./verificacao";
 import { CHAVE_TETO_DIARIO, regraTetoDiario } from "./solicitarAcesso";
 
@@ -34,17 +36,6 @@ export interface DepsAviso {
   prazoMs?: number;
 }
 
-function comPrazo<T>(tarefa: Promise<T>, ms: number): Promise<T> {
-  let relogio: ReturnType<typeof setTimeout> | undefined;
-  const estouro = new Promise<never>((_, rejeitar) => {
-    relogio = setTimeout(
-      () => rejeitar(Object.assign(new Error("prazo do aviso esgotado"), { name: "PrazoEsgotado" })),
-      ms,
-    );
-  });
-  return Promise.race([tarefa, estouro]).finally(() => clearTimeout(relogio));
-}
-
 export async function avisarLeadNovo(
   deps: DepsAviso,
   resultado: ResultadoVerificacao,
@@ -55,15 +46,18 @@ export async function avisarLeadNovo(
   const agora = deps.agora ?? new Date();
 
   try {
+    // provedor antes do teto: configuração quebrada não gasta vaga da cota do dia
+    const provedor = deps.email();
     if (!(await deps.limiter.permitir([CHAVE_TETO_DIARIO], regraTetoDiario(deps.limiteEnviosDia), agora))) {
       console.warn("[aviso-lead] teto diário de e-mails atingido; aviso não enviado (o lead está no /admin)");
       return "teto_diario";
     }
     // só o destino do fundador e a marca: o lead não entra no aviso, nem por engano
-    await comPrazo(deps.email().enviarAvisoNovoLead(deps.para, deps.brand), deps.prazoMs ?? PRAZO_AVISO_MS);
+    await comPrazo(provedor.enviarAvisoNovoLead(deps.para, deps.brand), deps.prazoMs ?? PRAZO_AVISO_MS);
     return "enviado";
   } catch (erro) {
-    const causa = erro instanceof Error ? erro.name : "desconhecido";
+    // `config:<VAR>` quando o provedor nem sobe; senão só o tipo do erro (sem PII)
+    const causa = causaDoErro(erro, "email");
     console.error("[aviso-lead] aviso de lead novo não saiu:", causa);
     return "falhou";
   }

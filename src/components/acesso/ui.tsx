@@ -117,6 +117,20 @@ export function Aviso({
   );
 }
 
+/** Saída na hora quando o fluxo trava: o WhatsApp da marca, com a mensagem já escrita (sem PII). */
+function LinkWhatsapp({ texto }: { texto: string }) {
+  return (
+    <a
+      href={linkWhatsapp(texto)}
+      target="_blank"
+      rel="noreferrer"
+      style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}
+    >
+      Falar no WhatsApp
+    </a>
+  );
+}
+
 /**
  * Lead recebido, mas o e-mail do código não saiu (O7·S1): diz a verdade e dá uma
  * saída na hora — o WhatsApp da marca — em vez de deixar a pessoa esperando.
@@ -125,14 +139,25 @@ export function AvisoSemCodigo({ mensagem }: { mensagem: string }) {
   return (
     <Aviso tipo="info">
       {mensagem}{" "}
-      <a
-        href={linkWhatsapp(`Olá! Pedi acesso ao demo do ${brand.nomeCurto} e o código não chegou.`)}
-        target="_blank"
-        rel="noreferrer"
-        style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}
-      >
-        Falar no WhatsApp
-      </a>
+      <LinkWhatsapp texto={`Olá! Pedi acesso ao demo do ${brand.nomeCurto} e o código não chegou.`} />
+    </Aviso>
+  );
+}
+
+/**
+ * Erro na tela. Com `whatsapp`, o pedido travou antes de gravar (verificação de
+ * segurança fora do ar, servidor com problema): sem o link, o contato se perderia.
+ */
+export function AvisoErro({ mensagem, whatsapp }: { mensagem: string; whatsapp?: boolean }) {
+  return (
+    <Aviso tipo="erro">
+      {mensagem}
+      {whatsapp && (
+        <>
+          {" "}
+          <LinkWhatsapp texto={`Olá! Tentei pedir acesso ao demo do ${brand.nomeCurto} e o site não deixou concluir.`} />
+        </>
+      )}
     </Aviso>
   );
 }

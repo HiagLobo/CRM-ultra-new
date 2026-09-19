@@ -88,6 +88,20 @@ describe("criarProvedorEmail — EMAIL_FROM em produção", () => {
     const { criarProvedorEmail } = await carregar({ EMAIL_FROM: "Marca Teste" });
     expect(() => criarProvedorEmail()).toThrow(/EMAIL_FROM inválido/);
   });
+
+  it("produção sem RESEND_API_KEY → ErroConfiguracao com o NOME da variável (vira config:RESEND_API_KEY)", async () => {
+    const { criarProvedorEmail } = await carregar({ RESEND_API_KEY: "", EMAIL_FROM: ENDERECO });
+    const erro = (() => {
+      try {
+        criarProvedorEmail();
+      } catch (e) {
+        return e as Error & { variavel?: string };
+      }
+    })();
+    // `instanceof` não serve aqui: o resetModules recarregou o módulo de erros
+    expect(erro?.name).toBe("ErroConfiguracao");
+    expect(erro?.variavel).toBe("RESEND_API_KEY");
+  });
 });
 
 describe("ResendEmail — aviso de lead novo ao fundador (O7·S1)", () => {

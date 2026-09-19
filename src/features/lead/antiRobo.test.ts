@@ -3,12 +3,10 @@
  * do caso de uso — sem rede (o verificador é injetado).
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import type { ResultadoDesafio } from "../../lib/turnstile";
-import { brand } from "../../config/brand";
 import { PedidoAcessoSchema } from "./schema";
 import { solicitarAcesso, type DepsSolicitarAcesso } from "./solicitarAcesso";
-import { EmailFake, capturarConsole, storesTemporarias } from "./apoioTestes";
+import { capturarConsole, depsSolicitar, storesTemporarias } from "./apoioTestes";
 
 const EMAIL = "corretor@exemplo.com";
 const TELEFONE = "(11) 90000-0000";
@@ -23,18 +21,7 @@ function pedido(over: Record<string, unknown> = {}) {
   return PedidoAcessoSchema.parse({ email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true, ...over });
 }
 
-function montarDeps(over: Partial<DepsSolicitarAcesso> = {}) {
-  const deps: DepsSolicitarAcesso = {
-    store: stores.nova(),
-    email: new EmailFake(),
-    limiter: new MemoriaRateLimiter(),
-    brand,
-    secret: "segredo-de-teste-1234567890",
-    limiteEnviosDia: 90,
-    ...over,
-  };
-  return { deps, email: deps.email as EmailFake };
-}
+const montarDeps = (over: Partial<DepsSolicitarAcesso> = {}) => depsSolicitar(stores.nova(), over);
 
 /** Verificador falso: devolve a resposta escolhida e guarda os tokens recebidos. */
 function verificador(resposta: ResultadoDesafio) {
