@@ -18,6 +18,7 @@ import CTAFinal from "@/components/landing/CTAFinal";
 import LandingFooter from "@/components/landing/LandingFooter";
 import AccessFlow from "@/components/acesso/AccessFlow";
 import { limpar, PARAM_ACESSO, VALOR_ACESSO_NECESSARIO } from "@/lib/demoAccess";
+import { registrarOrigemDaVisita } from "@/lib/origemCampanha";
 import { useRevelar } from "@/components/landing/useRevelar";
 
 export default function LandingPage() {
@@ -26,6 +27,15 @@ export default function LandingPage() {
   const [acessoExpirou, setAcessoExpirou] = React.useState(false);
   const abrirAcesso = React.useCallback(() => setAcessoAberto(true), []);
   const fecharAcesso = React.useCallback(() => setAcessoAberto(false), []);
+
+  /**
+   * Origem da campanha (O8·S3): utm/ref do link ou o site de onde a pessoa veio,
+   * guardados nesta aba para irem junto do pedido de acesso. Declarado ANTES do
+   * efeito abaixo, que pode limpar a query string da URL.
+   */
+  React.useEffect(() => {
+    registrarOrigemDaVisita();
+  }, []);
 
   /**
    * Chegou aqui rebatido de um painel? O gate do servidor recusou o cookie

@@ -126,6 +126,21 @@ describe("solicitarAcesso — O7·S1 (lead sem código e anti-robô)", () => {
     expect((await solicitarAcesso({ ...DADOS })).status).toBe("erro");
   });
 
+  it("origem da campanha (O8·S3): vai quando existe; campo vazio é omitido, nunca \"\"", async () => {
+    const chamadas = fetchFake(200, { ok: true, status: "enviado" });
+    await solicitarAcesso({ ...DADOS, origem: { utm: "instagram.cpc.set", ref: "l.instagram.com" } });
+    expect(chamadas[0]!.body).toEqual({ ...DADOS, origem: { utm: "instagram.cpc.set", ref: "l.instagram.com" } });
+
+    await solicitarAcesso({ ...DADOS, origem: { utm: "google", ref: "" } });
+    expect(chamadas[1]!.body).toEqual({ ...DADOS, origem: { utm: "google" } });
+
+    await solicitarAcesso({ ...DADOS, origem: { utm: "  ", ref: "💥" } });
+    expect(chamadas[2]!.body).not.toHaveProperty("origem");
+
+    await solicitarAcesso({ ...DADOS, origem: { utm: "x".repeat(300) } });
+    expect((chamadas[3]!.body as { origem: { utm: string } }).origem.utm).toHaveLength(100);
+  });
+
   it("429 explica que o limite pode ser da rede, sem culpar a pessoa", async () => {
     fetchFake(429, { ok: false });
     const r = await solicitarAcesso({ ...DADOS });

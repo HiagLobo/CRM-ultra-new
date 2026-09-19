@@ -1,10 +1,14 @@
 "use client";
-/** Passo 3 — acesso liberado: escolha por qual dos três painéis começar. */
+/**
+ * Passo 3 — acesso liberado: escolha por qual dos três painéis começar.
+ * O8·S3: e, para quem já quer conversar, o WhatsApp comercial a um clique.
+ */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import { brand } from "@/config/brand";
+import { brand, linkWhatsapp } from "@/config/brand";
 import { Ic } from "@/components/Icon";
 import EscolhaPainel from "./EscolhaPainel";
+import { MENSAGEM_CONVERSAR } from "./QueroUsar";
 
 export default function StepOk({ aoFechar }: { aoFechar: () => void }) {
   return (
@@ -34,6 +38,19 @@ export default function StepOk({ aoFechar }: { aoFechar: () => void }) {
       <p style={{ fontSize: 12.5, color: p.g500, margin: 0 }}>
         Você pode voltar e testar os outros painéis quando quiser, pelo{" "}
         <strong style={{ color: p.g700 }}>Entrar</strong> do site.
+      </p>
+
+      <p style={{ fontSize: 13.5, color: p.g700, margin: 0, display: "flex", alignItems: "center", gap: "4px 8px", flexWrap: "wrap" }}>
+        <Ic n="message-circle" s={16} c={p.primary} />
+        <span>Quer conversar?</span>
+        <a
+          href={linkWhatsapp(MENSAGEM_CONVERSAR)}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: p.primary, fontWeight: 700 }}
+        >
+          Fale com a gente no WhatsApp
+        </a>
       </p>
     </div>
   );

@@ -10,12 +10,15 @@
  * build. Se o lead foi gravado mas o e-mail não saiu, a tela diz isso com
  * honestidade e oferece o WhatsApp — o formulário continua preenchido para
  * tentar de novo.
+ *
+ * Origem (O8·S3): a campanha que a landing guardou nesta aba vai junto do pedido.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { LeadInputSchema, TEXTO_CONSENTIMENTO } from "@/features/lead/schema";
 import { EXEMPLO_CRECI } from "@/features/lead/creci";
+import { lerOrigemGuardada } from "@/lib/origemCampanha";
 import { solicitarAcesso, type DadosSolicitacao } from "./api";
 import { Campo, AvisoErro, AvisoSemCodigo, BotaoSubmit, mascararTelefone } from "./ui";
 import { CampoIsca, WidgetTurnstile, SITE_KEY_TURNSTILE, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
@@ -60,11 +63,14 @@ export default function StepDados({
     }
     setCarregando(true);
 
+    // origem da campanha (O8·S3): lida no envio — no clique, nunca no render
+    const origem = lerOrigemGuardada();
     const dados: DadosSolicitacao = {
       email: parsed.data.email,
       telefone: parsed.data.telefone,
       creci: parsed.data.creci,
       consentimento: true,
+      ...(origem ? { origem } : {}),
     };
     const r = await solicitarAcesso(dados, { website: isca, turnstileToken: tokenTurnstile ?? undefined });
     setCarregando(false);
