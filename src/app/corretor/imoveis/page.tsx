@@ -292,7 +292,7 @@ function Carteira({ onNew, onEdit, onToast }: { onNew: () => void; onEdit: (p: a
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>
         <div>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, margin: 0, color: pal.ink, letterSpacing: "-0.01em" }}>Meus imóveis</h2>
-          <p style={{ fontSize: 13.5, color: pal.g500, margin: "4px 0 0" }}>Sua carteira completa — cadastre, acompanhe a curadoria e gere material.</p>
+          <p style={{ fontSize: 13.5, color: pal.g500, margin: "4px 0 0" }}>Sua carteira completa: cadastre, acompanhe a curadoria e gere material.</p>
         </div>
         <button onClick={onNew} style={{ display: "flex", alignItems: "center", gap: 8, border: "none", background: pal.primary, color: "#fff", borderRadius: 12, padding: "13px 20px", cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14.5, boxShadow: "var(--shadow-purple)" }}>
           <Ic n="plus" s={19} c="#fff" /> Novo imóvel
@@ -477,7 +477,7 @@ function ImStep0({ form, set }: any) {
   const cat = IM_CATEGORIES.find((c: any) => c.k === form.category) || IM_CATEGORIES[0];
   return (
     <div>
-      <StepTitle icon="layers" title="Tipo & finalidade" sub="Os campos do cadastro se adaptam ao tipo escolhido — você só vê o que importa." />
+      <StepTitle icon="layers" title="Tipo & finalidade" sub="Os campos do cadastro se adaptam ao tipo escolhido: você só vê o que importa." />
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: pal.g500, marginBottom: 10 }}>Categoria</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px,1fr))", gap: 10, marginBottom: 22 }}>
         {IM_CATEGORIES.map((c: any) => {
@@ -559,7 +559,7 @@ function ImStep2({ form, setFeat }: any) {
   const fields = IM_FEATURES[form.category] || IM_FEATURES.Residencial;
   return (
     <div>
-      <StepTitle icon="ruler" title="Características" sub={`Campos específicos para ${(form.category as string).toLowerCase()} — terreno não tem suíte, galpão tem pé-direito.`} />
+      <StepTitle icon="ruler" title="Características" sub={`Campos específicos para ${(form.category as string).toLowerCase()}: terreno não tem suíte, galpão tem pé-direito.`} />
       <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: pal.lilac2, color: pal.primary, borderRadius: 999, padding: "5px 12px", fontSize: 12.5, fontWeight: 600, marginBottom: 18 }}>
         <Ic n="sparkles" s={14} c={pal.primary} /> Formulário adaptado a {form.category} · {form.subtype}
       </div>
@@ -651,10 +651,10 @@ function ImStep4({ form, set }: any) {
         <Field label="IPTU" tag="publico"><NumField value={form.iptu} onChange={(v: string) => set("iptu", v)} placeholder="0" suffix="R$/mês" /></Field>
         <Field label="Aceita financiamento" tag="publico"><div style={{ height: 44, display: "flex", alignItems: "center" }}><Toggle value={form.financiamento} onChange={(v: boolean) => set("financiamento", v)} /></div></Field>
       </div>
-      <Section title="Dados internos" subtitle="Proprietário e permuta — nunca publicados." tag="interno" open={form.internalOpen} onToggle={() => set("internalOpen", !form.internalOpen)}>
+      <Section title="Dados internos" subtitle="Proprietário e permuta (nunca publicados)." tag="interno" open={form.internalOpen} onToggle={() => set("internalOpen", !form.internalOpen)}>
         <div className="wz-grid2" style={{ paddingTop: 12 }}>
           <Field label="Proprietário" tag="interno" full><TextField value={form.proprietario} onChange={(v: string) => set("proprietario", v)} placeholder="Nome do proprietário" /></Field>
-          <Field label="Contato do proprietário" tag="interno" full hint={`Opcional. Só será necessário na etapa de fechamento — o lead é da ${demo.nomeCurto}, o imóvel é seu.`}>
+          <Field label="Contato do proprietário" tag="interno" full hint={`Opcional. Só será necessário na etapa de fechamento. O lead é da ${demo.nomeCurto}, o imóvel é seu.`}>
             <TextField value={form.contatoProprietario} onChange={(v: string) => set("contatoProprietario", v)} placeholder="Opcional · pode deixar em branco" />
           </Field>
         </div>
@@ -676,7 +676,7 @@ function ImStep5({ form, set }: any) {
   return (
     <div>
       <StepTitle icon="clipboard-list" title="Dados complementares" sub="Tudo interno e opcional. Quem tem pressa pula; quem quiser, preenche." />
-      <Section title="Registro e inscrições" subtitle="Matrícula, zona, inscrições e chaves — restritos." tag="interno" open={form.complementOpen} onToggle={() => set("complementOpen", !form.complementOpen)}>
+      <Section title="Registro e inscrições" subtitle="Matrícula, zona, inscrições e chaves (restritos)." tag="interno" open={form.complementOpen} onToggle={() => set("complementOpen", !form.complementOpen)}>
         <div className="wz-grid2" style={{ paddingTop: 12 }}>
           <Field label="Nº de matrícula" tag="interno"><TextField value={form.matricula} onChange={(v: string) => set("matricula", v)} placeholder="Ex.: 123.456" /></Field>
           <Field label="Zona" tag="interno"><TextField value={form.zona} onChange={(v: string) => set("zona", v)} placeholder="Zona urbana / ZEIS…" /></Field>
@@ -705,7 +705,7 @@ function ImStep6({ form, set, onToast }: any) {
   const sel = IM_DESCRIPTIONS[form.descIndex];
   return (
     <div>
-      <StepTitle icon="sparkles" title="Revisão — título & descrição" sub={`A IA gera no tom da ${demo.nomeCurto} e otimizado pros portais. Escolha, edite e publique.`} />
+      <StepTitle icon="sparkles" title="Revisão: título & descrição" sub={`A IA gera no tom da ${demo.nomeCurto} e otimizado pros portais. Escolha, edite e publique.`} />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: pal.primary, background: pal.lilac2, borderRadius: 999, padding: "3px 9px" }}><Ic n="sparkles" s={12} c={pal.primary} /> Gerado por IA</span>
         <button onClick={regen} disabled={form.descGenerating} style={{ display: "flex", alignItems: "center", gap: 6, border: `1px solid ${pal.g300}`, background: "#fff", borderRadius: 9, padding: "7px 13px", cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 12.5, color: pal.g700 }}>
@@ -738,7 +738,7 @@ function ImStep6({ form, set, onToast }: any) {
           </div>
           <Field label="Título (editável)"><input key={"t" + form.descIndex} defaultValue={sel.title} style={{ width: "100%", border: `1px solid ${pal.g300}`, borderRadius: 10, padding: "11px 13px", fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: pal.ink, outline: "none" }} /></Field>
           <div style={{ marginTop: 14 }}>
-            <Field label="Descrição (editável)" hint="A IA só usa o que você informou — nunca inventa metragem, vista ou item que não existe.">
+            <Field label="Descrição (editável)" hint="A IA só usa o que você informou. Nunca inventa metragem, vista ou item que não existe.">
               <textarea key={"b" + form.descIndex} defaultValue={sel.body} rows={4} style={{ width: "100%", border: `1px solid ${pal.g300}`, borderRadius: 10, padding: "11px 13px", fontFamily: "var(--font-body)", fontSize: 14, lineHeight: 1.5, color: pal.ink, outline: "none", resize: "vertical" }} />
             </Field>
           </div>

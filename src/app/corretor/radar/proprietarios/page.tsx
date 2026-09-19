@@ -86,7 +86,7 @@ function OwnerCard({ r, revealed, onReveal, onCaptar, onMapa }: { r: any; reveal
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: pal.g700, fontWeight: 600 }}><Ic n="mail" s={14} c={pal.primary} /> {r.email}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 9, fontSize: 11, color: pal.g500 }}>
-              <Ic n="eye" s={12} c={pal.g500} /> Mostramos só o necessário para captar — sem dossiê.
+              <Ic n="eye" s={12} c={pal.g500} /> Mostramos só o necessário para captar, sem dossiê.
             </div>
           </React.Fragment>
         ) : (
@@ -316,7 +316,7 @@ export default function ProprietariosPage() {
   return (
     <CorretorChrome
       title="Radar"
-      subtitle="Proprietários e moradores — captação responsável."
+      subtitle="Proprietários e moradores: captação responsável."
       searchPlaceholder="Buscar endereço"
       radar="Proprietários"
       radarRight={<RadarCredits />}

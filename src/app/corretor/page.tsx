@@ -77,7 +77,7 @@ function ScoreCard({ animate }: { animate: boolean }) {
 
 /* Dica do dia: prática de trabalho, sem autoria de pessoa. `tema` é o que aparece embaixo. */
 const DICAS = [
-  { t: "Responda cada lead novo no mesmo dia e registre a conversa — ninguém fica sem retorno.", tema: "Atendimento" },
+  { t: "Responda cada lead novo no mesmo dia e registre a conversa: ninguém fica sem retorno.", tema: "Atendimento" },
   { t: "Antes de cada visita, confirme horário e endereço com o cliente pelo canal do atendimento.", tema: "Agenda" },
   { t: "Imóvel parado há mais de 30 dias pede foto nova, preço revisto ou descrição reescrita.", tema: "Carteira" },
   { t: "Feche o dia movendo cada negociação para a etapa certa do funil.", tema: "Funil" },
@@ -171,7 +171,7 @@ const ACTIONS = [
 function ActionZone({ onGo }: { onGo: (g: string) => void }) {
   return (
     <div>
-      <BlockHead icon="zap" title="Precisa de você agora" sub="O que move o resultado do dia — e alimenta seu score sozinho." />
+      <BlockHead icon="zap" title="Precisa de você agora" sub="O que move o resultado do dia e alimenta seu score sozinho." />
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {ACTIONS.map((a, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 13, background: "#fff", border: `1px solid ${a.sla ? "#F2C9C9" : pal.g300}`, borderRadius: 13, padding: "13px 15px" }}>
@@ -203,7 +203,7 @@ const INDS: [string, string, string, string, string][] = [
 function Indicadores() {
   return (
     <div>
-      <BlockHead icon="bar-chart-3" title="Indicadores do mês" sub="Como você vem indo — o essencial, sem parede de gráficos." />
+      <BlockHead icon="bar-chart-3" title="Indicadores do mês" sub="Como você vem indo: o essencial, sem parede de gráficos." />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 12 }}>
         {INDS.map(([label, val, icon, c, bg], i) => (
           <div key={i} style={{ background: "#fff", border: `1px solid ${pal.g300}`, borderRadius: 14, padding: "15px 16px" }}>
@@ -230,7 +230,7 @@ const MEDALS: [string, string, string, string][] = [
 function GrowthCard({ onToast, animate, isMobile }: { onToast: (m: string, i?: string) => void; animate: boolean; isMobile: boolean }) {
   return (
     <div>
-      <BlockHead icon="rocket" title="Como crescer" sub="O caminho pra subir — e o reconhecimento pelo progresso." />
+      <BlockHead icon="rocket" title="Como crescer" sub="O caminho pra subir e o reconhecimento pelo progresso." />
       <div className="grow-grid" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 16 }}>
         <div style={{ background: "#fff", border: `1px solid ${pal.g300}`, borderRadius: 16, padding: 18 }}>
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".04em", textTransform: "uppercase", color: pal.g500, marginBottom: 12 }}>Sugestões para você</div>
@@ -318,7 +318,7 @@ export default function InicioPage() {
   );
 
   return (
-    <CorretorChrome title="Bom dia, Ricardo" subtitle="Aqui está o seu dia — status, ações e como crescer." searchPlaceholder="Buscar imóvel, cliente ou código" mobileTab="Início">
+    <CorretorChrome title="Bom dia, Ricardo" subtitle="Aqui está o seu dia: status, ações e como crescer." searchPlaceholder="Buscar imóvel, cliente ou código" mobileTab="Início">
       {content}
       <Toast toast={toast} />
     </CorretorChrome>

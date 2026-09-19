@@ -112,7 +112,7 @@ export default function GuiaDrawer({
 
       {!secao && (
         <div style={{ padding: "0 16px 16px", fontSize: 12, color: p.g500 }}>
-          Esta tela ainda não tem dicas próprias — acima estão os passos gerais do painel.
+          Esta tela ainda não tem dicas próprias. Acima estão os passos gerais do painel.
         </div>
       )}
 

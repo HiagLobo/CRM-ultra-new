@@ -182,7 +182,7 @@ export default function AtendimentoPage() {
     if (key === 'visita') {
       patch(id, (c: any) => {
         c.stage = 'Visita';
-        c.timeline.push({ t: 'Visita agendada — amanhã 15h', d: 'Agora', icon: 'calendar-check', accent: true });
+        c.timeline.push({ t: 'Visita agendada: amanhã 15h', d: 'Agora', icon: 'calendar-check', accent: true });
         return c;
       });
       fire('Visita agendada · etapa movida para Visita', 'calendar-check');

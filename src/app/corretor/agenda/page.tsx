@@ -377,7 +377,7 @@ function WeeklyPlan({ isMobile, onClose, onDone, onToast }: { isMobile: boolean;
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
           {step === 0 && (
             <div>
-              <PlBlockHead icon="history" title="Como foi sua semana" sub="Um retrato rápido — vem do seu score e indicadores, sem digitar nada." />
+              <PlBlockHead icon="history" title="Como foi sua semana" sub="Um retrato rápido: vem do seu score e indicadores, sem digitar nada." />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px,1fr))', gap: 12 }}>
                 {RETRO.map(([l, v, ic, c, note], i) => (
                   <div key={i} style={{ background: '#fff', border: `1px solid ${pal.g300}`, borderRadius: 14, padding: 16 }}>
@@ -392,7 +392,7 @@ function WeeklyPlan({ isMobile, onClose, onDone, onToast }: { isMobile: boolean;
           )}
           {step === 1 && (
             <div>
-              <PlBlockHead icon="target" title="Metas da semana" sub="Defina poucos números — o que dá pra perseguir todo dia." />
+              <PlBlockHead icon="target" title="Metas da semana" sub="Defina poucos números: o que dá pra perseguir todo dia." />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {([['visitas', 'Visitas agendadas', 'sugestão: 6'], ['follow', 'Follow-ups', 'sugestão: 15'], ['capta', 'Captações de imóvel', 'sugestão: 3']] as [string,string,string][]).map(([k, label, hint]) => (
                   <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#fff', border: `1px solid ${pal.g300}`, borderRadius: 13, padding: '14px 16px' }}>
@@ -407,7 +407,7 @@ function WeeklyPlan({ isMobile, onClose, onDone, onToast }: { isMobile: boolean;
             <div>
               <PlBlockHead icon="heart-pulse" title="Rotina & vida" sub="Sua agenda é de crescimento pessoal, não só de trabalho. Dormir bem e se cuidar melhora foco, energia e fechamento." />
               <div style={{ display: 'flex', gap: 9, marginBottom: 16, background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 12, padding: '12px 14px', fontSize: 12.5, color: pal.g700 }}>
-                <Ic n="lightbulb" s={17} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} /> <span>~8h de sono e atividade física regular aumentam clareza e disposição. Planeje a semana <strong>inteira</strong> — corpo descansado fecha mais negócios.</span>
+                <Ic n="lightbulb" s={17} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} /> <span>~8h de sono e atividade física regular aumentam clareza e disposição. Planeje a semana <strong>inteira</strong>. Corpo descansado fecha mais negócios.</span>
               </div>
               <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                 {([['Acordar', wake, setWake, 'sunrise'], ['Dormir', sleep, setSleep, 'moon']] as any[]).map(([lab, val, setter, ic]: any, i: number) => (
@@ -438,7 +438,7 @@ function WeeklyPlan({ isMobile, onClose, onDone, onToast }: { isMobile: boolean;
           )}
           {step === 3 && (
             <div>
-              <PlBlockHead icon="clipboard-list" title="Compromissos & tarefas" sub="O que você precisa fazer esta semana — com título, horário e descrição." />
+              <PlBlockHead icon="clipboard-list" title="Compromissos & tarefas" sub="O que você precisa fazer esta semana, com título, horário e descrição." />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {tasks.map((t, i) => (
                   <div key={i} style={{ background: '#fff', border: `1px solid ${pal.g300}`, borderRadius: 14, padding: 16 }}>
@@ -466,9 +466,9 @@ function WeeklyPlan({ isMobile, onClose, onDone, onToast }: { isMobile: boolean;
           )}
           {step === 4 && (
             <div>
-              <PlBlockHead icon="clock" title="Disponibilidade" sub="Sua grade semanal — quando você atende. O bot e o roteamento de leads leem isso em tempo real." />
+              <PlBlockHead icon="clock" title="Disponibilidade" sub="Sua grade semanal: quando você atende. O bot e o roteamento de leads leem isso em tempo real." />
               <div style={{ display: 'flex', gap: 9, marginBottom: 16, background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 12, padding: '12px 14px', fontSize: 12.5, color: pal.g700 }}>
-                <Ic n="info" s={16} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} /> <span>Leads só são oferecidos dentro da sua disponibilidade — confirme seus horários da semana.</span>
+                <Ic n="info" s={16} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} /> <span>Leads só são oferecidos dentro da sua disponibilidade. Confirme seus horários da semana.</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {avail.map((a, i) => (
@@ -594,7 +594,7 @@ function DailyPlan({ isMobile, onClose, onDone, onToast, initialWhich }: { isMob
         <div style={{ maxWidth: 620, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ display: 'flex', gap: 10, background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 12, padding: '13px 15px' }}>
             <Ic n="sparkles" s={18} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} />
-            <div style={{ fontSize: 13, color: pal.g700, lineHeight: 1.5 }}><strong style={{ color: pal.ink }}>Imprevistos acontecem</strong> — e está tudo bem ajustar {amanha ? 'o dia de amanhã' : 'seu dia'}. Edite os horários e o que vai fazer à vontade.</div>
+            <div style={{ fontSize: 13, color: pal.g700, lineHeight: 1.5 }}><strong style={{ color: pal.ink }}>Imprevistos acontecem</strong>, e está tudo bem ajustar {amanha ? 'o dia de amanhã' : 'seu dia'}. Edite os horários e o que vai fazer à vontade.</div>
           </div>
           <div style={{ background: '#fff', border: `1px solid ${pal.g300}`, borderRadius: 14, padding: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -698,7 +698,7 @@ function SyncNotice({ onToast }: { onToast: (msg: string, icon?: string) => void
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 10, padding: '9px 13px', marginBottom: 16, fontSize: 12.5, color: pal.g700 }}>
       <Ic n="calendar-sync" s={16} c={pal.primary} style={{ flexShrink: 0 }} />
-      <span>Sua agenda pode ser sincronizada com o <strong>Google, Apple ou Outlook</strong> — só compromissos reais vão pro seu calendário.</span>
+      <span>Sua agenda pode ser sincronizada com o <strong>Google, Apple ou Outlook</strong>: só compromissos reais vão pro seu calendário.</span>
       <button onClick={() => onToast('Link de sincronização (.ics) copiado', 'link')} style={{ marginLeft: 'auto', border: 'none', background: 'transparent', color: pal.primary, fontWeight: 700, fontSize: 12.5, cursor: 'pointer', whiteSpace: 'nowrap' }}>Sincronizar</button>
     </div>
   );

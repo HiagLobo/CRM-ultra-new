@@ -82,7 +82,7 @@ function PhotoStatusBadge({ status }: { status: string }) {
   const map: any = {
     aprovada: ["#1E7A43", "#E6F4EC", "check-circle", "Foto aprovada"],
     analise: ["#B8860B", "#FBF1DC", "clock", "Foto em análise pelo marketing"],
-    devolvida: ["#C0392B", "#FAE5E5", "rotate-ccw", "Foto devolvida — ajuste necessário"],
+    devolvida: ["#C0392B", "#FAE5E5", "rotate-ccw", "Foto devolvida: ajuste necessário"],
   };
   const [c, bg, icon, label] = map[status] || map.aprovada;
   return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: bg, color: c, fontSize: 11.5, fontWeight: 700, borderRadius: 999, padding: "4px 11px" }}><Ic n={icon} s={13} c={c} /> {label}</span>;
@@ -114,8 +114,8 @@ function PublicSection({ onToast }: { onToast: (m: string, i?: string) => void }
           <PhotoStatusBadge status={photoStatus} />
           <p style={{ fontSize: 13, color: pal.g700, lineHeight: 1.55, marginTop: 10 }}>
             {photoStatus === "analise"
-              ? "Sua nova foto está em análise. Enquanto não for aprovada, a foto atual continua na sua página pública — assim a vitrine nunca fica sem imagem."
-              : "Sua foto passa pela curadoria do marketing antes de ir ao ar — mesma régua de qualidade dos anúncios, pra manter o padrão da marca."}
+              ? "Sua nova foto está em análise. Enquanto não for aprovada, a foto atual continua na sua página pública, assim a vitrine nunca fica sem imagem."
+              : "Sua foto passa pela curadoria do marketing antes de ir ao ar, na mesma régua de qualidade dos anúncios, pra manter o padrão da marca."}
           </p>
         </div>
       </div>
@@ -190,12 +190,12 @@ function AccountSection({ onToast }: { onToast: (m: string, i?: string) => void 
     <SectionCard icon="user-cog" title="Conta" sub="Seus dados de acesso">
       <div style={{ marginTop: -14 }}>
         {row("mail", "E-mail", a.email, "Usado para login e recuperação de conta", "Alterar")}
-        {row("phone", "Telefone pessoal", a.phone, "Usado para login, 2FA e avisos — não é o número que o cliente vê.", "Alterar")}
+        {row("phone", "Telefone pessoal", a.phone, "Usado para login, 2FA e avisos. Não é o número que o cliente vê.", "Alterar")}
         {row("key-round", "Senha", "••••••••••", "Última troca há 3 meses", "Alterar")}
       </div>
       <div style={{ display: "flex", gap: 9, marginTop: 14, background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 11, padding: "12px 14px" }}>
         <Ic n="shield-alert" s={17} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} />
-        <span style={{ fontSize: 12.5, color: pal.g700, lineHeight: 1.5 }}>Seu telefone pessoal é só da <strong>conta</strong>. O cliente sempre fala pelo número da {demo.nomeCurto} — são coisas separadas, de propósito.</span>
+        <span style={{ fontSize: 12.5, color: pal.g700, lineHeight: 1.5 }}>Seu telefone pessoal é só da <strong>conta</strong>. O cliente sempre fala pelo número da {demo.nomeCurto}. São coisas separadas, de propósito.</span>
       </div>
     </SectionCard>
   );
@@ -298,7 +298,7 @@ function NotifSection({ onToast }: { onToast: (m: string, i?: string) => void })
 /* ---------- 5. DOCUMENTOS ---------- */
 function DocsSection({ onToast }: { onToast: (m: string, i?: string) => void }) {
   return (
-    <SectionCard icon="folder" title="Meus documentos" sub="Transparência — veja e baixe">
+    <SectionCard icon="folder" title="Meus documentos" sub="Transparência: veja e baixe">
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {PF_DOCS.map((d) => (
           <div key={d.k} style={{ display: "flex", alignItems: "center", gap: 13, border: `1px solid ${pal.g300}`, borderRadius: 11, padding: "12px 14px" }}>
