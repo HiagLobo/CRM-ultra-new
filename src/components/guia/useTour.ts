@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import { brand } from "@/config/brand";
 import { tourDaRota, type PassoTour } from "@/content/guia";
 import { tourVisto, marcarTourVisto, esquecerTour } from "@/lib/guiaState";
+import { marcaComoVisto, type MotivoSaida } from "./regrasDoTour";
 
 /** Espera o layout assentar antes de medir os elementos destacados. */
 const ATRASO_MS = 450;
@@ -19,7 +20,7 @@ const ATRASO_MS = 450;
 export function useTour({ pausado = false }: { pausado?: boolean } = {}): {
   passos: PassoTour[] | null;
   aberto: boolean;
-  fechar: () => void;
+  fechar: (motivo?: MotivoSaida) => void;
   refazer: () => void;
 } {
   const pathname = usePathname();
@@ -36,9 +37,13 @@ export function useTour({ pausado = false }: { pausado?: boolean } = {}): {
     return () => clearTimeout(t);
   }, [montado, pausado, passos, pathname]);
 
-  /** Pular também marca como visto: insistir com quem dispensou é incômodo. */
-  const fechar = React.useCallback(() => {
-    marcarTourVisto(pathname);
+  /**
+   * Pular e concluir marcam como visto; fechar porque a tela não tinha nada para
+   * mostrar, não — senão o tour do Atendimento era gravado como visto antes de
+   * a tela terminar de carregar e nunca mais aparecia (ver `marcaComoVisto`).
+   */
+  const fechar = React.useCallback((motivo?: MotivoSaida) => {
+    if (marcaComoVisto(motivo)) marcarTourVisto(pathname);
     setAberto(false);
   }, [pathname]);
 

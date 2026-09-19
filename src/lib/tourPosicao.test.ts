@@ -2,9 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   posicaoDoBalao,
   estaVisivel,
+  dentroNaHorizontal,
+  alvoNaTela,
   larguraDoBalao,
   ESPACO,
   MARGEM,
+  type MedidaDoAlvo,
   type Retangulo,
   type Viewport,
 } from "./tourPosicao";
@@ -34,12 +37,28 @@ describe("posicaoDoBalao", () => {
     expect(p.top).toBeGreaterThanOrEqual(MARGEM);
   });
 
-  it("não cabe em cima nem embaixo: centraliza em vez de cortar", () => {
-    // elemento ocupando quase toda a altura de uma tela curta
-    const p = posicaoDoBalao(ret(10, 100, 200, 600), { largura: 1280, altura: 640 }, BALAO);
+  it("não cabe em cima, embaixo nem ao lado: centraliza em vez de cortar", () => {
+    // elemento ocupando quase toda a altura de uma tela curta e estreita
+    const p = posicaoDoBalao(ret(10, 100, 200, 600), { largura: 600, altura: 640 }, BALAO);
     expect(p.lado).toBe("centro");
     expect(p.top).toBeGreaterThanOrEqual(MARGEM);
     expect(p.top + BALAO.altura).toBeLessThanOrEqual(640);
+  });
+
+  it("alvo da altura da tela (menu lateral): balão ao lado, sem cobrir o menu", () => {
+    const menu = ret(0, 0, 268, TELA.altura);
+    const p = posicaoDoBalao(menu, TELA, BALAO);
+    expect(p.lado).toBe("direita");
+    expect(p.left).toBe(268 + ESPACO);
+    expect(p.left + BALAO.largura).toBeLessThanOrEqual(TELA.largura - MARGEM);
+    expect(p.top).toBeGreaterThanOrEqual(MARGEM);
+    expect(p.top + BALAO.altura).toBeLessThanOrEqual(TELA.altura - MARGEM);
+  });
+
+  it("alvo alto no celular: sem espaço ao lado, continua centralizado", () => {
+    const p = posicaoDoBalao(ret(0, 0, 300, CELULAR.altura), CELULAR, { largura: larguraDoBalao(CELULAR), altura: 200 });
+    expect(p.lado).toBe("centro");
+    expect(p.left).toBeGreaterThanOrEqual(MARGEM);
   });
 
   it("centraliza pelo alvo quando há espaço nos dois lados", () => {
@@ -91,5 +110,61 @@ describe("estaVisivel", () => {
     expect(estaVisivel(ret(-100, 0, 200, 40), TELA)).toBe(false); // rolou para cima
     expect(estaVisivel(ret(900, 0), TELA)).toBe(false); // ainda abaixo
     expect(estaVisivel(ret(-20, 0, 200, 40), TELA)).toBe(true); // metade aparecendo
+  });
+
+  it("eixo horizontal: gaveta empurrada para fora da tela não conta como visível", () => {
+    const TELA_390: Viewport = { largura: 390, altura: 844 };
+    // menu de 268 px com translateX(-100%): termina exatamente na borda esquerda
+    expect(estaVisivel(ret(0, -268, 268, 844), TELA_390)).toBe(false);
+    // painel que sai pela direita (translateX(100%))
+    expect(estaVisivel(ret(0, 390, 340, 844), TELA_390)).toBe(false);
+    // gaveta no meio da animação: um pedaço já aparece
+    expect(estaVisivel(ret(0, -100, 268, 844), TELA_390)).toBe(true);
+    expect(estaVisivel(ret(0, 350, 100, 40), TELA_390)).toBe(true);
+  });
+});
+
+describe("dentroNaHorizontal", () => {
+  it("borda encostada não é estar dentro", () => {
+    expect(dentroNaHorizontal(ret(0, -200, 200, 40), TELA)).toBe(false); // right = 0
+    expect(dentroNaHorizontal(ret(0, TELA.largura, 50, 40), TELA)).toBe(false); // left = largura
+    expect(dentroNaHorizontal(ret(0, -199, 200, 40), TELA)).toBe(true);
+  });
+});
+
+describe("alvoNaTela — o que o tour pode destacar", () => {
+  const CEL: Viewport = { largura: 390, altura: 844 };
+  const medida = (r: Retangulo, extra: Partial<MedidaDoAlvo> = {}): MedidaDoAlvo => ({
+    caixas: 1,
+    retangulo: r,
+    invisivel: false,
+    ...extra,
+  });
+
+  it("elemento normal na tela: sim", () => {
+    expect(alvoNaTela(medida(ret(16, 16, 42, 42)), CEL)).toBe(true);
+  });
+
+  it("display:none (barra do franqueado no celular): retângulo 0×0 e sem caixas — não", () => {
+    expect(alvoNaTela(medida(ret(0, 0, 0, 0), { caixas: 0 }), CEL)).toBe(false);
+  });
+
+  it("tamanho zero mesmo com caixa (elemento vazio): não", () => {
+    expect(alvoNaTela(medida(ret(100, 100, 0, 40)), CEL)).toBe(false);
+    expect(alvoNaTela(medida(ret(100, 100, 200, 0)), CEL)).toBe(false);
+  });
+
+  it("gaveta do menu fechada, fora da tela pela esquerda: não", () => {
+    expect(alvoNaTela(medida(ret(0, -268, 268, 844)), CEL)).toBe(false);
+    // item do menu dentro da gaveta fechada
+    expect(alvoNaTela(medida(ret(120, -256, 244, 40)), CEL)).toBe(false);
+  });
+
+  it("visibility:hidden (gaveta fechada que só saiu de cena): não", () => {
+    expect(alvoNaTela(medida(ret(0, 0, 268, 844), { invisivel: true }), CEL)).toBe(false);
+  });
+
+  it("abaixo da dobra, mas na coluna da tela: sim — o tour rola até ele", () => {
+    expect(alvoNaTela(medida(ret(2000, 16, 358, 300)), CEL)).toBe(true);
   });
 });

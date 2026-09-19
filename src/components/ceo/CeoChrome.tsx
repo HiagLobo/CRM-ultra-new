@@ -102,7 +102,8 @@ function CeoSidebar({ activeRoute, navigate, collapsed, setCollapsed, mobileOpen
       width: W, minWidth: W, maxWidth: W, background: ceoPalette.dark, color: "#fff",
       display: "flex", flexDirection: "column", flexShrink: 0,
       height: isMobile ? "100%" : "100vh",
-      position: isMobile ? "fixed" : "sticky", top: 0, left: 0, zIndex: 60,
+      // no celular quem é fixo é o invólucro da gaveta (abaixo); o aside só ocupa a largura dele
+      position: isMobile ? "relative" : "sticky", top: 0, left: 0, zIndex: 60,
       transition: "width .22s cubic-bezier(.2,.7,.3,1)", overflowX: "hidden",
     }}>
       {/* Brand + collapse */}
@@ -172,7 +173,15 @@ function CeoSidebar({ activeRoute, navigate, collapsed, setCollapsed, mobileOpen
           position: "fixed", inset: 0, background: "rgba(28,26,34,.45)", zIndex: 55,
           opacity: mobileOpen ? 1 : 0, pointerEvents: mobileOpen ? "auto" : "none", transition: "opacity .2s ease",
         }} />
-        <div style={{ transform: mobileOpen ? "translateX(0)" : "translateX(-100%)", transition: "transform .24s cubic-bezier(.2,.7,.3,1)", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 60 }}>
+        {/* Gaveta: o invólucro PRECISA de largura. Sem ela (o filho era fixed e saía do
+            fluxo) ele media 0 px, o translateX(-100%) não movia nada e o menu cobria a
+            tela. Fechada, também fica invisível — sem foco por Tab nem alvo do tour. */}
+        <div style={{
+          width: W, position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 60,
+          transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
+          visibility: mobileOpen ? "visible" : "hidden",
+          transition: `transform .24s cubic-bezier(.2,.7,.3,1), visibility 0s linear ${mobileOpen ? "0s" : ".24s"}`,
+        }}>
           {inner}
         </div>
       </>
@@ -300,15 +309,16 @@ function CeoTopbar({ isMobile, onBurger }: { isMobile: boolean; onBurger: () => 
   return (
     <header style={{ minHeight: 72, background: "#fff", borderBottom: `1px solid ${ceoPalette.g300}`, display: "flex", alignItems: "center", padding: isMobile ? "0 16px" : "0 28px", gap: 16, position: "sticky", top: 0, zIndex: 30 }}>
       {isMobile && (
-        <button onClick={onBurger} title="Menu" style={{ width: 42, height: 42, border: `1px solid ${ceoPalette.g300}`, background: "#fff", borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 }}>
+        // mesmo data-tour do menu: com a gaveta fechada, o tour destaca o botão que a abre
+        <button onClick={onBurger} title="Menu" aria-label="Abrir menu" data-tour="ceo-menu" style={{ width: 42, height: 42, border: `1px solid ${ceoPalette.g300}`, background: "#fff", borderRadius: 12, display: "grid", placeItems: "center", cursor: "pointer", flexShrink: 0 }}>
           <CIc n="menu" s={22} c={ceoPalette.ink} />
         </button>
       )}
 
       {!isMobile && <UnitSelector />}
 
-      {/* Search */}
-      <div className="ceo-search" style={{ flex: 1, maxWidth: 420, display: "flex", alignItems: "center", gap: 10, background: ceoPalette.g100, border: "1px solid transparent", borderRadius: 999, padding: "0 16px", height: 44 }}>
+      {/* Search — minWidth 0: sem ele a largura natural do input (~150 px) empurrava a topbar para fora da tela no celular */}
+      <div className="ceo-search" style={{ flex: 1, maxWidth: 420, minWidth: 0, display: "flex", alignItems: "center", gap: 10, background: ceoPalette.g100, border: "1px solid transparent", borderRadius: 999, padding: "0 16px", height: 44 }}>
         <CIc n="search" s={18} c={ceoPalette.g500} />
         <input placeholder="Buscar na rede…" style={{ flex: 1, border: "none", background: "transparent", outline: "none", fontFamily: "var(--font-body)", fontSize: 14, color: ceoPalette.ink, minWidth: 0 }} />
       </div>

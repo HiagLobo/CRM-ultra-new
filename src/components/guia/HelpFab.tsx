@@ -1,10 +1,14 @@
 "use client";
-/** Botão flutuante de ajuda — abre e fecha o guia da tela atual. */
+/**
+ * Botão flutuante de ajuda — abre e fecha o guia da tela atual.
+ * `rodape` é a distância até a base da tela (CSS): sobe quando o painel tem barra
+ * de abas embaixo, senão o botão cobre a última aba.
+ */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 
-export default function HelpFab({ aberto, aoAlternar }: { aberto: boolean; aoAlternar: () => void }) {
+export default function HelpFab({ aberto, aoAlternar, rodape }: { aberto: boolean; aoAlternar: () => void; rodape: string }) {
   return (
     <button
       type="button"
@@ -17,7 +21,7 @@ export default function HelpFab({ aberto, aoAlternar }: { aberto: boolean; aoAlt
       style={{
         position: "fixed",
         right: 16,
-        bottom: 20,
+        bottom: rodape,
         zIndex: 250,
         display: "inline-flex",
         alignItems: "center",

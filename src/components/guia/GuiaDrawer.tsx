@@ -16,11 +16,14 @@ export default function GuiaDrawer({
   painel,
   aoFechar,
   aoRefazerTour,
+  rodape,
 }: {
   painel: Painel;
   aoFechar: () => void;
   /** Só aparece nas telas que têm tour. */
   aoRefazerTour?: () => void;
+  /** Distância até a base da tela (CSS) — logo acima do botão Guia. */
+  rodape: string;
 }) {
   const pathname = usePathname();
   const secao = secaoDaRota(pathname);
@@ -45,10 +48,11 @@ export default function GuiaDrawer({
       style={{
         position: "fixed",
         right: 16,
-        bottom: 84,
+        bottom: rodape,
         zIndex: 250,
         width: "min(340px, calc(100vw - 32px))",
-        maxHeight: "min(60vh, 520px)",
+        // com o guia mais alto (acima da barra de abas), o topo não pode sair da tela
+        maxHeight: `min(60vh, 520px, calc(100% - ${rodape} - 16px))`,
         overflowY: "auto",
         background: "#fff",
         border: `1px solid ${p.g300}`,

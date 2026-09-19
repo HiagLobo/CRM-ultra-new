@@ -27,7 +27,20 @@ import GuiaDrawer from "./GuiaDrawer";
 import Tour from "./Tour";
 import { useTour } from "./useTour";
 
-export default function GuiaDemo({ painel }: { painel: Painel }) {
+/** Altura do botão Guia mais o respiro até o painel do guia, que abre logo acima. */
+const ACIMA_DO_BOTAO = 64;
+
+/** Distância até a base da tela, somando a área do gesto de início do iPhone. */
+const noRodape = (px: number) => `calc(${px}px + env(safe-area-inset-bottom, 0px))`;
+
+export default function GuiaDemo({
+  painel,
+  folgaInferior = 20,
+}: {
+  painel: Painel;
+  /** Quanto o botão Guia fica acima da base (px). Sobe quando há barra de abas embaixo. */
+  folgaInferior?: number;
+}) {
   // o storage só existe no cliente: começar "montado=false" evita divergência
   // entre o HTML do servidor e o primeiro render do navegador
   const [montado, setMontado] = React.useState(false);
@@ -77,6 +90,7 @@ export default function GuiaDemo({ painel }: { painel: Painel }) {
         <GuiaDrawer
           painel={painel}
           aoFechar={alternarDrawer}
+          rodape={noRodape(folgaInferior + ACIMA_DO_BOTAO)}
           aoRefazerTour={
             tour.passos
               ? () => {
@@ -88,7 +102,7 @@ export default function GuiaDemo({ painel }: { painel: Painel }) {
           }
         />
       )}
-      <HelpFab aberto={drawerAberto} aoAlternar={alternarDrawer} />
+      <HelpFab aberto={drawerAberto} aoAlternar={alternarDrawer} rodape={noRodape(folgaInferior)} />
       {tour.aberto && tour.passos && <Tour passos={tour.passos} aoSair={tour.fechar} />}
     </>
   );

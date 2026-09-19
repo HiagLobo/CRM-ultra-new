@@ -208,12 +208,18 @@ export function RadarTabs({ active, right }: { active: string; right?: React.Rea
 }
 
 /* ---------------- MOBILE CHROME (top bar + content + bottom tabs) ---------------- */
+/* Distância do botão Guia até a base: barra de abas ≈ 60 px; a caixa de mensagem do
+   Atendimento soma mais ≈ 75 px por cima dela. */
+const FOLGA_ABAS = 72;
+const FOLGA_ATENDIMENTO = 148;
 function MobileChrome({ tab, title, subtitle, children }: { tab: string; title: string; subtitle?: string; children: React.ReactNode }) {
   const router = useRouter();
   const logout = () => { mockAuth.logout(); router.push("/login"); };
   return (
     <div className="ds-mobile-shell" style={{ display: "flex", flexDirection: "column", background: pal.page, overflow: "hidden" }}>
-      <GuiaDemo painel="corretor" />
+      {/* o botão Guia sobe acima da barra de abas (antes cobria a aba Perfil) — e, no
+          Atendimento, também acima da caixa de mensagem, para não cobrir o Enviar */}
+      <GuiaDemo painel="corretor" folgaInferior={tab === "Atendimento" ? FOLGA_ATENDIMENTO : FOLGA_ABAS} />
       <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", borderBottom: `1px solid ${pal.g300}`, flexShrink: 0 }}>
         <div style={{ lineHeight: 1.2, minWidth: 0, flex: 1 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, color: pal.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
