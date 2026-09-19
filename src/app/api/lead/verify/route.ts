@@ -6,6 +6,10 @@
  * Na PRIMEIRA verificação de um lead, avisa o fundador (`AVISO_LEADS_EMAIL`,
  * opcional) com um e-mail sem PII. O aviso nunca derruba a verificação.
  *
+ * O9: o corpo pode trazer `atualizacao` ({ nome, telefone, creci }, mesmo Zod do
+ * cadastro) — aplicada só com o código certo. 200 `{ ok, naoAtualizados? }`:
+ * `naoAtualizados` lista o que ficou para trás por ser de outro lead.
+ *
  * O 500 loga a causa segura (O7·S2) — ver RUNBOOK §6.
  */
 import { NextResponse, type NextRequest } from "next/server";
@@ -80,7 +84,9 @@ export async function POST(req: NextRequest) {
       resultado,
     );
 
-    const resposta = NextResponse.json({ ok: true });
+    // O9: campos da `atualizacao` que ficaram para trás por já serem de outro lead
+    const naoAtualizados = resultado.naoAtualizados?.length ? { naoAtualizados: resultado.naoAtualizados } : {};
+    const resposta = NextResponse.json({ ok: true, ...naoAtualizados });
     resposta.cookies.set(
       COOKIE_TOKEN_DEMO,
       assinarTokenDemo({ email: resultado.email }, env.APP_SECRET),

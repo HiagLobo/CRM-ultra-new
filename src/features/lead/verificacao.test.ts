@@ -32,6 +32,7 @@ async function leadPendente(agora: Date = T0) {
   const { codigo } = await criarOuAtualizarLead(
     store,
     LeadInputSchema.parse({
+      nome: "Corretor Exemplo",
       email: EMAIL,
       telefone: "(11) 90000-0000",
       creci: "SP 12345",

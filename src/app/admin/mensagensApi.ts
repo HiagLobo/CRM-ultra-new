@@ -62,5 +62,7 @@ export function mensagemDeErro(r: RespostaApi, oQue: string): string {
 
 /** 409 do cadastro manual: diz qual dado repetiu, sem repetir o dado. */
 export function mensagemDuplicado(campo: unknown): string {
-  return campo === "email" ? "Já existe um lead com esse e-mail." : "Já existe um lead com esse telefone.";
+  if (campo === "email") return "Já existe um lead com esse e-mail.";
+  if (campo === "creci") return "Já existe um lead com esse CRECI.";
+  return "Já existe um lead com esse telefone.";
 }

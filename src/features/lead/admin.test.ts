@@ -115,6 +115,7 @@ describe("excluirLead (LGPD art. 18 — direito à eliminação)", () => {
     const { lead } = await criarOuAtualizarLead(
       store,
       LeadInputSchema.parse({
+        nome: "Corretor Exemplo",
         email: "corretor0@exemplo.com",
         telefone: "(11) 90000-0000",
         creci: "SP 12340",
@@ -144,6 +145,8 @@ describe("o painel recebe só o contato e o funil (LeadAdmin)", () => {
     expect(Object.keys(leads[0]!).sort()).toEqual([
       "canal",
       "creci",
+      "creciConferencia",
+      "creciConferidoEm",
       "criadoEm",
       "email",
       "id",
@@ -155,6 +158,7 @@ describe("o painel recebe só o contato e o funil (LeadAdmin)", () => {
       "retomarEm",
       "status",
       "telefone",
+      "ultimoAcessoEm",
       "verificadoEm",
     ]);
     expect(leads[0]).toMatchObject({ nome: "Ana Exemplo", status: "retomar", retomarEm: "2026-07-01" });

@@ -1,9 +1,11 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { cadastrarManual, IP_CADASTRO_MANUAL, textoConsentimentoManual } from "./cadastroManual";
 import { CadastroManualSchema } from "./schemaAdmin";
+import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import { criarOuAtualizarLead } from "./lead";
-import { LeadInputSchema } from "./schema";
-import { capturarConsole, criarLeads, SECRET_TESTE, storesTemporarias } from "./apoioTestes";
+import { LeadInputSchema, VerifyInputSchema } from "./schema";
+import { verificarCodigo } from "./verificacao";
+import { capturarConsole, criarLeads, dadosCadastro, leadCru, SECRET_TESTE, storesTemporarias } from "./apoioTestes";
 
 const T0 = new Date("2026-06-17T12:00:00.000Z");
 const stores = storesTemporarias("leads-manual");
@@ -81,7 +83,7 @@ describe("cadastrarManual", () => {
       const vazia = await listar();
       await criarOuAtualizarLead(
         store,
-        LeadInputSchema.parse({ email: "bruna@exemplo.com", telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true }),
+        LeadInputSchema.parse(dadosCadastro({ email: "bruna@exemplo.com" })),
         { ip: "1.2.3.4", secret: SECRET_TESTE, agora: T0 },
       );
       return vazia;
@@ -113,18 +115,41 @@ describe("cadastrarManual", () => {
     expect(saida()).not.toMatch(/conheci|97777|Bruna/);
   });
 
-  it("depois, a pessoa pede acesso pelo site com o mesmo e-mail: mesmo lead, canal preservado", async () => {
+  it("depois, a pessoa pede acesso pelo site com o mesmo e-mail: mesmo lead, canal preservado; os dados só entram com o código (O9)", async () => {
     const store = stores.nova();
     const r = await cadastrarManual(store, dados({ email: "bruna@exemplo.com" }), T0);
     if (r.status !== "ok") throw new Error("esperava ok");
-    await criarOuAtualizarLead(
-      store,
-      LeadInputSchema.parse({ email: "bruna@exemplo.com", telefone: "(81) 97777-6666", creci: "PE 12345", consentimento: true }),
-      { ip: "203.0.113.5", secret: SECRET_TESTE, agora: T0 },
+    const site = dadosCadastro({ nome: "Bruna Exemplo", email: "bruna@exemplo.com", telefone: "(81) 97777-6666", creci: "PE 12345" });
+    const { codigo } = await criarOuAtualizarLead(store, LeadInputSchema.parse(site), {
+      ip: "203.0.113.5",
+      secret: SECRET_TESTE,
+      agora: T0,
+    });
+    // só o código mudou: o pedido ainda não provou que é dona do e-mail
+    expect((await store.listar())[0]).toMatchObject({ id: r.lead.id, creci: "", consentimento: { ip: IP_CADASTRO_MANUAL } });
+
+    const { nome, telefone, creci } = site;
+    const v = await verificarCodigo(
+      { store, limiter: new MemoriaRateLimiter(), secret: SECRET_TESTE, agora: T0 },
+      VerifyInputSchema.parse({ email: "bruna@exemplo.com", codigo, atualizacao: { nome, telefone, creci } }),
+      { ip: "203.0.113.5" },
     );
+    expect(v.status).toBe("verificado");
     const todos = await store.listar();
     expect(todos).toHaveLength(1);
     expect(todos[0]).toMatchObject({ id: r.lead.id, canal: "indicacao", creci: "PE 12345" });
     expect(todos[0]!.consentimento.ip).toBe("203.0.113.5"); // agora o titular consentiu direto
+  });
+
+  it("O9: CRECI repetido → duplicado (pela chave: PE 12345 ≡ PE 12345-F); sem UF só casa com sem UF", async () => {
+    const store = stores.nova();
+    await store.criar(leadCru({ id: "site", creci: "PE 12345" }));
+    await store.criar(leadCru({ id: "antigo", email: "antigo@exemplo.com", telefone: "+5581900000001", creci: "777" }));
+    expect(await cadastrarManual(store, dados({ creci: "CRECI-PE 12.345-F" }), T0)).toEqual({ status: "duplicado", id: "site", campo: "creci" });
+    expect(await cadastrarManual(store, dados({ creci: "777-F" }), T0)).toEqual({ status: "duplicado", id: "antigo", campo: "creci" });
+    // outra série (J) e outra UF são outros registros
+    expect((await cadastrarManual(store, dados({ creci: "PE 12345-J" }), T0)).status).toBe("ok");
+    expect((await cadastrarManual(store, dados({ telefone: "(81) 96666-5555", creci: "SP 777" }), T0)).status).toBe("ok");
+    expect(await store.listar()).toHaveLength(4);
   });
 });

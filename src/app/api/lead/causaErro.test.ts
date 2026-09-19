@@ -52,7 +52,7 @@ function post(url: string, corpo: unknown) {
     body: JSON.stringify(corpo),
   });
 }
-const CORPO_LEAD = { email: EMAIL, telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true };
+const CORPO_LEAD = { nome: "Corretor Exemplo", email: EMAIL, telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true };
 const chamarLead = () => pedirAcesso(post("http://localhost/api/lead", CORPO_LEAD));
 const chamarVerify = () => verificar(post("http://localhost/api/lead/verify", { email: EMAIL, codigo: "123456" }));
 

@@ -46,7 +46,7 @@ function montarDeps(over: Partial<DepsAviso> = {}) {
 async function pedirEVerificar(store: ReturnType<typeof stores.nova>, agora: Date) {
   const { codigo } = await criarOuAtualizarLead(
     store,
-    LeadInputSchema.parse({ email: EMAIL_LEAD, telefone: TELEFONE_LEAD, creci: CRECI_LEAD, consentimento: true }),
+    LeadInputSchema.parse({ nome: "Corretor Exemplo", email: EMAIL_LEAD, telefone: TELEFONE_LEAD, creci: CRECI_LEAD, consentimento: true }),
     { ip: IP, secret: SECRET, agora },
   );
   return verificarCodigo(

@@ -52,13 +52,20 @@ describe("toda rota /api/admin/* barra sem sessão", () => {
     expect(await res.json()).toEqual({ ok: false, erro: "nao_autorizado" });
   });
 
-  it("PATCH /api/admin/leads → 401 (e não chega a tocar o lead)", async () => {
+  it("PATCH /api/admin/leads → 401 (e não chega a tocar o lead) — inclusive a conferência do CRECI (O9)", async () => {
     const funil = vi.spyOn(leadStore(), "atualizarFunil");
+    const buscar = vi.spyOn(leadStore(), "buscarPorId");
     const { PATCH } = await import("@/app/api/admin/leads/route");
-    for (const corpo of [{ id: "x", etapa: "cliente" }, { id: "x", proximaAcao: null }]) {
+    for (const corpo of [
+      { id: "x", etapa: "cliente" },
+      { id: "x", proximaAcao: null },
+      { id: "x", creciConferencia: "conferido" },
+      { id: "x", creciConferencia: null },
+    ]) {
       expect((await PATCH(req("/api/admin/leads", { metodo: "PATCH", corpo }))).status).toBe(401);
     }
     expect(funil).not.toHaveBeenCalled();
+    expect(buscar).not.toHaveBeenCalled();
   });
 
   it("POST /api/admin/leads (cadastro manual) → 401, sem gravar nada", async () => {

@@ -13,7 +13,7 @@ import { MemoriaRateLimiter } from "@/lib/ratelimit";
 import { ErroConfiguracao } from "@/lib/erros";
 import { COOKIE_TOKEN_DEMO } from "@/lib/token";
 import { LeadInputSchema, criarOuAtualizarLead } from "@/features/lead";
-import { EmailFake, SECRET_TESTE, capturarConsole, storesTemporarias } from "@/features/lead/apoioTestes";
+import { EmailFake, SECRET_TESTE, capturarConsole, leadCru, storesTemporarias } from "@/features/lead/apoioTestes";
 
 const dubles = vi.hoisted(() => ({
   store: undefined as unknown as LeadStore,
@@ -53,17 +53,17 @@ afterEach(async () => {
 
 /** Pede o código direto no domínio (como o POST /api/lead faria) e devolve o código. */
 async function pedirCodigo(): Promise<string> {
-  const input = LeadInputSchema.parse({ email: EMAIL, telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true });
+  const input = LeadInputSchema.parse({ nome: "Corretor Exemplo", email: EMAIL, telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true });
   const { codigo } = await criarOuAtualizarLead(dubles.store, input, { ip: "203.0.113.5", secret: SECRET_TESTE });
   return codigo;
 }
 
-function verificar(codigo: string) {
+function verificar(codigo: string, atualizacao?: Record<string, string>) {
   return POST(
     new NextRequest("http://localhost/api/lead/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-forwarded-for": "203.0.113.5" },
-      body: JSON.stringify({ email: EMAIL, codigo }),
+      body: JSON.stringify({ email: EMAIL, codigo, ...(atualizacao ? { atualizacao } : {}) }),
     }),
   );
 }
@@ -110,5 +110,30 @@ describe("POST /api/lead/verify — aviso de lead novo", () => {
     expect(res.status).toBe(400);
     expect(res.cookies.get(COOKIE_TOKEN_DEMO)).toBeUndefined();
     expect(email.avisos).toHaveLength(0);
+  });
+});
+
+describe("POST /api/lead/verify — atualizacao de quem já tinha cadastro (O9)", () => {
+  it("aplica o que não colide; o que é de outro lead volta em naoAtualizados (sem PII na resposta)", async () => {
+    await dubles.store.criar(leadCru({ id: "outro", email: "outro@exemplo.com", telefone: "+5581900000001", creci: "PE 777" }));
+    const codigo = await pedirCodigo();
+    const res = await verificar(codigo, { nome: "Maria da Silva", telefone: "(81) 90000-0001", creci: "PE 4321" });
+    expect(res.status).toBe(200);
+    const texto = await res.text();
+    expect(JSON.parse(texto)).toEqual({ ok: true, naoAtualizados: ["telefone"] });
+    expect(texto).not.toMatch(/exemplo\.com|90000|4321|Maria/);
+    expect(await dubles.store.buscarPorEmail(EMAIL)).toMatchObject({ nome: "Maria da Silva", telefone: "+5511900000000", creci: "PE 4321" });
+  });
+
+  it("tudo aplicado: 200 { ok: true } sem naoAtualizados", async () => {
+    const res = await verificar(await pedirCodigo(), { nome: "Maria da Silva", telefone: "(21) 98888-7777", creci: "RJ 4321" });
+    expect(await res.json()).toEqual({ ok: true });
+  });
+
+  it("atualizacao inválida (CRECI sem UF): 400 antes de conferir o código", async () => {
+    const codigo = await pedirCodigo();
+    const res = await verificar(codigo, { nome: "Maria da Silva", telefone: "(21) 98888-7777", creci: "4321" });
+    expect(res.status).toBe(400);
+    expect((await dubles.store.buscarPorEmail(EMAIL))!.codigo.tentativas).toBe(0); // nem gastou tentativa
   });
 });

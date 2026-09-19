@@ -8,7 +8,9 @@
 import { timingSafeEqual } from "crypto";
 import type { LeadStore } from "../../lib/leadStore";
 import type { RateLimiter, RegraRate } from "../../lib/ratelimit";
+import { causaDoErro } from "../../lib/erros";
 import { hashCodigo, MAX_TENTATIVAS, SEM_CODIGO, type CodigoVerificacao, type Lead } from "./lead";
+import { aplicarAtualizacao, type CampoNaoAtualizado } from "./atualizacaoCadastro";
 import type { VerifyInput } from "./schema";
 
 /**
@@ -21,7 +23,8 @@ export const REGRA_VERIFICACAO: RegraRate = { max: 20, janelaMs: 10 * 60_000 };
 export type MotivoFalha = "codigo_invalido" | "expirado" | "tentativas_excedidas";
 
 export type ResultadoVerificacao =
-  | { status: "verificado"; email: string; jaVerificado: boolean }
+  /** `naoAtualizados`: só quando veio `atualizacao` e algum campo já era de outro lead (O9). */
+  | { status: "verificado"; email: string; jaVerificado: boolean; naoAtualizados?: CampoNaoAtualizado[] }
   | { status: "falha"; motivo: MotivoFalha }
   | { status: "limitado" };
 
@@ -54,6 +57,10 @@ function expirou(codigo: CodigoVerificacao, agora: Date): boolean {
  * Falhas não distinguem "e-mail não cadastrado" de "código errado" — não revelar
  * quem é lead. Idempotente: reverificar não duplica nem re-carimba `verificadoEm`.
  * O `status: "verificado"` do resultado é o desfecho da operação, não a etapa.
+ *
+ * O9: com o código certo, aplica a `atualizacao` (se veio) ANTES de consumir o
+ * código — se o banco falhar ali, o código segue valendo e a pessoa tenta de
+ * novo. Depois carimba o último acesso, à prova de falha (`registrarAcesso`).
  */
 export async function verificarCodigo(
   deps: DepsVerificacao,
@@ -78,8 +85,27 @@ export async function verificarCodigo(
   if (!hashesIguais(lead.codigo.hash, hashCodigo(input.codigo, deps.secret))) {
     return consumirTentativa(deps.store, lead, agora);
   }
+
+  const naoAtualizados = input.atualizacao
+    ? await aplicarAtualizacao(deps.store, lead, input.atualizacao, { ip: ctx.ip, agora })
+    : [];
   // o lead foi achado por este e-mail: é ele que libera o token
-  return marcarVerificado(deps.store, lead, input.email, agora);
+  const verificado = await marcarVerificado(deps.store, lead, input.email, agora);
+  await carimbarAcesso(deps.store, lead.id, agora);
+  return naoAtualizados.length ? { ...verificado, naoAtualizados } : verificado;
+}
+
+/**
+ * Último acesso ao demo (O9), em escrita separada e à prova de falha: se a
+ * coluna não existe (migração 005 pendente) ou o banco soluçou, o log leva a
+ * causa (`db:42703`) e o login segue — o acesso já foi liberado.
+ */
+async function carimbarAcesso(store: LeadStore, id: string, agora: Date): Promise<void> {
+  try {
+    await store.registrarAcesso(id, agora.toISOString());
+  } catch (err) {
+    console.error("[verify] último acesso não registrado:", causaDoErro(err, "db"));
+  }
 }
 
 /** Gasta uma tentativa; ao atingir o limite, invalida o código (anti-força bruta). */
@@ -107,7 +133,7 @@ async function marcarVerificado(
   lead: Lead,
   email: string,
   agora: Date,
-): Promise<ResultadoVerificacao> {
+): Promise<{ status: "verificado"; email: string; jaVerificado: boolean }> {
   const jaVerificado = Boolean(lead.verificadoEm);
   await store.atualizarCodigo(lead.id, {
     codigo: { ...lead.codigo, hash: SEM_CODIGO, tentativas: 0 },

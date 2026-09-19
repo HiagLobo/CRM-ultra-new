@@ -174,11 +174,11 @@ arquivo do repositório (ele é público) nem em chat.
 
    **Por que a pooled:** cada função da Vercel abre o próprio pool. Com a string direta, um pico de
    acessos estoura o limite de conexões do Postgres (log `db:53300`).
-4. **As 4 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
+4. **As 5 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
    `migrations/001-leads.sql` no GitHub, copie **tudo**, cole e clique em **Run**. Repita com
-   `002-auditoria.sql`, `003-rate-limit.sql` e `004-funil.sql`, nessa ordem. São idempotentes:
-   rodar de novo não estraga nada. (Banco que já estava no ar com as 3 primeiras: só a 004, pelo
-   passo 3.9.)
+   `002-auditoria.sql`, `003-rate-limit.sql`, `004-funil.sql` e `005-cadastro-unico.sql`, nessa
+   ordem. São idempotentes: rodar de novo não estraga nada. (Banco que já estava no ar: a 004 pelo
+   passo 3.9, a 005 pelo 3.10.)
 5. Confira no mesmo SQL Editor:
 
    ```sql
@@ -236,7 +236,8 @@ isso, o site no ar continua usando o valor antigo.
 ### 3.8. Smoke em produção (faça sempre, na ordem)
 
 1. Abrir `https://crmultra.com.br`. A landing carrega, com o cadeado no navegador.
-2. **Acessar CRM** → preencher com um e-mail **seu** (telefone e CRECI seus ou de teste). O e-mail
+2. **Acessar CRM** → preencher com nome completo e um e-mail **seu** (telefone e CRECI — com o
+   estado — seus ou de teste). O e-mail
    com o código chega de `CRM Ultra <acesso@mail.crmultra.com.br>` (olhe também o spam). Se a
    tela disser "Recebemos seus dados. O e-mail com o código não saiu agora", o e-mail **não** saiu:
    veja o log (seção 6).
@@ -317,6 +318,71 @@ e cria a tabela `lead_notas` das anotações. **Não apaga nada** e pode rodar d
 **Entre o deploy e a 004** (ou se esquecer de rodar): mudar etapa, definir próxima ação, anotar e
 cadastrar à mão dão erro, com `db:42703` (coluna que não existe) ou `db:42P01` (tabela
 `lead_notas` que não existe) no log `[/api/admin/...]`. Rode a 004 (passos 3 e 4).
+
+### 3.10. Migração 005 (cadastro único) — rode a 005 ANTES de publicar a versão nova
+
+Para quem já está no ar com as migrações 001 a 004. (Banco novo: o passo 3.4 já inclui a 005.) A
+versão com o cadastro único — "Já tenho cadastro", WhatsApp e CRECI sem repetir, conferência do CRECI
+no painel e "voltou ao demo" — grava em 3 colunas que só a `005-cadastro-unico.sql` cria.
+
+**A ordem é: migrar primeiro, publicar depois** (o contrário da 004). O motivo:
+
+- a 005 só **acrescenta** (3 colunas e 2 índices): o código que está no ar ignora colunas a mais,
+  então rodá-la antes não quebra nada;
+- o código **novo** grava nelas: sem a 005, marcar "Confere"/"Não confere" no CRECI dá erro, e o
+  último acesso ao demo não é registrado (o login segue; o log avisa);
+- **a 004 tem de estar aplicada** (3.9): o cadastro novo grava o **nome**, que é coluna da 004. Sem
+  ela, **todo cadastro dá erro** (`db:42703`).
+
+Passo a passo:
+
+1. **Backup.** Neon → **Branches → Create branch** a partir do principal, com a data no nome (ex.:
+   `antes-005-2026-09-20`). Veja "Backup" na seção 4.
+2. Neon → **SQL Editor** (branch principal, database `neondb`) → abra
+   `migrations/005-cadastro-unico.sql` no GitHub → copie **tudo** → cole → **Run**.
+3. Confira, no mesmo SQL Editor:
+
+   ```sql
+   SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'leads'
+      AND column_name IN ('nome', 'creci_conferencia', 'creci_conferido_em', 'ultimo_acesso_em')
+    ORDER BY 1;
+   ```
+
+   Têm de voltar as **4** colunas. Faltou o `nome`? A 004 não rodou: faça o 3.9 antes de seguir.
+
+   ```sql
+   SELECT indexname FROM pg_indexes
+    WHERE tablename = 'leads'
+      AND indexname IN ('leads_telefone_idx', 'leads_creci_idx')
+    ORDER BY 1;
+   ```
+
+   Têm de voltar os **2** índices (a busca de WhatsApp e CRECI repetidos no cadastro).
+4. **Só então publique**: merge/push na `main` (deploy automático) e espere o deploy ficar **Ready**
+   na Vercel.
+5. Smoke: o 3.8 inteiro (agora o cadastro pede **nome completo** e o **estado** do CRECI) e, com o
+   seu e-mail, **"Já tenho cadastro"** → o código chega → entra no demo. No `/admin`, a ficha do seu
+   lead mostra o último acesso; marque **Confere** no CRECI e depois desfaça.
+
+**O que a 005 faz:** acrescenta `creci_conferencia` e `creci_conferido_em` (a conferência que você
+marca no painel) e `ultimo_acesso_em` (carimbado a cada entrada no demo), e cria os índices de
+`telefone` e `creci`. Índices **simples**, não `UNIQUE`: o banco já tem repetidos de teste, e a regra
+(barrar o repetido com a mensagem certa) mora no app. **Não apaga nada** e pode rodar de novo sem
+estrago.
+
+**Repetidos que já existem** não quebram nada: o painel mostra o selo "repetido". Para listá-los:
+
+```sql
+SELECT telefone, count(*) FROM leads GROUP BY telefone HAVING count(*) > 1 ORDER BY 2 DESC;
+```
+
+Os de teste, exclua pelo `/admin` (ficha do lead → **Excluir (LGPD)**).
+
+**Se publicar antes da 005** (ou esquecer): cadastro, "Já tenho cadastro" e login seguem. Marcar a
+conferência do CRECI dá erro, com `db:42703` no log `[/api/admin/leads] PATCH`, e cada entrada no demo
+loga `[verify] último acesso não registrado: db:42703`. Rode a 005 (passos 2 e 3); não precisa de
+Redeploy.
 
 ---
 
@@ -473,6 +539,8 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 [/api/lead] erro ao processar: config:DATABASE_URL
 [/api/lead] código não enviado; lead gravado sem código: email:daily_quota_exceeded
 [/api/lead/verify] erro ao processar: db:42P01
+[/api/lead/entrar] código não enviado: teto_diario
+[verify] último acesso não registrado: db:42703
 [aviso-lead] aviso de lead novo não saiu: email:PrazoEsgotado
 [db] conexão ociosa caiu (o pool abre outra): db:57P01
 ```
@@ -489,7 +557,7 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | `email:PrazoEsgotado` | o Resend não respondeu em 8 s | quase sempre passageiro. Se repetir, veja o status do Resend (resend-status.com) |
 | `email:application_error` · `email:internal_server_error` | falha do lado do Resend, ou da rede até ele | idem: status do Resend. O lead está no `/admin` |
 | `db:42P01` | uma tabela não existe: migração não rodada | rodar as migrações (3.4, passos 4 e 5; a 004 pelo 3.9) |
-| `db:42703` | uma coluna não existe: a migração 004 não rodou (o funil do `/admin` falha, o site segue captando) | rodar a 004 (3.9) |
+| `db:42703` | uma coluna não existe. Em `[/api/lead]` (todo cadastro falha) ou no funil do `/admin`: a 004 não rodou. Em `[verify] último acesso…` ou ao marcar a conferência do CRECI: a 005 não rodou (o login segue) | rodar a 004 (3.9) ou a 005 (3.10) |
 | `db:28P01` · `db:28000` | usuário ou senha do banco errados (ou a senha foi trocada no Neon) | copiar de novo a string pooled (3.4) → `DATABASE_URL` → Redeploy |
 | `db:3D000` | o banco do fim da string não existe | copiar de novo a string do Neon, sem editar o nome do banco |
 | `db:53300` | acabaram as conexões | usar a string **pooled** (host com `-pooler`) → Redeploy |
@@ -532,6 +600,9 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | Painel do demo rebate para a landing | sem cookie de acesso válido (expira em 7 dias) | pedir acesso e verificar o e-mail |
 | Painel de leads vazio em produção | `DATABASE_URL` aponta para outro banco ou branch, ou a migração não rodou | conferir a string (3.4) e o log |
 | No `/admin`, mudar etapa, anotar ou cadastrar lead dá erro (a lista abre) | log `[/api/admin/leads...]` com `db:42703` ou `db:42P01`: a migração 004 não rodou | 3.9 |
+| No `/admin`, marcar "Confere"/"Não confere" no CRECI dá erro | log `[/api/admin/leads] PATCH: db:42703`: a migração 005 não rodou | 3.10 |
+| Corretor diz que o cadastro responde "Esse WhatsApp já tem cadastro" (ou "Esse CRECI…") | é a regra do cadastro único: outro lead já tem esse WhatsApp/CRECI. Se o lead antigo tem e-mail, a tela mostra a dica mascarada e oferece "Entrar com esse e-mail" | procure o WhatsApp/CRECI no `/admin`. Mesma pessoa com outro e-mail: ela entra pelo "Já tenho cadastro" com o e-mail antigo. Lead de teste: exclua |
+| "Já tenho cadastro" diz que não achou o e-mail | não há lead com esse e-mail (a tela oferece o cadastro) | nada: é o fluxo. Erro 503 nessa tela = o e-mail não saiu (log `[/api/lead/entrar] código não enviado: <causa>`) |
 
 **Rotacionar segredos.** Trocar `APP_SECRET` derruba **todos** os acessos ao demo e sessões de admin
 (é o efeito desejado se vazar). Trocar `ADMIN_PASSWORD` só afeta logins novos — as sessões abertas
@@ -598,8 +669,9 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/config/demo.ts` | identidade fictícia da rede do demo (nunca a empresa real) |
 | `src/features/lead/` | domínio: schema Zod, criação, verificação, casos de uso do admin |
 | `src/features/lead/funil.ts` · `funilAdmin.ts` · `notas.ts` · `cadastroManual.ts` | o funil: etapas (e a tradução dos status antigos), próxima ação, anotações, cadastro manual |
-| `src/lib/leadStore.ts` | **porta** de persistência + adaptador de arquivo (dev) |
-| `src/lib/leadStorePostgres.ts` | adaptador de produção |
+| `src/lib/leadStorePorta.ts` · `leadStore.ts` | **porta** de persistência · adaptador de arquivo (dev) |
+| `src/lib/leadStorePostgres.ts` · `leadStorePostgresLinha.ts` | adaptador de produção · linha do banco ⇄ lead |
+| `src/features/lead/solicitarAcesso.ts` · `entrar.ts` · `envioCodigo.ts` | cadastro (com as regras de repetido) · "Já tenho cadastro" · portaria e envio comuns às duas portas |
 | `src/lib/db.ts` | pool do Postgres, compartilhado por todos os stores (com ouvinte para conexão que cai) |
 | `src/lib/ratelimit*.ts` | limite de uso (Postgres em prod, memória em dev) |
 | `src/lib/auditoria.ts` | registro das ações do admin (banco em prod, arquivo em dev) |
@@ -610,7 +682,7 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/lib/token.ts` / `adminAuth.ts` | HMAC do token de demo e da sessão de admin |
 | `src/components/landing/` · `acesso/` | landing e fluxo de acesso |
 | `src/app/admin/` | painel de leads |
-| `migrations/` | as 4 migrações do Postgres (seção 3.4; a 004 também no 3.9) |
+| `migrations/` | as 5 migrações do Postgres (seção 3.4; a 004 também no 3.9, a 005 no 3.10) |
 | `waves/` | o plano por ondas e o estado de cada uma |
 
 Trocar de banco = escrever um adaptador novo com a mesma interface `LeadStore` e ensinar o

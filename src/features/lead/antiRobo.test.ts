@@ -18,7 +18,7 @@ afterEach(async () => {
 });
 
 function pedido(over: Record<string, unknown> = {}) {
-  return PedidoAcessoSchema.parse({ email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true, ...over });
+  return PedidoAcessoSchema.parse({ nome: "Corretor Exemplo", email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true, ...over });
 }
 
 const montarDeps = (over: Partial<DepsSolicitarAcesso> = {}) => depsSolicitar(stores.nova(), over);
@@ -101,11 +101,11 @@ describe("Turnstile (opcional)", () => {
 
 describe("PedidoAcessoSchema — campos anti-robô", () => {
   it("são opcionais (sem eles o pedido continua válido)", () => {
-    expect(PedidoAcessoSchema.safeParse({ email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true }).success).toBe(true);
+    expect(PedidoAcessoSchema.safeParse({ nome: "Corretor Exemplo", email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true }).success).toBe(true);
   });
 
   it("recusa token e isca gigantes (400 antes de qualquer lógica)", () => {
-    const base = { email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true };
+    const base = { nome: "Corretor Exemplo", email: EMAIL, telefone: TELEFONE, creci: "SP 12345", consentimento: true };
     expect(PedidoAcessoSchema.safeParse({ ...base, turnstileToken: "x".repeat(2049) }).success).toBe(false);
     expect(PedidoAcessoSchema.safeParse({ ...base, website: "x".repeat(501) }).success).toBe(false);
     expect(PedidoAcessoSchema.safeParse({ ...base, website: 123 }).success).toBe(false);

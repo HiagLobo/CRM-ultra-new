@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { NextRequest } from "next/server";
 
 const EMAIL = `rota-${randomUUID()}@exemplo.com`;
-const BASE = { email: EMAIL, telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true };
+const BASE = { nome: "Corretor Exemplo", email: EMAIL, telefone: "(11) 90000-0000", creci: "SP 12345", consentimento: true };
 
 beforeAll(() => {
   // em teste, `env` é o process.env (SKIP_ENV_VALIDATION)

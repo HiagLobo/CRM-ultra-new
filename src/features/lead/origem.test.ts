@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { LeadInputSchema } from "./schema";
 
-const base = { email: "ana@example.com", telefone: "(81) 99999-0000", creci: "PE 12345", consentimento: true as const };
+const base = { nome: "Ana Exemplo", email: "ana@example.com", telefone: "(81) 99999-0000", creci: "PE 12345", consentimento: true as const };
 
 describe("origem da campanha (utm/ref) vinda da API pública", () => {
   it("fica só com [A-Za-z0-9._-]: fórmula e separador de CSV não sobrevivem", () => {

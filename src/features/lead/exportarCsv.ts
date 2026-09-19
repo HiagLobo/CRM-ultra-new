@@ -27,6 +27,9 @@ export const COLUNAS_CSV = [
   "motivo",
   "origem_utm",
   "origem_ref",
+  // O9 — no fim, para não deslocar as colunas de quem já tem planilha montada
+  "creci_conferencia",
+  "ultimo_acesso_em",
 ] as const;
 
 /**
@@ -61,6 +64,8 @@ export async function exportarCsv(store: LeadStore): Promise<{ csv: string; linh
       l.motivo,
       l.origem?.utm,
       l.origem?.ref,
+      l.creciConferencia,
+      dataHoraRecife(l.ultimoAcessoEm),
     ]),
   );
   // BOM para o Excel abrir os acentos certo

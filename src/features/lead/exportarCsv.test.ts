@@ -45,14 +45,14 @@ describe("exportarCsv (Excel em português)", () => {
     expect(linhasCsv).toHaveLength(3);
     expect(linhasCsv[0]).toBe(
       '"id";"nome";"email";"telefone";"creci";"etapa";"canal";"verificado_em";"criado_em";' +
-        '"proxima_acao_em";"retomar_em";"motivo";"origem_utm";"origem_ref"',
+        '"proxima_acao_em";"retomar_em";"motivo";"origem_utm";"origem_ref";"creci_conferencia";"ultimo_acesso_em"',
     );
     // todo campo entre aspas, inclusive os vazios
     for (const l of linhasCsv) expect(l).toMatch(/^"(?:[^"]|"")*"(?:;"(?:[^"]|"")*")*$/);
 
     const campos = camposCsv(linhasCsv[1]!);
     expect(campos.slice(1, 9)).toEqual(
-      ["", "corretor1@exemplo.com", "(11) 90000-0000", "SP 12341", "novo", "site", "", "17/06/2026 09:00"],
+      ["Corretor B Exemplo", "corretor1@exemplo.com", "(11) 90000-0000", "SP 12341", "novo", "site", "", "17/06/2026 09:00"],
     );
     expect(csv).not.toContain("'+55"); // o apóstrofo de proteção não aparece no telefone
   });
@@ -125,6 +125,17 @@ describe("exportarCsv (Excel em português)", () => {
       origem_ref: "'-2+3;@z",
     });
     for (const c of campos) expect(c).not.toMatch(/^[=+\-@]/); // nenhuma célula vira fórmula
+  });
+
+  it("O9: conferência do CRECI e último acesso ao demo no fim (dd/mm/aaaa hh:mm de Recife); vazios sem valor", async () => {
+    const store = stores.nova();
+    await store.criar(leadCru({ creciConferencia: "nao_confere", creciConferidoEm: "2026-06-18T12:00:00.000Z", ultimoAcessoEm: "2026-06-19T13:30:00.000Z" }));
+    await store.criar(leadCru({ id: "2", email: "outro@exemplo.com", criadoEm: "2026-06-16T12:00:00.000Z" }));
+    const { csv } = await exportarCsv(store);
+    expect(COLUNAS_CSV.slice(-2)).toEqual(["creci_conferencia", "ultimo_acesso_em"]);
+    expect(primeiraLinha(csv)).toMatchObject({ creci_conferencia: "nao_confere", ultimo_acesso_em: "19/06/2026 10:30" });
+    const segunda = camposCsv(csv.trim().split(String.fromCharCode(13, 10))[2]!);
+    expect(segunda.slice(-2)).toEqual(["", ""]);
   });
 
   it("telefone fora do padrão brasileiro sai como veio (e ainda protegido)", async () => {

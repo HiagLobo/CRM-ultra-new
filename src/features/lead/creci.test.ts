@@ -77,7 +77,7 @@ describe("normalizarCreci", () => {
 });
 
 describe("LeadInputSchema.creci", () => {
-  const base = { email: "corretor@exemplo.com", telefone: "(11) 90000-0000", consentimento: true };
+  const base = { nome: "Corretor Exemplo", email: "corretor@exemplo.com", telefone: "(11) 90000-0000", consentimento: true };
 
   it("grava o CRECI normalizado", () => {
     const r = LeadInputSchema.parse({ ...base, creci: "CRECI-PE 12.345-F" });

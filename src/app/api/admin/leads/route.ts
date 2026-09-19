@@ -1,6 +1,6 @@
 /**
- * `/api/admin/leads` — GET resumo + lista · PATCH etapa ou próxima ação ·
- * POST cadastro manual · DELETE exclusão (LGPD).
+ * `/api/admin/leads` — GET resumo + lista · PATCH etapa, próxima ação ou
+ * conferência do CRECI · POST cadastro manual · DELETE exclusão (LGPD).
  * Devolve PII (e-mail, telefone, CRECI, nome) e por isso TODO handler **começa**
  * por `exigirAdmin`. Nada de PII em log: o 500 registra só a causa (`causaDoErro`).
  * A resposta leva o `LeadAdmin` (contato + funil), nunca o hash do código nem o
@@ -13,7 +13,7 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { resumo, excluirLead } from "@/features/lead/admin";
-import { definirProximaAcao, mudarEtapa } from "@/features/lead/funilAdmin";
+import { conferirCreci, definirProximaAcao, mudarEtapa } from "@/features/lead/funilAdmin";
 import { cadastrarManual } from "@/features/lead/cadastroManual";
 import { CadastroManualSchema, IdLeadSchema, PatchLeadSchema } from "@/features/lead/schemaAdmin";
 import { dadosInvalidos, falhaInterna, leadNaoEncontrado, lerJson } from "../respostas";
@@ -39,7 +39,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-/** `{ id, etapa, retomarEm?, motivo? }` muda a etapa · `{ id, proximaAcao: { em, texto } | null }` define/limpa. */
+/**
+ * `{ id, etapa, retomarEm?, motivo? }` muda a etapa · `{ id, proximaAcao: { em, texto } | null }`
+ * define/limpa · `{ id, creciConferencia: "conferido" | "nao_confere" | null }` marca/desfaz (O9).
+ */
 export async function PATCH(req: NextRequest) {
   const barrado = exigirAdmin(req);
   if (barrado) return barrado;
@@ -54,10 +57,12 @@ export async function PATCH(req: NextRequest) {
     const r =
       pedido.tipo === "etapa"
         ? await mudarEtapa(leadStore(), pedido.id, pedido.mudanca)
-        : await definirProximaAcao(leadStore(), pedido.id, pedido.proximaAcao);
+        : pedido.tipo === "creci"
+          ? await conferirCreci(leadStore(), pedido.id, pedido.conferencia)
+          : await definirProximaAcao(leadStore(), pedido.id, pedido.proximaAcao);
     if (r.status === "nao_encontrado") return leadNaoEncontrado();
-    if (r.status === "fora_da_fila") {
-      return NextResponse.json({ ok: false, erro: "fora_da_fila" }, { status: 409 });
+    if (r.status === "fora_da_fila" || r.status === "sem_creci") {
+      return NextResponse.json({ ok: false, erro: r.status }, { status: 409 });
     }
     if (r.status === "data_invalida") {
       return NextResponse.json(

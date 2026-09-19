@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { definirProximaAcao, mudarEtapa } from "./funilAdmin";
-import { criarLeads, storesTemporarias } from "./apoioTestes";
+import { conferirCreci, definirProximaAcao, mudarEtapa } from "./funilAdmin";
+import { criarLeads, leadCru, storesTemporarias } from "./apoioTestes";
 import { ETAPAS_SIMPLES } from "./funil";
 
 // 2026-06-17 09:00 em Recife
@@ -150,5 +150,33 @@ describe("definirProximaAcao", () => {
     await mudarEtapa(store, id, { etapa: "retomar", retomarEm: "2026-07-01" }, T0);
     expect(await definirProximaAcao(store, id, { em: AMANHA, texto: "ligar" }, T0)).toEqual({ status: "fora_da_fila" });
     expect(await definirProximaAcao(store, id, null, T0)).toMatchObject({ status: "ok" });
+  });
+});
+
+describe("conferirCreci (O9)", () => {
+  it("marca com o carimbo, troca e desfaz; auditoria só {id, resultado}; contato e código intactos", async () => {
+    const { store, id } = await umLead();
+    const antes = await intocaveis(store, id);
+
+    const r = await conferirCreci(store, id, "conferido", T0);
+    if (r.status !== "ok") throw new Error(`esperava ok, veio ${r.status}`);
+    expect(r.lead).toMatchObject({ creciConferencia: "conferido", creciConferidoEm: T0.toISOString() });
+    expect(r.auditoria).toEqual({ acao: "lead.creci", dados: { id, resultado: "conferido" } });
+
+    expect(await conferirCreci(store, id, "nao_confere", T0)).toMatchObject({ lead: { creciConferencia: "nao_confere" } });
+    const desfeito = await conferirCreci(store, id, null, T0);
+    if (desfeito.status !== "ok") throw new Error("esperava ok");
+    expect(desfeito.lead.creciConferencia).toBeUndefined();
+    expect(desfeito.lead.creciConferidoEm).toBeUndefined();
+    expect(desfeito.auditoria.dados).toEqual({ id, resultado: "desfeita" });
+    expect(await intocaveis(store, id)).toEqual(antes);
+  });
+
+  it("lead sem CRECI → sem_creci (desfazer vale); id inexistente → nao_encontrado", async () => {
+    const store = stores.nova();
+    await store.criar(leadCru({ id: "manual", creci: "" }));
+    expect(await conferirCreci(store, "manual", "conferido", T0)).toEqual({ status: "sem_creci" });
+    expect((await conferirCreci(store, "manual", null, T0)).status).toBe("ok");
+    expect(await conferirCreci(store, "x", "conferido", T0)).toEqual({ status: "nao_encontrado" });
   });
 });
