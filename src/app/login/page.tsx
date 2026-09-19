@@ -13,6 +13,7 @@ import { estaLiberado } from "@/lib/demoAccess";
 import { brand } from "@/config/brand";
 import EscolhaPainel from "@/components/acesso/EscolhaPainel";
 import AccessFlow from "@/components/acesso/AccessFlow";
+import { registrarOrigemDaVisita } from "@/lib/origemCampanha";
 
 /** O que a demonstração abre — descrição do produto, não número de mercado. */
 const PAINEIS: [string, string][] = [
@@ -25,6 +26,11 @@ export default function LoginPage() {
   const router = useRouter();
   const [liberado, setLiberado] = React.useState(false);
   const [pedindoAcesso, setPedindoAcesso] = React.useState(false);
+
+  // quem chega direto no /login por um link de campanha também tem a origem registrada
+  React.useEffect(() => {
+    registrarOrigemDaVisita();
+  }, []);
 
   // se já estiver logado (e com o demo liberado), vai direto pro painel
   React.useEffect(() => {

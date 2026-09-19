@@ -126,7 +126,7 @@ export default function PrivacidadePage() {
             <li>
               <strong>Origem do link</strong> — se você chegou por um anúncio, post ou link de
               parceiro, registramos junto do pedido de acesso o identificador da campanha (os
-              parâmetros <code>utm</code> e <code>ref</code> do link) ou o site de onde você veio,
+              parâmetros <code>utm</code> e <code>ref</code> do link) e/ou o domínio do site de onde você veio,
               para sabermos quais divulgações funcionam. Até o envio do pedido, isso fica só na aba do
               navegador em que você abriu o site (não é cookie) e some quando ela é fechada.
             </li>

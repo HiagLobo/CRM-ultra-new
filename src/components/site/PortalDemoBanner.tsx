@@ -15,6 +15,7 @@ import Link from "next/link";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
+import { BotaoQueroUsar } from "@/components/acesso/QueroUsar";
 
 export default function PortalDemoBanner() {
   if (!brand.demoMode) return null;
@@ -41,10 +42,12 @@ export default function PortalDemoBanner() {
         imobiliária aparece para o público no {brand.nomeCurto}. Tudo aqui é fictício: a imobiliária,
         os imóveis e os preços; as fotos são ilustrativas.
       </span>
+      <span style={{ marginLeft: "auto" }}>
+        <BotaoQueroUsar compacto>Quero usar</BotaoQueroUsar>
+      </span>
       <Link
         href="/"
         style={{
-          marginLeft: "auto",
           display: "inline-flex",
           alignItems: "center",
           gap: 6,
