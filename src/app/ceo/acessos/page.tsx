@@ -43,7 +43,7 @@ const USERS: any[] = [
     id: 'u5', name: 'Marina Reis', role: 'Marketing', scope: 'Rede', unit: '—', f2a: 'Pendente', last: '5h', status: 'Ativo',
     perms: [['Materiais & Marca', 'Editar'], ['Leads (origens)', 'Ver'], ['Captação', '—'], ['Financeiro', '—'], ['Score', 'Ver'], ['Acessos', '—'], ['Jurídico', '—']],
     sessions: 2, devices: 'Chrome · macOS · Recife',
-    hist: [{ t: 'hoje 09:12', d: 'Login — falha no 2FA', warn: true }, { t: 'ontem 14:00', d: 'Editou banner de campanha' }, { t: '12/05', d: `Acesso criado por ${ceoPersona.nome} (CEO)` }],
+    hist: [{ t: 'hoje 09:12', d: 'Login: falha no 2FA', warn: true }, { t: 'ontem 14:00', d: 'Editou banner de campanha' }, { t: '12/05', d: `Acesso criado por ${ceoPersona.nome} (CEO)` }],
   },
   { id: 'u6', name: 'Júlia Mendes', role: 'Curadoria', scope: 'Rede', unit: '—', f2a: 'Ativo', last: '1 dia', status: 'Ativo' },
   { id: 'u7', name: 'Pedro Alves', role: 'Franqueado', scope: 'Unidade', unit: `${demo.nomeCurto} Caruaru`, f2a: 'Ativo', last: '1 dia', status: 'Ativo' },
@@ -189,7 +189,7 @@ function AdTable({ onSelect }: any) {
 function AdRbac() {
   return (
     <div style={{ ...adCard, padding: 22 }}>
-      <AdHead title="Papéis & permissões — RBAC" sub="9 papéis × 17 áreas · menor privilégio — inclui Desenvolvedor (TI), restrito a TI & Custos" right={
+      <AdHead title="Papéis & permissões (RBAC)" sub="9 papéis × 17 áreas · menor privilégio, incluindo Desenvolvedor (TI), restrito a TI & Custos" right={
         <div style={{ display: 'flex', gap: 10 }}>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${ad.g300}`, background: '#fff', color: ad.primary, borderRadius: 10, padding: '8px 13px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 13 }}><CIc n="plus" s={15} c={ad.primary} /> Novo papel</button>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: ad.primary, color: '#fff', borderRadius: 10, padding: '8px 14px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13 }}><CIc n="save" s={15} c="#fff" /> Salvar permissões</button>
@@ -286,7 +286,7 @@ function AdAudit() {
   ];
   return (
     <div style={{ ...adCard, padding: 22 }}>
-      <AdHead title="Trilha de auditoria — AuditLog" />
+      <AdHead title="Trilha de auditoria (AuditLog)" />
       {/* integrity seal */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: ad.successBg, border: `1px solid ${ad.success}40`, borderRadius: 12, padding: '14px 18px', marginBottom: 16, flexWrap: 'wrap' } as React.CSSProperties}>
         <span style={{ width: 44, height: 44, borderRadius: 12, background: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}><CIc n="shield-check" s={24} c={ad.success} /></span>
@@ -400,7 +400,7 @@ function AdDetail({ user, onClose }: any) {
         <div style={{ marginBottom: 22 }}>
           <div style={adSecLabel}>Segurança</div>
           {pending ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: ad.warnBg, borderRadius: 10, padding: '11px 14px', fontSize: 13, color: ad.g700, marginBottom: 10 }}><CIc n="alert-triangle" s={16} c={ad.warning} /> 2FA pendente — não concluiu o enrolamento.</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: ad.warnBg, borderRadius: 10, padding: '11px 14px', fontSize: 13, color: ad.g700, marginBottom: 10 }}><CIc n="alert-triangle" s={16} c={ad.warning} /> 2FA pendente: não concluiu o enrolamento.</div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: ad.successBg, borderRadius: 10, padding: '11px 14px', fontSize: 13, color: ad.g700, marginBottom: 10 }}><CIc n="shield-check" s={16} c={ad.success} /> 2FA ativo.</div>
           )}

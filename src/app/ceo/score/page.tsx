@@ -74,7 +74,7 @@ function ScWeights() {
   let off = 25;
   return (
     <div style={{ ...scCard, padding: 22 }}>
-      <ScHead title="Modelo do Score — pilares & pesos" sub="Resultado pesa mais que burocracia · ajuste sem código" right={
+      <ScHead title="Modelo do Score: pilares & pesos" sub="Resultado pesa mais que burocracia · ajuste sem código" right={
         <span style={{ fontSize: 13, fontWeight: 700, color: total === 1000 ? sc.success : sc.error, background: total === 1000 ? sc.successBg : sc.errBg, padding: '6px 14px', borderRadius: 999, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <CIc n={total === 1000 ? 'check' : 'alert-triangle'} s={15} /> Total: {total} / 1000
         </span>
@@ -122,14 +122,14 @@ const PILLARS_DETAIL = [
   { l: 'Resultados', w: 300, c: 0, items: ['Vendas fechadas', 'Locações fechadas', 'VGV', 'Conversão lead→fechado'] },
   { l: 'Atendimento / Qualidade', w: 250, c: 1, items: ['Tempo de 1ª resposta', 'SLA cumprido', 'Avaliação do cliente', 'Sem leads parados'] },
   { l: 'Carteira', w: 200, c: 2, items: ['Captações ativas', 'Exclusividade', 'Qualidade do anúncio (fotos ≥ mín., descrição completa)'] },
-  { l: 'CRM', w: 150, c: 3, items: ['Dados de contato completos', 'Follow-up em dia'], note: 'Medido automaticamente — não exige arrastar card.' },
+  { l: 'CRM', w: 150, c: 3, items: ['Dados de contato completos', 'Follow-up em dia'], note: 'Medido automaticamente, não exige arrastar card.' },
   { l: 'Disciplina / Planejamento', w: 100, c: 4, items: ['Agenda cumprida', 'Rituais de planejamento (semanal/diário)'] },
 ];
 function ScIndicators() {
   const [open, setOpen] = useStateSc(0);
   return (
     <div style={{ ...scCard, padding: 22 }}>
-      <ScHead title="O que cada pilar mede" sub="Todos os indicadores são automáticos — subprodutos do trabalho real" />
+      <ScHead title="O que cada pilar mede" sub="Todos os indicadores são automáticos, subprodutos do trabalho real" />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 } as React.CSSProperties}>
         {PILLARS_DETAIL.map((p: any, i: any) => {
           const isOpen = open === i;
@@ -340,7 +340,7 @@ function ScBreakdown({ broker, onClose }: any) {
           <span style={{ fontSize: 13, color: sc.g500 }}>/ 1000</span>
           <ScBadge text={t.l} fg={t.tone} bg={t.bg} />
         </div>
-        <div style={{ fontSize: 12, color: sc.g500, marginBottom: 18 }}>capturado do trabalho real — quebra por pilar</div>
+        <div style={{ fontSize: 12, color: sc.g500, marginBottom: 18 }}>capturado do trabalho real, com quebra por pilar</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 } as React.CSSProperties}>
           {pillars.map((p, i) => (
             <div key={p.l}>
@@ -382,7 +382,7 @@ export default function ScorePage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' } as React.CSSProperties}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: sc.ink }}>Score</h1>
-          <div style={{ fontSize: 13.5, color: sc.g500, marginTop: 4 }}>O motor de mérito — configurável, automático e transparente</div>
+          <div style={{ fontSize: 13.5, color: sc.g500, marginTop: 4 }}>O motor de mérito: configurável, automático e transparente</div>
         </div>
         <ScPeriod />
       </div>

@@ -38,7 +38,7 @@ const REQUESTS: any[] = [
   {
     id: 'r1', titular: 'João P.', tipo: 'Exclusão', origem: 'Portal do titular', prazo: 9, status: 'Em análise', dpo: 'André Costa',
     pedido: 'Eliminação dos dados pessoais', entrada: '03/06/2026', canal: 'Portal do titular',
-    dados: [`Lead no CRM — ${demo.nomeCurto} Recife Centro`, 'Contato registrado em 1 captação'],
+    dados: [`Lead no CRM (${demo.nomeCurto} Recife Centro)`, 'Contato registrado em 1 captação'],
     analise: 'Dado de lead pode ser eliminado. Não há contrato ativo. Sem retenção obrigatória aplicável.',
     hist: [{ t: '03/06', d: 'Pedido recebido' }, { t: '04/06', d: 'Em análise pelo DPO' }],
   },
@@ -107,7 +107,7 @@ function JuTable({ onSelect }: any) {
   const cols = ['Titular', 'Tipo', 'Origem', 'Prazo', 'Status', 'Responsável'];
   return (
     <div style={{ ...juCard, padding: 22 }}>
-      <JuHead title="Pedidos dos titulares — LGPD" sub={`${rows.length} de ${REQUESTS.length} · prazo legal ~15 dias`} />
+      <JuHead title="Pedidos dos titulares (LGPD)" sub={`${rows.length} de ${REQUESTS.length} · prazo legal ~15 dias`} />
       <div className="ju-filters">
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, background: ju.g100, borderRadius: 10, padding: '0 13px', height: 40, flex: 1, minWidth: 180 }}>
           <CIc n="search" s={17} c={ju.g500} />
@@ -188,7 +188,7 @@ function JuAccess() {
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: ju.errBg, borderRadius: 10, padding: '11px 13px', fontSize: 12.5, color: ju.g700, lineHeight: 1.5 }}>
-            <CIc n="alert-octagon" s={16} c={ju.error} style={{ marginTop: 1, flexShrink: 0 }} /> <span><strong style={{ color: ju.ink }}>Anomalia:</strong> 1 corretor com volume de acesso acima do padrão — revisar.</span>
+            <CIc n="alert-octagon" s={16} c={ju.error} style={{ marginTop: 1, flexShrink: 0 }} /> <span><strong style={{ color: ju.ink }}>Anomalia:</strong> 1 corretor com volume de acesso acima do padrão, revisar.</span>
           </div>
         </div>
         <div>
@@ -220,13 +220,13 @@ function JuGateRadar() {
     { quem: `CEO · ${ceoPersona.nome}`, st: 'pendente', t: null, parecer: null },
   ];
   const trilha = [
-    { t: '02/05', d: 'Gate ABERTO (Jurídico + CEO · parecer PJ-2026/009) — vigência 30 dias', ic: 'lock-open' },
-    { t: '14/05', d: 'Kill switch acionado pelo DPO — revisão de base legal de uma fonte', ic: 'octagon-x', warn: true },
+    { t: '02/05', d: 'Gate ABERTO (Jurídico + CEO · parecer PJ-2026/009), vigência 30 dias', ic: 'lock-open' },
+    { t: '14/05', d: 'Kill switch acionado pelo DPO: revisão de base legal de uma fonte', ic: 'octagon-x', warn: true },
     { t: '01/06', d: 'Gate FECHADO desde então · aba Proprietários opera só com dado permitido', ic: 'lock' },
   ];
   return (
     <div style={{ ...juCard, padding: 22 }}>
-      <JuHead title="Gate do Radar — dados de proprietários" sub="A torneira de dado pessoal da prospecção: fechada por padrão, só abre com dupla confirmação"
+      <JuHead title="Gate do Radar (dados de proprietários)" sub="A torneira de dado pessoal da prospecção: fechada por padrão, só abre com dupla confirmação"
         right={<JuBadge text="🔒 FECHADO" fg={ju.error} bg={ju.errBg} />} />
       <div className="ju-2col">
         <div>
@@ -239,7 +239,7 @@ function JuGateRadar() {
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: ju.ink }}>{a.quem}</div>
-                  <div style={{ fontSize: 12, color: ju.g500 }}>{a.st === 'confirmado' ? `confirmou ${a.t} · ${a.parecer}` : 'aguardando confirmação — solicitada hoje 09:41'}</div>
+                  <div style={{ fontSize: 12, color: ju.g500 }}>{a.st === 'confirmado' ? `confirmou ${a.t} · ${a.parecer}` : 'aguardando confirmação, solicitada hoje 09:41'}</div>
                 </div>
                 {a.st === 'confirmado' ? <JuBadge text="Confirmado" fg={ju.success} bg={ju.successBg} /> : <button style={{ border: 'none', background: ju.primary, color: '#fff', borderRadius: 9, padding: '8px 14px', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 12.5 }}>Confirmar como CEO</button>}
               </div>
@@ -247,13 +247,13 @@ function JuGateRadar() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <button style={{ display: 'inline-flex', alignItems: 'center', gap: 7, border: `1px solid ${ju.error}`, background: ju.errBg, color: ju.error, borderRadius: 10, padding: '9px 15px', cursor: 'pointer', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 12.5 }}>
-              <CIc n="octagon-x" s={15} c={ju.error} /> KILL SWITCH — fechar agora
+              <CIc n="octagon-x" s={15} c={ju.error} /> KILL SWITCH: fechar agora
             </button>
-            <span style={{ fontSize: 12, color: ju.g500 }}>fecha na hora, sem confirmação — auditado</span>
+            <span style={{ fontSize: 12, color: ju.g500 }}>fecha na hora, sem confirmação (auditado)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: ju.lilac1, border: `1px solid ${ju.lilac2}`, borderRadius: 10, padding: '11px 13px', fontSize: 12.5, color: ju.g700, lineHeight: 1.5, marginTop: 12 }}>
             <CIc n="shield-check" s={15} c={ju.primary} style={{ marginTop: 1, flexShrink: 0 }} />
-            <span>Uma confirmação só <strong style={{ color: ju.ink }}>não abre nada</strong> — o servidor exige as duas, com referência de parecer. Tentar por outro caminho é recusado e registrado.</span>
+            <span>Uma confirmação só <strong style={{ color: ju.ink }}>não abre nada</strong>: o servidor exige as duas, com referência de parecer. Tentar por outro caminho é recusado e registrado.</span>
           </div>
         </div>
         <div>
@@ -279,7 +279,7 @@ function JuGateRadar() {
               <div style={{ width: '43%', height: '100%', background: `linear-gradient(90deg, ${ju.success}, ${ju.warning})`, borderRadius: 999 }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: ju.g500 }}>
-              <span>detecção</span><span style={{ fontWeight: 700, color: ju.ink }}>31h — ANPD + titulares notificados</span><span>limite 72h</span>
+              <span>detecção</span><span style={{ fontWeight: 700, color: ju.ink }}>31h: ANPD + titulares notificados</span><span>limite 72h</span>
             </div>
             <div style={{ fontSize: 12, color: ju.g500, marginTop: 9, lineHeight: 1.5 }}>Incidente classificado como reportável dispara o relógio automaticamente: alertas em D-1, templates de comunicação prontos e cada passo carimbado no AuditLog.</div>
           </div>

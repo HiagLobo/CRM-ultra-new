@@ -60,8 +60,8 @@ function VgKpi({ label, value, delta, up, icon, highlight }: any) {
 
 function VgKpis() {
   const k = [
-    { label: 'VGV — Vendas', value: 'R$ 18,4 mi', delta: '12%', up: true, icon: 'trending-up', highlight: true },
-    { label: 'VGL — Locação', value: 'R$ 2,1 mi', delta: '4%', up: true, icon: 'key-round' },
+    { label: 'VGV (Vendas)', value: 'R$ 18,4 mi', delta: '12%', up: true, icon: 'trending-up', highlight: true },
+    { label: 'VGL (Locação)', value: 'R$ 2,1 mi', delta: '4%', up: true, icon: 'key-round' },
     { label: 'Receita do período', value: 'R$ 1,24 mi', delta: '9%', up: true, icon: 'wallet' },
     { label: 'Receita recorrente (MRR)', value: 'R$ 142 mil', delta: '6%', up: true, icon: 'repeat' },
     { label: 'Negócios fechados', value: '47', delta: '8', up: true, icon: 'handshake' },
@@ -84,7 +84,7 @@ function VgRevenue() {
   let off = 25;
   return (
     <div style={{ ...card, padding: 22 }}>
-      <VgHead title="Receita por fonte" sub="A margem é diversificada — não só comissão" right={<span style={{ fontSize: 12.5, fontWeight: 700, color: vg.primary, background: vg.lilac2, padding: '5px 12px', borderRadius: 999 }}>Total R$ 1,24 mi</span>} />
+      <VgHead title="Receita por fonte" sub="A margem é diversificada, não só comissão" right={<span style={{ fontSize: 12.5, fontWeight: 700, color: vg.primary, background: vg.lilac2, padding: '5px 12px', borderRadius: 999 }}>Total R$ 1,24 mi</span>} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
         <svg width="150" height="150" viewBox="0 0 42 42" style={{ flexShrink: 0 }}>
           <circle cx="21" cy="21" r="15.9" fill="none" stroke={vg.g100} strokeWidth="5" />

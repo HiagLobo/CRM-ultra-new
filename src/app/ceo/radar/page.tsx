@@ -89,7 +89,7 @@ function CpSupplyDemand() {
   const max = Math.max(...REGIONS.flatMap(r => [r.dem, r.of]));
   return (
     <div style={{ ...cpCard, padding: 22 }}>
-      <CpHead title="Oferta × Demanda — Radar" sub="Onde a rede deve captar (cruzando a demanda dos leads)" right={
+      <CpHead title="Oferta × Demanda no Radar" sub="Onde a rede deve captar (cruzando a demanda dos leads)" right={
         <div style={{ display: 'flex', gap: 14 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: cp.g700 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: cp.primary }} /> Demanda</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: cp.g700 }}><span style={{ width: 11, height: 11, borderRadius: 3, background: cp.p3 }} /> Oferta</span>
@@ -290,7 +290,7 @@ function CpCredits() {
         ))}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, background: cp.warnBg, borderRadius: 10, padding: '10px 13px', fontSize: 12.5, color: cp.g700 }}>
-        <CIc n="alert-triangle" s={15} c={cp.warning} /> {demo.nomeCurto} Boa Viagem a 84% da alocação — avaliar pacote extra.
+        <CIc n="alert-triangle" s={15} c={cp.warning} /> {demo.nomeCurto} Boa Viagem a 84% da alocação, avaliar pacote extra.
       </div>
     </div>
   );
@@ -329,7 +329,7 @@ function CpLgpd() {
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, background: cp.errBg, borderRadius: 10, padding: '11px 13px', fontSize: 12.5, color: cp.g700, lineHeight: 1.5 }}>
         <CIc n="alert-octagon" s={16} c={cp.error} style={{ marginTop: 1, flexShrink: 0 }} />
-        <span><strong style={{ color: cp.ink }}>Anomalia:</strong> 1 corretor com volume de consulta acima do padrão — revisar.</span>
+        <span><strong style={{ color: cp.ink }}>Anomalia:</strong> 1 corretor com volume de consulta acima do padrão, revisar.</span>
       </div>
     </div>
   );
@@ -478,7 +478,7 @@ function CaptacaoPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: cp.ink }}>Captação &amp; Radar</h1>
-          <div style={{ fontSize: 13.5, color: cp.g500, marginTop: 4 }}>O lado da oferta — achar e captar imóvel com a inteligência do Radar</div>
+          <div style={{ fontSize: 13.5, color: cp.g500, marginTop: 4 }}>O lado da oferta: achar e captar imóvel com a inteligência do Radar</div>
         </div>
         <CpPeriod />
       </div>

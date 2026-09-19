@@ -48,7 +48,7 @@ const LEADS: any[] = [
     timeline: [
       { t: '14:32', d: 'Lead recebido no pool · origem Portal VivaReal', ic: 'inbox' },
       { t: '14:32', d: `1ª atribuição → ${demo.nomeCurto} Pina · Felipe A. (regra: Região)`, ic: 'user' },
-      { t: '14:47', d: 'SLA de 15 min estourado — sem 1ª resposta', ic: 'alarm-clock', warn: true },
+      { t: '14:47', d: 'SLA de 15 min estourado, sem 1ª resposta', ic: 'alarm-clock', warn: true },
       { t: '14:47', d: `Redistribuído → ${demo.nomeCurto} Caruaru · Bruno T. (regra: Região + Rodízio)`, ic: 'shuffle', ok: true },
     ],
   },
@@ -166,7 +166,7 @@ function LdRules() {
   const mapRows = [['Boa Viagem', `${demo.nomeCurto} Boa Viagem`], ['Pina', `${demo.nomeCurto} Boa Viagem`], ['Centro', `${demo.nomeCurto} Recife Centro`], ['Caruaru', `${demo.nomeCurto} Caruaru`]];
   return (
     <div style={{ ...ldCard, padding: 22 }}>
-      <LdHead title="Distribuição — regras" sub="Configure a lógica do motor — sem código" right={<button style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: ld.primary, color: '#fff', borderRadius: 10, padding: '9px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13.5, boxShadow: 'var(--shadow-purple)' }}><CIc n="save" s={16} c="#fff" /> Salvar regras</button>} />
+      <LdHead title="Regras de distribuição" sub="Configure a lógica do motor, sem código" right={<button style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: ld.primary, color: '#fff', borderRadius: 10, padding: '9px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13.5, boxShadow: 'var(--shadow-purple)' }}><CIc n="save" s={16} c="#fff" /> Salvar regras</button>} />
       <div className="ld-rules-grid">
         {/* ordem das regras */}
         <div>
@@ -486,7 +486,7 @@ function LeadsPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', margin: 0, color: ld.ink }}>Leads &amp; Distribuição</h1>
-          <div style={{ fontSize: 13.5, color: ld.g500, marginTop: 4 }}>O motor de leads da rede — origem, funil e distribuição</div>
+          <div style={{ fontSize: 13.5, color: ld.g500, marginTop: 4 }}>O motor de leads da rede: origem, funil e distribuição</div>
         </div>
         <LdPeriod />
       </div>

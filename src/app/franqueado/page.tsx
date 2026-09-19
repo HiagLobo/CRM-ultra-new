@@ -69,7 +69,7 @@ const FUNIL = [
 ];
 const RANKING = [
   { pos: 1, u: 'Unidade ★', fat: 'R$ 188 mil', voce: false },
-  { pos: 2, u: `${demo.nomeCurto} Boa Viagem — você`, fat: 'R$ 152 mil', voce: true },
+  { pos: 2, u: `${demo.nomeCurto} Boa Viagem (você)`, fat: 'R$ 152 mil', voce: true },
   { pos: 3, u: 'Unidade B', fat: 'R$ 134 mil', voce: false },
   { pos: 4, u: 'Unidade C', fat: 'R$ 118 mil', voce: false },
 ];
@@ -126,7 +126,7 @@ function FqTopbar({ abrirMenu }: { abrirMenu: () => void }) {
       <button className="fq-burger" onClick={abrirMenu} title="Menu" aria-label="Abrir menu" data-tour="fq-menu" style={{ width: 42, height: 42, border: `1px solid ${fq.g300}`, background: '#fff', borderRadius: 12, placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
         <CIc n="menu" s={22} c={fq.ink} />
       </button>
-      <div className="fq-unidade" title="Seu acesso é limitado à sua unidade — garantido pelo servidor" style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${fq.g300}`, background: fq.lilac1, borderRadius: 999, padding: '8px 14px', cursor: 'not-allowed' }}>
+      <div className="fq-unidade" title="Seu acesso é limitado à sua unidade, garantido pelo servidor" style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1px solid ${fq.g300}`, background: fq.lilac1, borderRadius: 999, padding: '8px 14px', cursor: 'not-allowed' }}>
         <span style={{ width: 30, height: 30, borderRadius: '50%', background: fq.lilac2, display: 'grid', placeItems: 'center' }}>
           <CIc n="store" s={16} c={fq.primary} />
         </span>
@@ -191,7 +191,7 @@ function FqVisao() {
         ))}
       </div>
       <div style={{ ...fqCard, padding: 22 }}>
-        <FqHead title="Crescimento da unidade" sub="Faturamento mensal — últimos 6 meses (R$ mil)"
+        <FqHead title="Crescimento da unidade" sub="Faturamento mensal nos últimos 6 meses (R$ mil)"
           right={<FqBadge text="+58% no semestre" fg={fq.success} bg={fq.successBg} ic="trending-up" />} />
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, height: 160, padding: '0 4px' }}>
           {RECEITA_6M.map((x, i) => (
@@ -219,7 +219,7 @@ function FqTime() {
   return (
     <section id="time" style={{ scrollMarginTop: 90 }}>
       <div style={{ ...fqCard, padding: 22 }}>
-        <FqHead title="Meu time" sub="Os corretores da sua unidade — score, produção e conversão"
+        <FqHead title="Meu time" sub="Os corretores da sua unidade: score, produção e conversão"
           right={<FqBadge text="38/40 assentos em uso" fg={fq.warning} bg={fq.warnBg} ic="armchair" />} />
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
@@ -263,7 +263,7 @@ function FqLeads() {
   return (
     <section id="leads" style={{ scrollMarginTop: 90 }}>
       <div style={{ ...fqCard, padding: 22 }}>
-        <FqHead title="Leads & funil da unidade" sub="O que a rede entregou para o seu time em junho — e onde está cada lead"
+        <FqHead title="Leads & funil da unidade" sub="O que a rede entregou para o seu time em junho, e onde está cada lead"
           right={<FqBadge text="1ª resposta média: 7 min" fg={fq.success} bg={fq.successBg} ic="timer" />} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           {FUNIL.map((f) => (
@@ -279,7 +279,7 @@ function FqLeads() {
         </div>
         <div style={{ marginTop: 14, padding: '10px 14px', background: fq.lilac1, border: `1px solid ${fq.lilac2}`, borderRadius: 10, fontSize: 12.5, color: fq.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
           <CIc n="bot" s={14} c={fq.primary} />
-          A IA da {demo.nomeCurto} atende, qualifica e agenda — seu time recebe o lead pronto. Quem não responde em 15 min perde o lead para o rodízio.
+          A IA da {demo.nomeCurto} atende, qualifica e agenda: seu time recebe o lead pronto. Quem não responde em 15 min perde o lead para o rodízio.
         </div>
       </div>
     </section>
@@ -317,7 +317,7 @@ function FqPlano() {
           </div>
         </div>
         <div style={{ ...fqCard, padding: 22 }}>
-          <FqHead title="Sua conta com a rede — junho" sub="Transparência total do que entra e do que sai" />
+          <FqHead title="Sua conta com a rede em junho" sub="Transparência total do que entra e do que sai" />
           {[
             { l: 'Comissões do time (bruto)', v: '+ R$ 96.000', ok: true },
             { l: 'Participação da unidade', v: '+ R$ 38.400', ok: true },
@@ -344,7 +344,7 @@ function FqCandidatos() {
   return (
     <section id="candidatos" style={{ scrollMarginTop: 90 }}>
       <div style={{ ...fqCard, padding: 22 }}>
-        <FqHead title="Indicar corretor para a minha unidade" sub={`Você indica, a ${demo.nomeCurto} valida CRECI e documentos — aprovação ocupa um dos seus assentos`}
+        <FqHead title="Indicar corretor para a minha unidade" sub={`Você indica, a ${demo.nomeCurto} valida CRECI e documentos: a aprovação ocupa um dos seus assentos`}
           right={<button style={btnP}>+ Indicar candidato</button>} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 4px', borderBottom: `1px solid ${fq.g100}`, flexWrap: 'wrap' }}>
           <span style={{ width: 34, height: 34, borderRadius: 10, background: fq.successBg, display: 'grid', placeItems: 'center' }}><CIc n="user-check" s={16} c={fq.success} /></span>
@@ -364,7 +364,7 @@ function FqCandidatos() {
         </div>
         <div style={{ marginTop: 12, padding: '10px 14px', background: fq.lilac1, border: `1px solid ${fq.lilac2}`, borderRadius: 10, fontSize: 12.5, color: fq.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
           <CIc n="armchair" s={14} c={fq.primary} />
-          Você tem <b>2 assentos livres</b>. Sem assento, a aprovação fica retida — amplie o plano antes.
+          Você tem <b>2 assentos livres</b>. Sem assento, a aprovação fica retida. Amplie o plano antes.
         </div>
       </div>
     </section>
@@ -375,7 +375,7 @@ function FqRanking() {
   return (
     <section id="ranking" style={{ scrollMarginTop: 90 }}>
       <div style={{ ...fqCard, padding: 22 }}>
-        <FqHead title="Minha posição na rede" sub="Compare-se com a rede — sem ver os dados das outras unidades"
+        <FqHead title="Minha posição na rede" sub="Compare-se com a rede, sem ver os dados das outras unidades"
           right={<FqBadge text="outras unidades anonimizadas" fg={fq.g700} bg={fq.g100} ic="eye-off" />} />
         {RANKING.map((r) => (
           <div key={r.pos} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', borderRadius: 12, marginBottom: 8, background: r.voce ? fq.lilac1 : 'transparent', border: r.voce ? `2px solid ${fq.primary}` : `1px solid ${fq.g100}` }}>
@@ -386,7 +386,7 @@ function FqRanking() {
         ))}
         <div style={{ marginTop: 10, padding: '10px 14px', background: fq.lilac1, border: `1px solid ${fq.lilac2}`, borderRadius: 10, fontSize: 12.5, color: fq.g700, display: 'flex', alignItems: 'center', gap: 8 }}>
           <CIc n="shield-check" s={14} c={fq.primary} />
-          Franquias são independentes entre si: você vê a sua posição e a referência do 1º lugar — <b>nunca os números das demais</b>. Esse recorte é garantido pelo servidor, não pela tela.
+          Franquias são independentes entre si: você vê a sua posição e a referência do 1º lugar, <b>nunca os números das demais</b>. Esse recorte é garantido pelo servidor, não pela tela.
         </div>
       </div>
     </section>

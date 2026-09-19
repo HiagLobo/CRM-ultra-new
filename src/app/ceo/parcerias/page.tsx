@@ -255,7 +255,7 @@ function PaTable({ onSelect }: any) {
 function PaPartners() {
   return (
     <div>
-      <PaHead title="Parceiros externos — catálogo" sub="Credenciados pelo CEO por categoria · 14 ativos" right={<button style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: pa.primary, color: '#fff', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13.5, boxShadow: 'var(--shadow-purple)', whiteSpace: 'nowrap' } as React.CSSProperties}><CIc n="plus" s={16} c="#fff" /> Novo parceiro</button>} />
+      <PaHead title="Catálogo de parceiros externos" sub="Credenciados pelo CEO por categoria · 14 ativos" right={<button style={{ display: 'flex', alignItems: 'center', gap: 7, border: 'none', background: pa.primary, color: '#fff', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 13.5, boxShadow: 'var(--shadow-purple)', whiteSpace: 'nowrap' } as React.CSSProperties}><CIc n="plus" s={16} c="#fff" /> Novo parceiro</button>} />
       <div className="pa-partners">
         {PARTNERS.map(p => (
           <div key={p.cat} style={{ ...paCard, padding: 18, position: 'relative' } as React.CSSProperties}>
