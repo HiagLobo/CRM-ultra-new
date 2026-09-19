@@ -44,8 +44,36 @@ export function normalizarTelefoneBR(bruto: string): string | null {
   return `+55${nacional}`;
 }
 
-/** E-mail normalizado (minúsculas, sem espaços) — reusado por todas as entradas públicas. */
-const emailSchema = z.string().trim().toLowerCase().email("e-mail inválido").max(254);
+/** E-mail normalizado (minúsculas, sem espaços) — reusado por todas as entradas (públicas e do admin). */
+export const emailSchema = z.string().trim().toLowerCase().email("e-mail inválido").max(254);
+
+/** Telefone brasileiro → E.164. Mesma regra no formulário público e no cadastro manual. */
+const MENSAGEM_TELEFONE_INVALIDO = "telefone inválido (use DDD + número)";
+export const telefoneSchema = z
+  .string()
+  .trim()
+  .max(40, MENSAGEM_TELEFONE_INVALIDO)
+  .transform((valor, ctx) => {
+    const e164 = normalizarTelefoneBR(valor);
+    if (!e164) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: MENSAGEM_TELEFONE_INVALIDO });
+      return z.NEVER;
+    }
+    return e164;
+  });
+
+/** CRECI: normaliza antes de validar ("CRECI-PE 12.345-F" → "PE 12345-F") e guarda o normalizado. */
+export const creciSchema = z
+  .string()
+  .max(60, MENSAGEM_CRECI_INVALIDO)
+  .transform((valor, ctx) => {
+    const creci = normalizarCreci(valor);
+    if (!creci) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: MENSAGEM_CRECI_INVALIDO });
+      return z.NEVER;
+    }
+    return creci;
+  });
 
 /**
  * Origem da campanha (utm/ref): texto livre vindo da URL ou da API pública. Saneado para
@@ -59,26 +87,8 @@ const campoOrigem = z
 
 export const LeadInputSchema = z.object({
   email: emailSchema,
-  telefone: z.string().trim().transform((valor, ctx) => {
-    const e164 = normalizarTelefoneBR(valor);
-    if (!e164) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "telefone inválido (use DDD + número)" });
-      return z.NEVER;
-    }
-    return e164;
-  }),
-  // normaliza antes de validar ("CRECI-PE 12.345-F" → "PE 12345-F") e guarda o normalizado
-  creci: z
-    .string()
-    .max(60, MENSAGEM_CRECI_INVALIDO)
-    .transform((valor, ctx) => {
-      const creci = normalizarCreci(valor);
-      if (!creci) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: MENSAGEM_CRECI_INVALIDO });
-        return z.NEVER;
-      }
-      return creci;
-    }),
+  telefone: telefoneSchema,
+  creci: creciSchema,
   consentimento: z.literal(true, {
     errorMap: () => ({ message: "consentimento é obrigatório" }),
   }),

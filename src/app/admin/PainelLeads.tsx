@@ -1,155 +1,196 @@
 "use client";
 /**
- * Painel de leads: contagens, busca/filtro, lista e follow-up.
- * O estado e as chamadas à API moram em `useLeadsAdmin`; aqui fica a composição.
- * Estados de carregando, erro, lista vazia e filtro sem resultado — nada de
- * tela em branco.
+ * Painel de leads: cards do funil, abas por etapa (com "Hoje"), busca, lista,
+ * gaveta do lead e "+ Novo lead". O estado e as chamadas à API moram em
+ * `useLeadsAdmin`; as regras (Hoje, abas, formulários) em funções puras; aqui
+ * fica a composição. Estados de carregando, erro, lista vazia e aba vazia —
+ * nada de tela em branco.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import { brand } from "@/config/brand";
-import { Ic } from "@/components/Icon";
-import type { LeadAdmin, ResumoLeads } from "@/features/lead/admin";
-import TabelaLeads from "./TabelaLeads";
+import type { LeadAdmin } from "@/features/lead/admin";
+import type { StatusLead } from "@/features/lead/funil";
+import CabecalhoPainel from "./CabecalhoPainel";
+import CardsTopo from "./CardsTopo";
+import AbasFunil from "./AbasFunil";
 import BarraFiltros from "./BarraFiltros";
+import TabelaLeads from "./TabelaLeads";
+import GavetaLead from "./GavetaLead";
+import ModalEtapa from "./ModalEtapa";
+import ModalNovoLead from "./ModalNovoLead";
 import ConfirmarExclusao from "./ConfirmarExclusao";
-import { useLeadsAdmin } from "./useLeadsAdmin";
-import { contarPorFiltro, filtrarLeads, textoContagem, type FiltroStatus } from "./filtroLeads";
-import { acao } from "./estilos";
+import Aviso, { FaixaErro, LinkAviso } from "./Aviso";
+import { useLeadsAdmin, type ResultadoAcao } from "./useLeadsAdmin";
+import { useAgora } from "./useAgora";
+import { pedeDetalhe, type EtapaComDetalhe } from "./etapas";
+import { abaInicial, contarPorAba, filtrarPorAba, textoContagem, type Aba } from "./filtroLeads";
 
-const CARDS: { chave: keyof ResumoLeads; rotulo: string; sufixo?: string }[] = [
-  { chave: "total", rotulo: "Pedidos de acesso" },
-  { chave: "verificados", rotulo: "E-mail confirmado" },
-  { chave: "conversaoPct", rotulo: "Conversão", sufixo: "%" },
-  { chave: "contatados", rotulo: "Já contatados" },
-];
+const AVISO_OBSERVACAO = "Lead cadastrado, mas a observação não foi salva. Escreva de novo em Anotações.";
 
 export default function PainelLeads() {
   const painel = useLeadsAdmin();
+  const agora = useAgora();
   const [busca, setBusca] = React.useState("");
-  const [status, setStatus] = React.useState<FiltroStatus>("todos");
+  const [aba, setAba] = React.useState<Aba | null>(null);
+  const [abertoId, setAbertoId] = React.useState<string | null>(null);
+  const [avisoGaveta, setAvisoGaveta] = React.useState<string | null>(null);
+  const [pedidoEtapa, setPedidoEtapa] = React.useState<{ lead: LeadAdmin; etapa: EtapaComDetalhe } | null>(null);
   const [confirmando, setConfirmando] = React.useState<LeadAdmin | null>(null);
+  const [erroExclusao, setErroExclusao] = React.useState<string | null>(null);
+  const [novoAberto, setNovoAberto] = React.useState(false);
 
+  const contagem = React.useMemo(() => contarPorAba(painel.leads, busca, agora), [painel.leads, busca, agora]);
+  const pendentesHoje = React.useMemo(() => contarPorAba(painel.leads, "", agora).hoje, [painel.leads, agora]);
+  const abaAtiva: Aba = aba ?? abaInicial(pendentesHoje);
   const visiveis = React.useMemo(
-    () => filtrarLeads(painel.leads, { busca, status }),
-    [painel.leads, busca, status],
+    () => filtrarPorAba(painel.leads, { aba: abaAtiva, busca }, agora),
+    [painel.leads, abaAtiva, busca, agora],
   );
-  const contagem = React.useMemo(() => contarPorFiltro(painel.leads, busca), [painel.leads, busca]);
+  const aberto = abertoId ? (painel.leads.find((l) => l.id === abertoId) ?? null) : null;
 
-  async function excluir(lead: LeadAdmin) {
-    if (await painel.excluir(lead.id)) setConfirmando(null);
+  // a aba de abertura é decidida uma vez, com a lista carregada — depois, só o fundador troca
+  React.useEffect(() => {
+    if (painel.carregado && aba === null) setAba(abaInicial(pendentesHoje));
+  }, [painel.carregado, aba, pendentesHoje]);
+
+  const fecharGaveta = React.useCallback(() => {
+    setAbertoId(null);
+    setAvisoGaveta(null);
+  }, []);
+
+  function abrirLead(id: string) {
+    setAbertoId(id);
+    setAvisoGaveta(null);
+    if (!painel.leads.some((l) => l.id === id)) void painel.carregar(); // entrou depois da última carga
   }
 
-  function limparFiltros() {
+  /** Etapa simples muda na hora; "retomar"/"perdido" abrem o mini-formulário. */
+  async function escolherEtapa(lead: LeadAdmin, etapa: StatusLead): Promise<ResultadoAcao> {
+    if (pedeDetalhe(etapa)) {
+      setPedidoEtapa({ lead, etapa });
+      return { ok: true };
+    }
+    return painel.mudarEtapa(lead.id, { etapa });
+  }
+
+  async function escolherNaLinha(lead: LeadAdmin, etapa: StatusLead) {
+    const r = await escolherEtapa(lead, etapa);
+    painel.mostrarErro(r.ok ? null : r.erro);
+  }
+
+  async function excluir(lead: LeadAdmin) {
+    setErroExclusao(null);
+    const r = await painel.excluir(lead.id);
+    if (!r.ok) return setErroExclusao(r.erro);
+    setConfirmando(null);
+    fecharGaveta();
+  }
+
+  function cadastrado(lead: LeadAdmin, observacaoNaoSalva: boolean) {
+    setNovoAberto(false);
     setBusca("");
-    setStatus("todos");
+    setAbertoId(lead.id);
+    setAvisoGaveta(observacaoNaoSalva ? AVISO_OBSERVACAO : null);
   }
 
   return (
     <div style={{ minHeight: "100vh", background: p.page }}>
-      <header style={{ background: "#fff", borderBottom: `1px solid ${p.g300}` }}>
-        {/* celular: só ícones nos botões e sem o título, senão "Sair" sai da tela */}
-        <style>{`@media (max-width: 640px) { .adm-titulo, .adm-rotulo { display: none; } .adm-topo { padding: 0 16px !important; gap: 10px !important; } .adm-topo img { height: 36px !important; } }`}</style>
-        <div className="ds-pad adm-topo" style={{ maxWidth: 1240, margin: "0 auto", padding: "0 32px", height: 72, display: "flex", alignItems: "center", gap: 16 }}>
-          <img src="/assets/logo.svg" alt={brand.nome} style={{ height: 44 }} />
-          <span className="adm-titulo" style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: p.ink }}>
-            Painel de leads
-          </span>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => void painel.exportar()}
-              aria-label="Exportar CSV"
-              disabled={painel.exportando}
-              className="ds-btnpop"
-              style={{ ...acao(p.primary, true), opacity: painel.exportando ? 0.7 : 1 }}
-            >
-              <Ic n="download" s={16} c="#fff" /> <span className="adm-rotulo">{painel.exportando ? "Exportando…" : "Exportar CSV"}</span>
-            </button>
-            <button type="button" onClick={() => void painel.sair()} aria-label="Sair" style={acao(p.g500, false)}>
-              <Ic n="log-out" s={16} c={p.g700} /> <span className="adm-rotulo">Sair</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <CabecalhoPainel
+        exportando={painel.exportando}
+        aoNovoLead={() => setNovoAberto(true)}
+        aoExportar={() => void painel.exportar()}
+        aoSair={() => void painel.sair()}
+      />
 
-      <main className="ds-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "32px" }}>
-        {painel.erro && (
-          <div role="alert" style={{ display: "flex", alignItems: "center", gap: 9, background: `${p.error}14`, border: `1px solid ${p.error}55`, borderRadius: 12, padding: "12px 14px", fontSize: 14, marginBottom: 20 }}>
-            <Ic n="alert-triangle" s={17} c={p.error} /> {painel.erro}
-            <button type="button" onClick={() => void painel.carregar()} style={{ marginLeft: "auto", background: "none", border: "none", color: p.primary, fontWeight: 700, cursor: "pointer", fontSize: 13.5 }}>
-              Recarregar
-            </button>
-          </div>
-        )}
+      <main className="ds-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 32px 40px" }}>
+        {painel.erro && <FaixaErro mensagem={painel.erro} aoRecarregar={() => void painel.carregar()} />}
 
-        <div className="ds-cards" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 24 }}>
-          {CARDS.map((c) => (
-            <div key={c.chave} style={{ background: "#fff", border: `1px solid ${p.g300}`, borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: p.g500, marginBottom: 8 }}>{c.rotulo}</div>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 30, color: p.ink }}>
-                {painel.resumo ? `${painel.resumo[c.chave]}${c.sufixo ?? ""}` : "—"}
-              </div>
-            </div>
-          ))}
-        </div>
+        <CardsTopo leads={painel.leads} carregado={painel.carregado} agora={agora} aoAbrirAba={setAba} />
 
-        {!painel.resumo ? (
+        {!painel.carregado ? (
           // sem dados ainda: carregando, ou a falha já está no aviso acima
           painel.carregando && <Aviso icone="loader">Carregando os leads…</Aviso>
         ) : painel.leads.length === 0 ? (
           <Aviso icone="inbox">
-            Nenhum pedido de acesso ainda. Assim que alguém preencher o formulário da landing, ele
-            aparece aqui.
+            Nenhum lead ainda. Quem pedir acesso pelo site aparece aqui; quem chegou por indicação, evento
+            ou WhatsApp, cadastre em <LinkAviso aoClicar={() => setNovoAberto(true)}>+ Novo lead</LinkAviso>.
           </Aviso>
         ) : (
           <>
-            <BarraFiltros
-              busca={busca}
-              status={status}
-              contagem={contagem}
-              textoTotal={textoContagem(visiveis.length, painel.leads.length)}
-              aoBuscar={setBusca}
-              aoFiltrar={setStatus}
-            />
-            {visiveis.length === 0 ? (
-              <Aviso icone="search-x">
-                Nenhum lead com esse filtro.{" "}
-                <button type="button" onClick={limparFiltros} style={{ background: "none", border: "none", padding: 0, color: p.primary, fontWeight: 700, cursor: "pointer", fontSize: "inherit", fontFamily: "inherit" }}>
-                  Limpar busca e filtro
-                </button>
-              </Aviso>
-            ) : (
-              <TabelaLeads
-                leads={visiveis}
-                ocupado={painel.ocupado}
-                aoMudarStatus={(id, s) => void painel.mudarStatus(id, s)}
-                aoExcluir={setConfirmando}
-              />
-            )}
+            <AbasFunil ativa={abaAtiva} contagem={contagem} aoEscolher={setAba} />
+            <BarraFiltros busca={busca} textoTotal={textoContagem(visiveis.length, painel.leads.length)} aoBuscar={setBusca} />
+            <div id="lista-leads" role="tabpanel">
+              {visiveis.length > 0 ? (
+                <TabelaLeads leads={visiveis} agora={agora} ocupado={painel.ocupado} aoAbrir={abrirLead} aoEscolherEtapa={(l, e) => void escolherNaLinha(l, e)} />
+              ) : busca.trim() ? (
+                <Aviso icone="search-x">
+                  Nenhum lead com essa busca nesta aba. <LinkAviso aoClicar={() => setBusca("")}>Limpar a busca</LinkAviso>
+                </Aviso>
+              ) : abaAtiva === "hoje" ? (
+                <Aviso icone="check-circle-2">
+                  Tudo em dia. Ações vencidas ou do dia, retornos marcados e leads novos parados há 24 h aparecem
+                  aqui. <LinkAviso aoClicar={() => setAba("todos")}>Ver todos os leads</LinkAviso>
+                </Aviso>
+              ) : (
+                <Aviso icone="inbox">
+                  Nenhum lead nesta etapa. <LinkAviso aoClicar={() => setAba("todos")}>Ver todos</LinkAviso>
+                </Aviso>
+              )}
+            </div>
           </>
         )}
       </main>
+
+      {aberto && (
+        <GavetaLead
+          key={aberto.id}
+          lead={aberto}
+          agora={agora}
+          ocupado={painel.ocupado === aberto.id}
+          escAtivo={!pedidoEtapa && !confirmando && !novoAberto}
+          aviso={avisoGaveta}
+          aoFechar={fecharGaveta}
+          aoEscolherEtapa={(etapa) => escolherEtapa(aberto, etapa)}
+          aoAlterarRetomar={() => setPedidoEtapa({ lead: aberto, etapa: "retomar" })}
+          aoDefinirProximaAcao={(acao) => painel.definirProximaAcao(aberto.id, acao)}
+          aoExcluir={() => {
+            setErroExclusao(null);
+            setConfirmando(aberto);
+          }}
+        />
+      )}
+
+      {pedidoEtapa && (
+        <ModalEtapa
+          lead={pedidoEtapa.lead}
+          etapa={pedidoEtapa.etapa}
+          agora={agora}
+          aoFechar={() => setPedidoEtapa(null)}
+          aoConfirmar={(mudanca) => painel.mudarEtapa(pedidoEtapa.lead.id, mudanca)}
+        />
+      )}
+
+      {novoAberto && (
+        <ModalNovoLead
+          aoFechar={() => setNovoAberto(false)}
+          aoCadastrar={painel.cadastrar}
+          aoCadastrado={cadastrado}
+          aoAbrirExistente={(id) => {
+            setNovoAberto(false);
+            abrirLead(id);
+          }}
+        />
+      )}
 
       {confirmando && (
         <ConfirmarExclusao
           lead={confirmando}
           ocupado={painel.ocupado === confirmando.id}
+          erro={erroExclusao}
           aoCancelar={() => setConfirmando(null)}
           aoConfirmar={() => void excluir(confirmando)}
         />
       )}
-    </div>
-  );
-}
-
-function Aviso({ icone, children }: { icone: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: "#fff", border: `1px dashed ${p.g300}`, borderRadius: 16, padding: 48, textAlign: "center", color: p.g500 }}>
-      <div style={{ width: 50, height: 50, borderRadius: "50%", background: p.lilac1, display: "grid", placeItems: "center", margin: "0 auto 14px" }}>
-        <Ic n={icone} s={24} c={p.primary} />
-      </div>
-      <div style={{ fontSize: 14.5, maxWidth: 420, margin: "0 auto", lineHeight: 1.6 }}>{children}</div>
     </div>
   );
 }

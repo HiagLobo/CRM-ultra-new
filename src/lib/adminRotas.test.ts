@@ -53,11 +53,34 @@ describe("toda rota /api/admin/* barra sem sessão", () => {
   });
 
   it("PATCH /api/admin/leads → 401 (e não chega a tocar o lead)", async () => {
+    const funil = vi.spyOn(leadStore(), "atualizarFunil");
     const { PATCH } = await import("@/app/api/admin/leads/route");
-    const res = await PATCH(
-      req("/api/admin/leads", { metodo: "PATCH", corpo: { id: "x", status: "contatado" } }),
-    );
+    for (const corpo of [{ id: "x", etapa: "cliente" }, { id: "x", proximaAcao: null }]) {
+      expect((await PATCH(req("/api/admin/leads", { metodo: "PATCH", corpo }))).status).toBe(401);
+    }
+    expect(funil).not.toHaveBeenCalled();
+  });
+
+  it("POST /api/admin/leads (cadastro manual) → 401, sem gravar nada", async () => {
+    const criar = vi.spyOn(leadStore(), "criar");
+    const { POST } = await import("@/app/api/admin/leads/route");
+    const corpo = { telefone: "(81) 97777-6666", canal: "indicacao", consentimento: true };
+    const res = await POST(req("/api/admin/leads", { metodo: "POST", corpo }));
     expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ ok: false, erro: "nao_autorizado" });
+    expect(criar).not.toHaveBeenCalled();
+  });
+
+  it("GET e POST /api/admin/leads/[id]/notas → 401, sem ler nem gravar anotação", async () => {
+    const listar = vi.spyOn(leadStore(), "listarNotas");
+    const adicionar = vi.spyOn(leadStore(), "adicionarNota");
+    const { GET, POST } = await import("@/app/api/admin/leads/[id]/notas/route");
+    const ctx = { params: Promise.resolve({ id: "x" }) };
+    expect((await GET(req("/api/admin/leads/x/notas"), ctx)).status).toBe(401);
+    const post = await POST(req("/api/admin/leads/x/notas", { metodo: "POST", corpo: { texto: "oi" } }), ctx);
+    expect(post.status).toBe(401);
+    expect(listar).not.toHaveBeenCalled();
+    expect(adicionar).not.toHaveBeenCalled();
   });
 
   it("GET /api/admin/export → 401", async () => {
@@ -105,7 +128,8 @@ describe("GET /api/admin/leads com sessão: só o necessário, e falha com causa
     email: "corretor@exemplo.com",
     telefone: "+5581988887777",
     creci: "PE 12345",
-    status: "verificado",
+    status: "novo",
+    canal: "site",
     consentimento: { texto: "texto-da-politica", aceitoEm: "2026-06-17T12:00:00.000Z", ip: "203.0.113.9" },
     codigo: {
       hash: "hash-do-codigo",

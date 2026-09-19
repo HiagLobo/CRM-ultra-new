@@ -103,7 +103,7 @@ describe("lead não se perde quando o e-mail não sai (O7·S1)", () => {
     email.falharCodigo = new Error("provedor caiu");
     await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
     const salvo = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
-    expect(salvo.status).toBe("verificado");
+    expect(salvo.status).toBe("novo"); // etapa intacta (a verificação não a muda)
     expect(salvo.verificadoEm).toBe(T0.toISOString());
   });
 });

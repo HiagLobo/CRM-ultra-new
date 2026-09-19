@@ -33,3 +33,16 @@ export { verificarCodigo, consumirTentativa, REGRA_VERIFICACAO } from "./verific
 export type { DepsVerificacao, ResultadoVerificacao, MotivoFalha } from "./verificacao";
 export { avisarLeadNovo, PRAZO_AVISO_MS } from "./avisoLeadNovo";
 export type { DepsAviso, ResultadoAviso } from "./avisoLeadNovo";
+export {
+  ETAPAS,
+  CANAIS,
+  CANAIS_MANUAIS,
+  ROTULO_CANAL,
+  normalizarStatus,
+  normalizarCanal,
+  diaRecife,
+  diaValido,
+} from "./funil";
+export type { Canal, CanalManual, MudancaEtapa, NotaLead, ProximaAcao } from "./funil";
+export { PatchLeadSchema, NotaSchema, CadastroManualSchema, IdLeadSchema } from "./schemaAdmin";
+export type { PedidoPatch, CadastroManual } from "./schemaAdmin";

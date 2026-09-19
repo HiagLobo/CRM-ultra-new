@@ -1,21 +1,24 @@
 "use client";
 /**
- * Tabela de leads do admin: contato, origem, status e as ações de follow-up.
- * Contato em um clique: o telefone abre o WhatsApp com uma mensagem curta e o
- * e-mail abre o cliente de e-mail. Marcar "Contatado" continua sendo à mão.
+ * Lista de leads da aba: quem é, contato em um clique (WhatsApp com mensagem
+ * curta, e-mail), entrada, próximo passo e o seletor de etapa. Clicar na linha
+ * (ou no nome, pelo teclado) abre a gaveta do lead.
+ * Celular: cada linha vira um cartão (nome + etapa, telefone, próximo passo).
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
-import type { StatusLead } from "@/features/lead/lead";
-import { telefoneNacional, type LeadAdmin, type StatusDoAdmin } from "@/features/lead/admin";
-import { linkEmailLead, linkWhatsappLead } from "./contatoLead";
+import { dataHoraRecife, telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
+import { ROTULO_CANAL, type StatusLead } from "@/features/lead/funil";
+import SeletorEtapa from "./SeletorEtapa";
+import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
+import { proximoPasso, type TomPasso } from "./hoje";
 
-const CORES: Record<StatusLead, { fundo: string; texto: string; rotulo: string }> = {
-  novo: { fundo: p.g100, texto: p.g700, rotulo: "Novo" },
-  verificado: { fundo: `${p.success}1A`, texto: p.success, rotulo: "Verificado" },
-  contatado: { fundo: p.lilac1, texto: p.dark, rotulo: "Contatado" },
-  descartado: { fundo: `${p.error}14`, texto: p.error, rotulo: "Descartado" },
+const COR_TOM: Readonly<Record<TomPasso, string>> = {
+  atrasado: p.error,
+  hoje: p.dark,
+  agendado: p.g700,
+  nenhum: p.g500,
 };
 
 const th: React.CSSProperties = {
@@ -28,138 +31,111 @@ const th: React.CSSProperties = {
   padding: "0 14px 10px",
   whiteSpace: "nowrap",
 };
-const td: React.CSSProperties = {
-  fontSize: 14,
-  color: p.ink,
-  padding: "13px 14px",
-  borderTop: `1px solid ${p.g100}`,
-  whiteSpace: "nowrap",
-};
+const td: React.CSSProperties = { fontSize: 14, color: p.ink, padding: "12px 14px", borderTop: `1px solid ${p.g100}`, whiteSpace: "nowrap" };
+const link: React.CSSProperties = { color: "inherit", textDecoration: "underline", textDecorationColor: p.g300, textUnderlineOffset: 3 };
+const pararClique = (e: React.MouseEvent) => e.stopPropagation();
 
-const link: React.CSSProperties = {
-  color: "inherit",
-  textDecoration: "underline",
-  textDecorationColor: p.g300,
-  textUnderlineOffset: 3,
-};
-
-function dataCurta(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-}
-
-/** Telefone formatado; com link de WhatsApp quando o número permite. */
-function Telefone({ telefone }: { telefone: string }) {
-  const legivel = telefoneNacional(telefone);
-  const whatsapp = linkWhatsappLead(telefone);
-  if (!whatsapp) return <>{legivel}</>;
-  return (
-    <a
-      href={whatsapp}
-      target="_blank"
-      rel="noopener noreferrer"
-      title="Abrir conversa no WhatsApp"
-      style={{ ...link, display: "inline-flex", alignItems: "center", gap: 6 }}
-    >
-      <Ic n="message-circle" s={15} c={p.success} /> {legivel}
-    </a>
-  );
-}
+/** Desktop: tabela. Até 640 px: cada linha vira cartão em grade (sem rolagem lateral). */
+const CSS_LISTA = `
+.adm-lista { overflow-x: auto; }
+.adm-lista table { min-width: 760px; }
+.adm-linha { cursor: pointer; }
+.adm-linha:hover > td, .adm-linha:focus-within > td { background: ${p.page}; }
+@media (max-width: 640px) {
+  .adm-lista { padding: 0 !important; }
+  .adm-lista table, .adm-lista tbody { display: block; min-width: 0; }
+  .adm-lista thead { display: none; }
+  .adm-linha { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "lead etapa" "tel tel" "passo passo"; gap: 6px 10px; padding: 14px 16px; border-top: 1px solid ${p.g100}; }
+  .adm-linha:first-child { border-top: none; }
+  .adm-linha > td { display: block; padding: 0 !important; border: none !important; white-space: normal !important; max-width: none !important; background: none !important; }
+  .adm-c-lead { grid-area: lead; min-width: 0; } .adm-c-etapa { grid-area: etapa; }
+  .adm-c-tel { grid-area: tel; } .adm-c-passo { grid-area: passo; }
+  .adm-c-creci, .adm-c-entrada { display: none !important; }
+}`;
 
 export default function TabelaLeads({
   leads,
+  agora,
   ocupado,
-  aoMudarStatus,
-  aoExcluir,
+  aoAbrir,
+  aoEscolherEtapa,
 }: {
   leads: LeadAdmin[];
+  agora: Date;
   ocupado: string | null;
-  aoMudarStatus: (id: string, status: StatusDoAdmin) => void;
-  /** LGPD: eliminação a pedido do titular. Destrutivo — confirmado no painel. */
-  aoExcluir: (lead: LeadAdmin) => void;
+  aoAbrir: (id: string) => void;
+  aoEscolherEtapa: (lead: LeadAdmin, etapa: StatusLead) => void;
 }) {
   return (
-    <div className="ds-scroll-x" style={{ background: "#fff", border: `1px solid ${p.g300}`, borderRadius: 16, padding: "18px 4px 4px" }}>
+    <div className="adm-lista" style={{ background: p.white, border: `1px solid ${p.g300}`, borderRadius: 16, padding: "16px 4px 4px" }}>
+      <style>{CSS_LISTA}</style>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th style={th}>E-mail</th>
+            <th style={th}>Lead</th>
             <th style={th}>Telefone</th>
             <th style={th}>CRECI</th>
-            <th style={th}>Pedido em</th>
-            <th style={th}>Origem</th>
-            <th style={th}>Status</th>
-            <th style={{ ...th, textAlign: "right" }}>Follow-up</th>
+            <th style={th}>Entrada</th>
+            <th style={th}>Próximo passo</th>
+            <th style={th}>Etapa</th>
           </tr>
         </thead>
         <tbody>
           {leads.map((l) => {
-            const cor = CORES[l.status];
             const travado = ocupado === l.id;
+            const passo = proximoPasso(l, agora);
+            const whatsapp = linkWhatsappLead(l.telefone, l.canal);
             return (
-              <tr key={l.id} style={{ opacity: travado ? 0.5 : 1 }}>
-                <td style={{ ...td, fontWeight: 600 }}>
-                  <a href={linkEmailLead(l.email)} title="Escrever e-mail" style={link}>
-                    {l.email}
-                  </a>
-                  {l.verificadoEm && (
-                    <span
-                      title={`E-mail confirmado em ${dataCurta(l.verificadoEm)}`}
-                      aria-label="e-mail confirmado"
-                      style={{ display: "inline-flex", verticalAlign: "middle", marginLeft: 6 }}
+              <tr key={l.id} className="adm-linha" onClick={() => aoAbrir(l.id)} style={{ opacity: travado ? 0.5 : 1 }}>
+                <td className="adm-c-lead" style={{ ...td, maxWidth: 260 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        aoAbrir(l.id);
+                      }}
+                      style={{ background: "none", border: "none", padding: 0, font: "inherit", fontWeight: 700, color: p.ink, cursor: "pointer", textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}
                     >
-                      <Ic n="badge-check" s={15} c={p.success} />
-                    </span>
+                      {identificacaoLead(l)}
+                    </button>
+                    {l.verificadoEm && (
+                      <span title={`E-mail confirmado em ${dataHoraRecife(l.verificadoEm)}`} aria-label="e-mail confirmado" style={{ display: "inline-flex", flexShrink: 0 }}>
+                        <Ic n="badge-check" s={15} c={p.success} />
+                      </span>
+                    )}
+                  </div>
+                  {l.nome && l.email && (
+                    <a href={linkEmailLead(l.email)} onClick={pararClique} title="Escrever e-mail" style={{ ...link, display: "block", fontSize: 12.5, color: p.g500, overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {l.email}
+                    </a>
+                  )}
+                  {!l.nome && l.email && (
+                    <a href={linkEmailLead(l.email)} onClick={pararClique} style={{ ...link, fontSize: 12.5, color: p.g500 }}>
+                      escrever e-mail
+                    </a>
                   )}
                 </td>
-                <td style={td}>
-                  <Telefone telefone={l.telefone} />
+                <td className="adm-c-tel" style={td}>
+                  {whatsapp ? (
+                    <a href={whatsapp} target="_blank" rel="noopener noreferrer" onClick={pararClique} title="Abrir conversa no WhatsApp" style={{ ...link, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <Ic n="message-circle" s={15} c={p.success} /> {telefoneNacional(l.telefone)}
+                    </a>
+                  ) : (
+                    telefoneNacional(l.telefone)
+                  )}
                 </td>
-                <td style={td}>{l.creci}</td>
-                <td style={{ ...td, color: p.g700 }}>{dataCurta(l.criadoEm)}</td>
-                <td style={{ ...td, color: p.g500 }}>{l.origem?.utm || l.origem?.ref || "—"}</td>
-                <td style={td}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      background: cor.fundo,
-                      color: cor.texto,
-                      borderRadius: 999,
-                      padding: "4px 11px",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {cor.rotulo}
-                  </span>
+                <td className="adm-c-creci" style={{ ...td, color: p.g700 }}>{l.creci || "—"}</td>
+                <td className="adm-c-entrada" style={{ ...td, color: p.g700, fontSize: 13 }}>
+                  {dataHoraRecife(l.criadoEm).slice(0, 10)}
+                  <div style={{ fontSize: 12, color: p.g500 }}>{ROTULO_CANAL[l.canal]}{l.origem?.utm ? ` · ${l.origem.utm}` : ""}</div>
                 </td>
-                <td style={{ ...td, textAlign: "right" }}>
-                  <div style={{ display: "inline-flex", gap: 8 }}>
-                    <button
-                      type="button"
-                      disabled={travado || l.status === "contatado"}
-                      onClick={() => aoMudarStatus(l.id, "contatado")}
-                      style={botao(l.status === "contatado" || travado, p.primary)}
-                    >
-                      <Ic n="check" s={14} c="currentColor" /> Contatado
-                    </button>
-                    <button
-                      type="button"
-                      disabled={travado || l.status === "descartado"}
-                      onClick={() => aoMudarStatus(l.id, "descartado")}
-                      style={botao(l.status === "descartado" || travado, p.g500)}
-                    >
-                      <Ic n="x" s={14} c="currentColor" /> Descartar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={travado}
-                      title="Excluir definitivamente (pedido do titular — LGPD)"
-                      onClick={() => aoExcluir(l)}
-                      style={{ ...botao(travado, p.error), borderColor: travado ? p.g300 : `${p.error}66` }}
-                    >
-                      <Ic n="user-x" s={14} c="currentColor" /> Excluir
-                    </button>
-                  </div>
+                <td className="adm-c-passo" title={passo.texto} style={{ ...td, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", color: COR_TOM[passo.tom], fontWeight: passo.tom === "nenhum" ? 400 : 600, fontSize: 13.5 }}>
+                  {passo.tom !== "nenhum" && <Ic n="alarm-clock" s={14} c={COR_TOM[passo.tom]} style={{ verticalAlign: "-2px", marginRight: 6 }} />}
+                  {passo.texto}
+                </td>
+                <td className="adm-c-etapa" style={td} onClick={pararClique}>
+                  <SeletorEtapa etapa={l.status} desabilitado={travado} aoEscolher={(e) => aoEscolherEtapa(l, e)} rotuloAcessivel={`Etapa de ${identificacaoLead(l)}`} />
                 </td>
               </tr>
             );
@@ -168,21 +144,4 @@ export default function TabelaLeads({
       </table>
     </div>
   );
-}
-
-function botao(desabilitado: boolean, cor: string): React.CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    border: `1.5px solid ${desabilitado ? p.g300 : cor}`,
-    background: "#fff",
-    color: desabilitado ? p.g500 : cor,
-    borderRadius: 999,
-    padding: "7px 13px",
-    fontSize: 13,
-    fontWeight: 600,
-    fontFamily: "var(--font-body)",
-    cursor: desabilitado ? "default" : "pointer",
-  };
 }

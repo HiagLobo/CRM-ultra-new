@@ -174,19 +174,21 @@ arquivo do repositório (ele é público) nem em chat.
 
    **Por que a pooled:** cada função da Vercel abre o próprio pool. Com a string direta, um pico de
    acessos estoura o limite de conexões do Postgres (log `db:53300`).
-4. **As 3 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
+4. **As 4 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
    `migrations/001-leads.sql` no GitHub, copie **tudo**, cole e clique em **Run**. Repita com
-   `002-auditoria.sql` e `003-rate-limit.sql`, nessa ordem. São idempotentes: rodar de novo não
-   estraga nada.
+   `002-auditoria.sql`, `003-rate-limit.sql` e `004-funil.sql`, nessa ordem. São idempotentes:
+   rodar de novo não estraga nada. (Banco que já estava no ar com as 3 primeiras: só a 004, pelo
+   passo 3.9.)
 5. Confira no mesmo SQL Editor:
 
    ```sql
    SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY 1;
    ```
 
-   Têm de voltar **`auditoria`, `leads` e `rate_limit`**. Se faltar a `rate_limit` (migração 003),
-   todo pedido de acesso e todo login do admin dão erro (log `db:42P01`). Se faltar a `auditoria`
-   (002), o sistema funciona, mas a trilha de auditoria da LGPD **não grava**, em silêncio.
+   Têm de voltar **`auditoria`, `lead_notas`, `leads` e `rate_limit`**. Se faltar a `rate_limit`
+   (migração 003), todo pedido de acesso e todo login do admin dão erro (log `db:42P01`). Se faltar a
+   `auditoria` (002), o sistema funciona, mas a trilha de auditoria da LGPD **não grava**, em
+   silêncio. Se faltar a `lead_notas` (004), o funil do `/admin` dá erro (passo 3.9).
 
 ### 3.5. (Opcional) Turnstile e aviso de lead novo
 
@@ -241,21 +243,71 @@ isso, o site no ar continua usando o valor antigo.
 3. Digitar o código → cai na escolha dos 3 painéis → abrir um. Com `AVISO_LEADS_EMAIL`, chega também
    o aviso "novo lead confirmado".
 4. Entrar em `https://crmultra.com.br/admin/login` com a `ADMIN_PASSWORD`. O seu lead aparece na
-   lista, como verificado.
-5. Marcar **Contatado** → **Exportar CSV** → abrir no Excel (colunas separadas, datas legíveis).
-   Depois, no Neon → SQL Editor, confira a auditoria:
+   lista, na etapa **Novo**, com o selo de e-mail confirmado.
+5. Na linha do lead, mudar a etapa para **Em contato** → clicar na linha (abre a ficha do lead) →
+   escrever uma anotação → fechar a ficha → **Exportar CSV** → abrir no Excel
+   (colunas separadas, datas legíveis, colunas `etapa` e `canal`). Depois, no Neon → SQL Editor,
+   confira a auditoria:
 
    ```sql
    SELECT acao, em FROM auditoria ORDER BY em DESC LIMIT 5;
    ```
 
-   Têm de aparecer `lead.export` e `lead.status`.
+   Têm de aparecer `lead.export`, `lead.nota` e `lead.etapa`.
 
-**Terminado o smoke, exclua o lead de teste:** `/admin` → **Excluir** na linha dele → confirme. Ele
+**Terminado o smoke, exclua o lead de teste:** `/admin` → clique na linha dele → no fim da ficha,
+**Excluir (LGPD)** → confirme. Ele
 sai da lista e dos números do funil. A auditoria guarda só `lead.exclusao` com o id (motivo:
 pedido do titular, que no caso é você).
 
 Se algum passo falhar, veja a seção 6.
+
+### 3.9. Migração 004 (funil) — rode ANTES do deploy desta versão
+
+Para quem já está no ar com as migrações 001 a 003. (Banco novo: o passo 3.4 já inclui a 004.) A
+versão com o funil de leads usa colunas e uma tabela que só a `004-funil.sql` cria. A ordem é esta:
+
+1. **Backup.** Neon → **Branches → Create branch** a partir do principal, com a data no nome (ex.:
+   `antes-004-2026-09-20`). Veja "Backup" na seção 4.
+2. Neon → **SQL Editor** (branch principal, database `neondb`) → abra `migrations/004-funil.sql` no
+   GitHub → copie **tudo** → cole → **Run**.
+3. Confira, no mesmo SQL Editor:
+
+   ```sql
+   SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'leads'
+      AND column_name IN ('nome', 'canal', 'retomar_em', 'motivo', 'proxima_acao_em', 'proxima_acao')
+    ORDER BY 1;
+   ```
+
+   Têm de voltar as **6** colunas.
+
+   ```sql
+   SELECT status, count(*) FROM leads GROUP BY status ORDER BY status;
+   ```
+
+   Só etapas novas (`novo`, `em_contato`, `perdido`…). Nenhum `verificado`, `contatado` ou
+   `descartado`.
+
+   ```sql
+   SELECT to_regclass('public.lead_notas');
+   ```
+
+   Tem de voltar `lead_notas`. Vazio quer dizer que a tabela das anotações não foi criada.
+4. Só então publique: merge na `main` (deploy automático) ou **Redeploy** (3.7).
+5. Depois do deploy, **rode a 004 de novo**. Ela é idempotente. Entre o passo 2 e o deploy, a versão
+   antiga ainda gravava os status antigos: quem confirmou o e-mail nesse meio ficou `verificado`. A
+   segunda rodada converte esses. O painel já mostra certo sem ela; é só para o banco ficar limpo.
+
+**O que a 004 faz:** acrescenta as colunas do funil (nome, canal, retomar em, motivo, próxima ação),
+deixa o e-mail opcional (só o lead cadastrado à mão pode não ter; dois leads continuam sem poder ter
+o mesmo e-mail), traduz `verificado` → `novo`, `contatado` → `em_contato` e `descartado` → `perdido`,
+e cria a tabela `lead_notas` das anotações. **Não apaga nada.**
+
+**Se publicou antes de rodar a 004:** o site continua captando e verificando, e a lista do `/admin`
+abre. Mudar etapa, definir próxima ação, anotar e cadastrar à mão dão erro, com `db:42703` (coluna
+que não existe) ou `db:42P01` (tabela `lead_notas` que não existe) no log `[/api/admin/...]`. Rode a
+004 (passos 1 a 3). Não precisa de Redeploy.
 
 ---
 
@@ -288,10 +340,60 @@ preenche recebe um "sucesso" falso e nada é gravado nem enviado. Com as duas ch
 no env, entra também o desafio da Cloudflare — quase sempre invisível; só aparece quando a
 Cloudflare desconfia.
 
-**Follow-up:** "Contatado" e "Descartar" mudam o status e ficam registrados na auditoria.
-"Descartar" **preserva** o histórico — use para parar o follow-up.
+**O painel, em uma olhada.** No topo, 4 números: **Para hoje**, **Em andamento** (contato,
+demonstração ou negociação), **Clientes** e **Conversão**. Embaixo, uma aba por etapa, com a
+contagem: **Hoje** · Novos · Em contato · Demonstração · Negociação · Clientes · Retomar depois ·
+Perdidos · Todos. A busca (nome, e-mail, telefone ou CRECI) vale dentro da aba aberta. No celular as
+abas rolam para o lado e cada lead vira um cartão.
 
-**Exportar:** botão "Exportar CSV". Abre em Excel/Sheets. O arquivo tem PII: trate como documento
+**A aba Hoje** é a sua lista do dia (sempre no horário de Recife). Entra nela:
+
+- lead com a **próxima ação** vencida ou marcada para hoje;
+- lead em **Retomar depois** cuja data chegou (ou passou);
+- lead **Novo** criado há 24 h ou mais, sem ninguém ter falado com ele e sem próxima ação marcada.
+
+A ordem é a da urgência: ações vencidas (a mais antiga primeiro), retornos, ações do dia, novos
+parados. O painel abre na aba Hoje quando há o que fazer; com tudo em dia, abre em **Todos**. A
+coluna **Próximo passo** diz o que falta em cada lead (em vermelho quando está atrasado).
+
+**A ficha do lead.** Clique na linha (no celular, no cartão): abre a ficha, com os botões de
+WhatsApp e e-mail, a etapa, a próxima ação (editar ou limpar), as anotações, de onde o lead veio e o
+**Excluir (LGPD)**. Esc ou o X fecham.
+
+**Funil de leads.** Cada lead está numa **etapa**: **Novo** → **Em contato** → **Demonstração** →
+**Negociação** → **Cliente**. A etapa muda no seletor da própria linha ou na ficha. Fora da fila de
+trabalho ficam **Retomar depois** e **Perdido**:
+
+- **Retomar depois** pede o dia de voltar (depois de hoje, no horário de Recife, com os atalhos
+  "em 1 semana", "em 1 mês" e "em 3 meses") e, se quiser, o motivo. É a "quarentena" de quem
+  recusou por agora: no dia marcado, o lead volta sozinho para a aba Hoje. Para mudar a data, abra
+  a ficha → **Alterar**.
+- **Perdido** pede o motivo (preço, já usa outro CRM, sem interesse, sem resposta, outro).
+- Indo para uma dessas duas, a próxima ação é limpa: o lead sai da fila. Saindo delas, a data de
+  retomar e o motivo são limpos.
+- **E-mail confirmado não é etapa.** É o selo de quem digitou o código. Confirmar o e-mail não muda
+  a etapa que você deu.
+
+**Próxima ação:** o dia (hoje ou depois) e o que fazer ("ligar às 10h", "mandar proposta"). Dá para
+limpar.
+
+**Anotações:** o histórico da conversa com o lead, até 2.000 caracteres cada, da mais recente para a
+mais antiga. Não vão para o CSV e somem junto com o lead na exclusão (seção 5).
+
+**Cadastro manual ("+ Novo lead").** Para quem chegou por indicação, evento ou WhatsApp. Telefone e
+canal são obrigatórios; nome, e-mail, CRECI e observação são opcionais (a observação vira a primeira
+anotação). A caixa "a pessoa sabe e concordou em ser contatada" é obrigatória: marque só se for
+verdade, porque é a base do registro (seção 5). O lead manual não recebe código. Telefone ou e-mail
+que já existe não vira um segundo lead: o painel avisa e oferece **Abrir o existente**. Cadastrado,
+a ficha do lead abre sozinha. O botão de WhatsApp de um lead manual abre a conversa com um "Oi!"
+neutro (ele não pediu o demo pelo site). Se a pessoa depois pedir acesso pelo site com o mesmo
+e-mail, continua sendo o mesmo lead.
+
+Toda mudança de etapa, próxima ação, anotação e cadastro manual fica na auditoria (seção 5), sem o
+texto do motivo, da ação ou da anotação.
+
+**Exportar:** botão "Exportar CSV". Abre em Excel/Sheets, com nome, contato, etapa, canal, próxima
+ação, retomar em e motivo (as anotações ficam de fora). O arquivo tem PII: trate como documento
 confidencial (não mande por grupo de WhatsApp, não suba em drive público).
 
 **Backup.** Duas rotinas, e as duas valem sempre:
@@ -317,12 +419,21 @@ com janela maior.
 pessoa leu + data/hora + IP. O texto vive em `src/features/lead/schema.ts`
 (`TEXTO_CONSENTIMENTO`) — mudou o texto, mudou o que é gravado dali em diante.
 
-**Pedido de exclusão (art. 18).** No `/admin`, botão **Excluir** na linha do lead → confirmação →
-apaga de vez (contato, consentimento e histórico). Fica na auditoria que houve exclusão e de qual
-id — nunca o contato apagado, senão o log manteria o que se pediu para eliminar.
+**Pedido de exclusão (art. 18).** No `/admin`, abra o lead → **Excluir (LGPD)** → confirmação → apaga de vez
+(contato, consentimento, etapa, próxima ação e **todas as anotações**). Fica na auditoria que houve
+exclusão e de qual id — nunca o contato apagado, senão o log manteria o que se pediu para eliminar.
+
+**Lead cadastrado à mão.** Não passou pelo formulário, então o consentimento gravado é outro:
+"Cadastro manual pelo administrador — canal X — base legal: legítimo interesse (contato iniciado
+pelo titular ou indicação consentida)", com a data e `admin` no lugar do IP. O cadastro só é aceito
+com a caixa "a pessoa sabe e concordou em ser contatada" marcada. Inclua esse texto na revisão
+jurídica da seção 7.
 Depois de excluído, a pessoa pode pedir acesso de novo normalmente.
 
-**Auditoria.** Uma entrada por ação material: `lead.status`, `lead.export`, `lead.exclusao`.
+**Auditoria.** Uma entrada por ação material: `lead.etapa` (id, etapa de/para),
+`lead.proxima_acao` (id, definida ou limpa), `lead.nota` (id do lead e da anotação), `lead.manual`
+(id, canal), `lead.export` (quantas linhas) e `lead.exclusao` (id). Nunca o contato, o nome nem o
+texto do motivo, da ação ou da anotação. Registros de antes do funil trazem `lead.status`.
 Em **produção** vai para a tabela `auditoria` do Postgres; em **dev**, para `data/auditoria.log`
 (uma linha JSON por evento). O destino é escolhido pelo ambiente — não há o que configurar.
 
@@ -368,7 +479,8 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | `email:missing_api_key` · `email:invalid_api_key` · `email:invalid_api_Key` · `email:restricted_api_key` | chave errada, revogada ou sem permissão para esse domínio | criar uma chave nova "Sending access" para `mail.crmultra.com.br` (3.3) → trocar `RESEND_API_KEY` → Redeploy |
 | `email:PrazoEsgotado` | o Resend não respondeu em 8 s | quase sempre passageiro. Se repetir, veja o status do Resend (resend-status.com) |
 | `email:application_error` · `email:internal_server_error` | falha do lado do Resend, ou da rede até ele | idem: status do Resend. O lead está no `/admin` |
-| `db:42P01` | uma tabela não existe: migração não rodada | rodar as 3 migrações (3.4, passos 4 e 5) |
+| `db:42P01` | uma tabela não existe: migração não rodada | rodar as migrações (3.4, passos 4 e 5; a 004 pelo 3.9) |
+| `db:42703` | uma coluna não existe: a migração 004 não rodou (o funil do `/admin` falha, o site segue captando) | rodar a 004 (3.9) |
 | `db:28P01` · `db:28000` | usuário ou senha do banco errados (ou a senha foi trocada no Neon) | copiar de novo a string pooled (3.4) → `DATABASE_URL` → Redeploy |
 | `db:3D000` | o banco do fim da string não existe | copiar de novo a string do Neon, sem editar o nome do banco |
 | `db:53300` | acabaram as conexões | usar a string **pooled** (host com `-pooler`) → Redeploy |
@@ -382,9 +494,8 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | `tls:<código>` | o certificado do banco não confere (ex.: host trocado por um IP, ou um servidor que não é o do Neon) | usar o host exatamente como o Neon mostra |
 | `erro:<Nome>` | erro inesperado no código (bug) | anote a hora e a linha do log e abra uma tarefa |
 
-> As rotas do painel (`[/api/admin/...]`) ainda usam um formato próprio, quase igual: o `db:<código>`
-> do banco é o mesmo da tabela, mas a falha de rede aparece como `Error:ENOTFOUND` (e não
-> `rede:ENOTFOUND`) e um bug aparece só com o nome do erro (ex.: `TypeError`). O que fazer é o mesmo.
+> As rotas do painel (`[/api/admin/...]`) usam as mesmas causas da tabela. Só o bug muda de
+> prefixo: aparece como `admin:<Nome>` (ex.: `admin:TypeError`). O que fazer é o mesmo.
 
 ### Sintoma → causa
 
@@ -411,6 +522,7 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | `/admin` volta para o login | sessão de 12h expirou | logar de novo |
 | Painel do demo rebate para a landing | sem cookie de acesso válido (expira em 7 dias) | pedir acesso e verificar o e-mail |
 | Painel de leads vazio em produção | `DATABASE_URL` aponta para outro banco ou branch, ou a migração não rodou | conferir a string (3.4) e o log |
+| No `/admin`, mudar etapa, anotar ou cadastrar lead dá erro (a lista abre) | log `[/api/admin/leads...]` com `db:42703` ou `db:42P01`: a migração 004 não rodou | 3.9 |
 
 **Rotacionar segredos.** Trocar `APP_SECRET` derruba **todos** os acessos ao demo e sessões de admin
 (é o efeito desejado se vazar). Trocar `ADMIN_PASSWORD` só afeta logins novos — as sessões abertas
@@ -476,6 +588,7 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/config/brand.ts` | marca (nome, contato, domínio) — fonte única |
 | `src/config/demo.ts` | identidade fictícia da rede do demo (nunca a empresa real) |
 | `src/features/lead/` | domínio: schema Zod, criação, verificação, casos de uso do admin |
+| `src/features/lead/funil.ts` · `funilAdmin.ts` · `notas.ts` · `cadastroManual.ts` | o funil: etapas (e a tradução dos status antigos), próxima ação, anotações, cadastro manual |
 | `src/lib/leadStore.ts` | **porta** de persistência + adaptador de arquivo (dev) |
 | `src/lib/leadStorePostgres.ts` | adaptador de produção |
 | `src/lib/db.ts` | pool do Postgres, compartilhado por todos os stores (com ouvinte para conexão que cai) |
@@ -488,7 +601,7 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/lib/token.ts` / `adminAuth.ts` | HMAC do token de demo e da sessão de admin |
 | `src/components/landing/` · `acesso/` | landing e fluxo de acesso |
 | `src/app/admin/` | painel de leads |
-| `migrations/` | as 3 migrações do Postgres (seção 3.4) |
+| `migrations/` | as 4 migrações do Postgres (seção 3.4; a 004 também no 3.9) |
 | `waves/` | o plano por ondas e o estado de cada uma |
 
 Trocar de banco = escrever um adaptador novo com a mesma interface `LeadStore` e ensinar o

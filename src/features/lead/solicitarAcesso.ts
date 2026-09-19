@@ -125,7 +125,7 @@ export async function solicitarAcesso(
   // 6. envia ANTES de persistir o código: falha não sobrescreve um código válido.
   // Só o tipo do erro vai para a causa — a mensagem pode carregar o destinatário.
   try {
-    const envio = provedor.enviarCodigo(prep.lead.email, prep.codigo, deps.brand);
+    const envio = provedor.enviarCodigo(input.email, prep.codigo, deps.brand);
     await comPrazo(envio, deps.prazoEnvioMs ?? PRAZO_ENVIO_CODIGO_MS);
   } catch (erro) {
     return gravarSemCodigo(prep, "falha_envio", causaDoErro(erro, "email"));

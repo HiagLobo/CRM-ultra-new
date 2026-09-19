@@ -1,93 +1,100 @@
 "use client";
 /**
- * Estado e chamadas do painel de leads: carregar, marcar follow-up, excluir,
- * exportar e sair. Toda falha vira mensagem visível — nada de erro engolido — e
- * sessão vencida (401) volta para o login em qualquer ação.
+ * Estado e chamadas do painel de leads: carregar, mudar etapa, próxima ação,
+ * cadastrar, excluir, exportar e sair. Toda falha vira mensagem visível — nada
+ * de erro engolido — e sessão vencida (401) volta para o login em qualquer ação.
+ *
+ * As ações devolvem o resultado (em vez de só acender o aviso do topo): na
+ * gaveta e nos formulários o erro aparece ali mesmo, onde o fundador está olhando.
  */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import type { LeadAdmin, ResumoLeads, StatusDoAdmin } from "@/features/lead/admin";
+import type { LeadAdmin } from "@/features/lead/admin";
+import type { MudancaEtapa, ProximaAcao } from "@/features/lead/funil";
+import { comJson, pedirApi } from "./apiPainel";
+import { mensagemDeErro, respostaOk, type RespostaApi } from "./mensagensApi";
+import { lerRespostaCadastro, type FormNovoLead, type ResultadoCadastroTela } from "./formNovoLead";
 
-const CABECALHO_JSON = { "Content-Type": "application/json" };
+export type ResultadoAcao = { ok: true } | { ok: false; erro: string };
+
+const SESSAO_ENCERRADA: { ok: false; erro: string } = { ok: false, erro: "Sessão encerrada. Entre de novo." };
 
 export function useLeadsAdmin() {
   const router = useRouter();
-  const [resumo, setResumo] = React.useState<ResumoLeads | null>(null);
   const [leads, setLeads] = React.useState<LeadAdmin[]>([]);
+  const [carregado, setCarregado] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
   const [carregando, setCarregando] = React.useState(true);
   const [ocupado, setOcupado] = React.useState<string | null>(null);
   const [exportando, setExportando] = React.useState(false);
 
-  /** 401 → login. `true` quando a sessão caiu (quem chamou para por ali). */
-  const sessaoCaiu = React.useCallback(
-    (res: Response) => {
-      if (res.status !== 401) return false;
-      router.replace("/admin/login");
-      return true;
-    },
-    [router],
+  const irParaLogin = React.useCallback(() => router.replace("/admin/login"), [router]);
+  const pedir = React.useCallback(
+    (url: string, init?: RequestInit) => pedirApi(url, init, irParaLogin),
+    [irParaLogin],
   );
 
   const carregar = React.useCallback(async () => {
     setCarregando(true);
     setErro(null);
     try {
-      const res = await fetch("/api/admin/leads");
-      if (sessaoCaiu(res)) return;
-      const corpo = await res.json();
-      if (!res.ok || !corpo?.ok) throw new Error("resposta inválida");
-      setResumo(corpo.resumo);
-      setLeads(corpo.leads);
-    } catch {
-      setErro("não foi possível carregar os leads. Tente de novo.");
+      const r = await pedir("/api/admin/leads");
+      if (!r) return;
+      const lista = (r.corpo as { leads?: unknown } | null)?.leads;
+      if (!respostaOk(r) || !Array.isArray(lista)) {
+        setErro(mensagemDeErro(r, "carregar os leads"));
+        return;
+      }
+      setLeads(lista as LeadAdmin[]);
+      setCarregado(true);
     } finally {
       setCarregando(false);
     }
-  }, [sessaoCaiu]);
+  }, [pedir]);
 
   React.useEffect(() => {
     void carregar();
   }, [carregar]);
 
-  async function mudarStatus(id: string, status: StatusDoAdmin) {
+  /** PATCH de um lead; a resposta traz o lead atualizado, que troca o da lista. */
+  async function alterar(id: string, corpo: object, oQue: string): Promise<ResultadoAcao> {
     setOcupado(id);
-    setErro(null);
     try {
-      const res = await fetch("/api/admin/leads", {
-        method: "PATCH",
-        headers: CABECALHO_JSON,
-        body: JSON.stringify({ id, status }),
-      });
-      if (sessaoCaiu(res)) return;
-      const corpo = await res.json();
-      if (!res.ok || !corpo?.ok) throw new Error("falhou");
-      setLeads((atuais) => atuais.map((l) => (l.id === id ? corpo.lead : l)));
-      await carregar(); // recontar sem inventar as contagens no client
-    } catch {
-      setErro("não deu para atualizar o status. Tente de novo.");
+      const r = await pedir("/api/admin/leads", comJson("PATCH", { id, ...corpo }));
+      if (!r) return SESSAO_ENCERRADA;
+      const lead = (r.corpo as { lead?: LeadAdmin } | null)?.lead;
+      if (!respostaOk(r) || !lead) return { ok: false, erro: mensagemDeErro(r, oQue) };
+      setLeads((atuais) => atuais.map((l) => (l.id === id ? lead : l)));
+      return { ok: true };
     } finally {
       setOcupado(null);
     }
   }
 
-  /** LGPD: elimina o lead de vez. `true` quando apagou (o painel fecha a confirmação). */
-  async function excluir(id: string): Promise<boolean> {
+  const mudarEtapa = (id: string, mudanca: MudancaEtapa) => alterar(id, mudanca, "mudar a etapa");
+
+  const definirProximaAcao = (id: string, acao: ProximaAcao | null) =>
+    alterar(id, { proximaAcao: acao }, acao ? "salvar a próxima ação" : "limpar a próxima ação");
+
+  /** Cadastro manual; o lead novo entra no topo da lista (é o mais recente). */
+  async function cadastrar(form: FormNovoLead): Promise<ResultadoCadastroTela> {
+    const r = await pedir("/api/admin/leads", comJson("POST", form));
+    if (!r) return { status: "erro", erro: SESSAO_ENCERRADA.erro };
+    const resultado = lerRespostaCadastro(r);
+    if (resultado.status === "ok") setLeads((atuais) => [resultado.lead, ...atuais]);
+    return resultado;
+  }
+
+  /** LGPD: elimina o lead de vez (com as anotações). */
+  async function excluir(id: string): Promise<ResultadoAcao> {
     setOcupado(id);
-    setErro(null);
     try {
-      const res = await fetch("/api/admin/leads", {
-        method: "DELETE",
-        headers: CABECALHO_JSON,
-        body: JSON.stringify({ id }),
-      });
-      if (sessaoCaiu(res)) return false;
-      if (!res.ok) throw new Error("falhou");
-      await carregar();
-      return true;
-    } catch {
-      setErro("não deu para excluir o lead. Tente de novo.");
-      return false;
+      const r: RespostaApi | null = await pedir("/api/admin/leads", comJson("DELETE", { id }));
+      if (!r) return SESSAO_ENCERRADA;
+      if (!respostaOk(r) && r.status !== 404) return { ok: false, erro: mensagemDeErro(r, "excluir o lead") };
+      // 404: já não existia — o pedido do titular está atendido do mesmo jeito
+      setLeads((atuais) => atuais.filter((l) => l.id !== id));
+      return { ok: true };
     } finally {
       setOcupado(null);
     }
@@ -101,12 +108,12 @@ export function useLeadsAdmin() {
     setExportando(true);
     setErro(null);
     try {
-      const res = await fetch("/api/admin/export");
-      if (sessaoCaiu(res)) return;
+      const res = await fetch("/api/admin/export", { cache: "no-store" });
+      if (res.status === 401) return irParaLogin();
       if (!res.ok) throw new Error("falhou");
       baixarArquivo(await res.blob(), nomeDoArquivo(res.headers.get("Content-Disposition")));
     } catch {
-      setErro("não deu para exportar o CSV. Tente de novo.");
+      setErro("Não deu para exportar o CSV. Tente de novo.");
     } finally {
       setExportando(false);
     }
@@ -114,16 +121,27 @@ export function useLeadsAdmin() {
 
   async function sair() {
     setErro(null);
-    try {
-      const res = await fetch("/api/admin/logout", { method: "POST" });
-      if (!res.ok) throw new Error("falhou");
-      router.replace("/admin/login");
-    } catch {
-      setErro("não deu para sair. Tente de novo.");
-    }
+    const r = await pedir("/api/admin/logout", { method: "POST" });
+    if (r && r.status >= 200 && r.status < 300) irParaLogin();
+    else if (r) setErro(mensagemDeErro(r, "sair"));
   }
 
-  return { resumo, leads, erro, carregando, ocupado, exportando, carregar, mudarStatus, excluir, exportar, sair };
+  return {
+    leads,
+    carregado,
+    erro,
+    mostrarErro: setErro,
+    carregando,
+    ocupado,
+    exportando,
+    carregar,
+    mudarEtapa,
+    definirProximaAcao,
+    cadastrar,
+    excluir,
+    exportar,
+    sair,
+  };
 }
 
 /** Nome que o servidor deu ao arquivo (`leads-AAAA-MM-DD.csv`), ou um padrão. */
