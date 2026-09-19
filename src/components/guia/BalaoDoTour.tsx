@@ -28,6 +28,7 @@ export default function BalaoDoTour({
   return (
     <div
       role="dialog"
+      data-tour-balao=""
       aria-modal="false"
       aria-labelledby="tour-titulo"
       style={{

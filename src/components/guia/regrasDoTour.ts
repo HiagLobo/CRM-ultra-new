@@ -67,11 +67,19 @@ const INTERATIVOS = new Set(["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"]);
  */
 export function acaoDaTecla(
   tecla: string,
-  foco: { tag: string; editavel: boolean; modificador: boolean },
+  foco: { tag: string; editavel: boolean; modificador: boolean; noBalao?: boolean },
 ): AcaoDeTecla {
   if (foco.modificador) return null;
   if (tecla === "Escape") return "sair";
-  if (foco.editavel || INTERATIVOS.has(foco.tag.toUpperCase())) return null;
+  if (foco.editavel) return null;
+  // Foco num botão do PRÓPRIO balão (ex.: depois de clicar em "Próximo"): as setas
+  // continuam navegando; o Enter fica com o botão focado, senão andaria dois passos.
+  if (foco.noBalao) {
+    if (tecla === "ArrowRight") return "avancar";
+    if (tecla === "ArrowLeft") return "voltar";
+    return null;
+  }
+  if (INTERATIVOS.has(foco.tag.toUpperCase())) return null;
   if (tecla === "ArrowRight" || tecla === "Enter") return "avancar";
   if (tecla === "ArrowLeft") return "voltar";
   return null;

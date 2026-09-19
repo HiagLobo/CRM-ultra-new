@@ -116,6 +116,14 @@ describe("acaoDaTecla — o tour não sequestra quem digita", () => {
     expect(acaoDaTecla("Enter", foco("button"))).toBeNull(); // tag em minúsculas (SVG/XHTML)
   });
 
+  it("com foco num botão do próprio balão, as setas navegam e o Enter fica com o botão", () => {
+    const noBalao = { tag: "BUTTON", editavel: false, modificador: false, noBalao: true };
+    expect(acaoDaTecla("ArrowRight", noBalao)).toBe("avancar");
+    expect(acaoDaTecla("ArrowLeft", noBalao)).toBe("voltar");
+    expect(acaoDaTecla("Enter", noBalao)).toBeNull();
+    expect(acaoDaTecla("Escape", noBalao)).toBe("sair");
+  });
+
   it("com modificador (Alt+← é o voltar do navegador): ignora", () => {
     expect(acaoDaTecla("ArrowLeft", foco("BODY", { modificador: true }))).toBeNull();
     expect(acaoDaTecla("Enter", foco("BODY", { modificador: true }))).toBeNull();

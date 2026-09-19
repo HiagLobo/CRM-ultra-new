@@ -127,6 +127,7 @@ function TourDaTela({ passos, aoSair }: PropsDoTour) {
         tag: foco?.tagName ?? "",
         editavel: foco?.isContentEditable ?? false,
         modificador: e.altKey || e.ctrlKey || e.metaKey || e.isComposing,
+        noBalao: Boolean(foco?.closest("[data-tour-balao]")),
       });
       if (acao === "sair") sair.current("pulou");
       else if (acao === "avancar") andarRef.current(1);
