@@ -8,6 +8,7 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { exportarCsv } from "@/features/lead/admin";
+import { causaDoErro } from "../causaErro";
 
 export const runtime = "nodejs";
 
@@ -31,7 +32,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error("[/api/admin/export] GET:", err instanceof Error ? err.name : "desconhecido");
+    const causa = causaDoErro(err);
+    console.error("[/api/admin/export] GET:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }
 }

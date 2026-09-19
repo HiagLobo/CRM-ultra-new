@@ -1,10 +1,15 @@
 "use client";
-/** Tabela de leads do admin: contato, origem, status e as ações de follow-up. */
+/**
+ * Tabela de leads do admin: contato, origem, status e as ações de follow-up.
+ * Contato em um clique: o telefone abre o WhatsApp com uma mensagem curta e o
+ * e-mail abre o cliente de e-mail. Marcar "Contatado" continua sendo à mão.
+ */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
-import type { Lead, StatusLead } from "@/features/lead/lead";
-import type { StatusDoAdmin } from "@/features/lead/admin";
+import type { StatusLead } from "@/features/lead/lead";
+import { telefoneNacional, type LeadAdmin, type StatusDoAdmin } from "@/features/lead/admin";
+import { linkEmailLead, linkWhatsappLead } from "./contatoLead";
 
 const CORES: Record<StatusLead, { fundo: string; texto: string; rotulo: string }> = {
   novo: { fundo: p.g100, texto: p.g700, rotulo: "Novo" },
@@ -31,8 +36,33 @@ const td: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+const link: React.CSSProperties = {
+  color: "inherit",
+  textDecoration: "underline",
+  textDecorationColor: p.g300,
+  textUnderlineOffset: 3,
+};
+
 function dataCurta(iso: string): string {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+/** Telefone formatado; com link de WhatsApp quando o número permite. */
+function Telefone({ telefone }: { telefone: string }) {
+  const legivel = telefoneNacional(telefone);
+  const whatsapp = linkWhatsappLead(telefone);
+  if (!whatsapp) return <>{legivel}</>;
+  return (
+    <a
+      href={whatsapp}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Abrir conversa no WhatsApp"
+      style={{ ...link, display: "inline-flex", alignItems: "center", gap: 6 }}
+    >
+      <Ic n="message-circle" s={15} c={p.success} /> {legivel}
+    </a>
+  );
 }
 
 export default function TabelaLeads({
@@ -41,11 +71,11 @@ export default function TabelaLeads({
   aoMudarStatus,
   aoExcluir,
 }: {
-  leads: Lead[];
+  leads: LeadAdmin[];
   ocupado: string | null;
   aoMudarStatus: (id: string, status: StatusDoAdmin) => void;
   /** LGPD: eliminação a pedido do titular. Destrutivo — confirmado no painel. */
-  aoExcluir: (lead: Lead) => void;
+  aoExcluir: (lead: LeadAdmin) => void;
 }) {
   return (
     <div className="ds-scroll-x" style={{ background: "#fff", border: `1px solid ${p.g300}`, borderRadius: 16, padding: "18px 4px 4px" }}>
@@ -67,8 +97,23 @@ export default function TabelaLeads({
             const travado = ocupado === l.id;
             return (
               <tr key={l.id} style={{ opacity: travado ? 0.5 : 1 }}>
-                <td style={{ ...td, fontWeight: 600 }}>{l.email}</td>
-                <td style={td}>{l.telefone}</td>
+                <td style={{ ...td, fontWeight: 600 }}>
+                  <a href={linkEmailLead(l.email)} title="Escrever e-mail" style={link}>
+                    {l.email}
+                  </a>
+                  {l.verificadoEm && (
+                    <span
+                      title={`E-mail confirmado em ${dataCurta(l.verificadoEm)}`}
+                      aria-label="e-mail confirmado"
+                      style={{ display: "inline-flex", verticalAlign: "middle", marginLeft: 6 }}
+                    >
+                      <Ic n="badge-check" s={15} c={p.success} />
+                    </span>
+                  )}
+                </td>
+                <td style={td}>
+                  <Telefone telefone={l.telefone} />
+                </td>
                 <td style={td}>{l.creci}</td>
                 <td style={{ ...td, color: p.g700 }}>{dataCurta(l.criadoEm)}</td>
                 <td style={{ ...td, color: p.g500 }}>{l.origem?.utm || l.origem?.ref || "—"}</td>

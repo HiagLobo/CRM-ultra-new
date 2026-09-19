@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
+import { mensagemDeFalhaNoLogin } from "./mensagemLogin";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -43,11 +44,8 @@ export default function AdminLoginPage() {
       router.push("/admin");
       return;
     }
-    if (res.status === 429) {
-      setErro("muitas tentativas. Aguarde alguns minutos e tente de novo.");
-      return;
-    }
-    setErro("senha incorreta.");
+    // 401 = senha errada · 429 = aguardar · 5xx = servidor (não é a senha)
+    setErro(mensagemDeFalhaNoLogin(res.status));
   }
 
   return (

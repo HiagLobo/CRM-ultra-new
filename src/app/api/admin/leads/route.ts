@@ -1,7 +1,9 @@
 /**
  * `/api/admin/leads` — GET resumo + lista · PATCH follow-up.
  * Devolve PII (e-mail, telefone, CRECI) e por isso **começa** por `exigirAdmin`.
- * Nada de PII em log: o catch registra só o tipo do erro.
+ * Nada de PII em log: o catch registra só a causa (nome + código, `causaDoErro`).
+ * A resposta leva o `LeadAdmin` (contato + status), nunca o hash do código nem o
+ * carimbo do consentimento — a projeção mora no domínio (`paraLeadAdmin`).
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
@@ -9,6 +11,7 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { resumo, atualizarStatus, excluirLead, STATUS_DO_ADMIN } from "@/features/lead/admin";
+import { causaDoErro } from "../causaErro";
 
 export const runtime = "nodejs"; // o store (arquivo/pg) exige runtime Node
 
@@ -26,7 +29,8 @@ export async function GET(req: NextRequest) {
     const dados = await resumo(leadStore());
     return NextResponse.json({ ok: true, ...dados });
   } catch (err) {
-    console.error("[/api/admin/leads] GET:", err instanceof Error ? err.name : "desconhecido");
+    const causa = causaDoErro(err);
+    console.error("[/api/admin/leads] GET:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }
 }
@@ -63,7 +67,8 @@ export async function PATCH(req: NextRequest) {
     });
     return NextResponse.json({ ok: true, lead: r.lead });
   } catch (err) {
-    console.error("[/api/admin/leads] PATCH:", err instanceof Error ? err.name : "desconhecido");
+    const causa = causaDoErro(err);
+    console.error("[/api/admin/leads] PATCH:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }
 }
@@ -99,7 +104,8 @@ export async function DELETE(req: NextRequest) {
     await registrarAuditoria("lead.exclusao", { id: parsed.data.id, motivo: "pedido_do_titular" });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[/api/admin/leads] DELETE:", err instanceof Error ? err.name : "desconhecido");
+    const causa = causaDoErro(err);
+    console.error("[/api/admin/leads] DELETE:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }
 }
