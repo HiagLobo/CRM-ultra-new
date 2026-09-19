@@ -66,6 +66,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | **O4** | Admin de Leads | Login admin + dashboard (contagens, lista, follow-up, export) | O1·S1 |
 | **O5** | Hardening & Lançamento | Testes mínimos, build/typecheck, deploy, domínio Resend, runbook | O0–O4 |
 | **O6** | Limpeza do ex-cliente | Tirar do produto todo conteúdo, imagem e negócio do ex-cliente (pré-requisito do deploy) | O0–O5 código |
+| **O7** | Prontidão de lançamento | Cadastro que não perde lead, anti-abuso, logs com causa, CRECI flexível, celular e painel de leads prático | O6 |
 
 ### Sub-entregas e "Pronto quando"
 
@@ -129,6 +130,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | O4 | ✅ concluída (S1 `576aee7` · S2 `ef5bc78`; login por senha com rate-limit e sessão de 12h, `exigirAdmin` em todas as rotas, painel com contagens/lista/follow-up auditado/CSV; **guard de servidor**, ao contrário do gate do demo; 75 testes + build + typecheck verdes). **Ressalva:** `FileLeadStore` e `auditoria.log` são locais — em produção dependem do Postgres da O5. |
 | O5 | 🟦 em andamento — **S1 ✅** `f15ea84` (90 testes, **1 bloqueador corrigido**: fallback de e-mail valia em produção e devolvia o código na resposta) · **S2 código ✅** `c753e54` (adaptador Postgres + exclusão LGPD + README/RUNBOOK; **README ainda era do cliente antigo, com e-mail real de pessoa** — corrigido). **Falta publicar**: banco, domínio no Resend e deploy dependem das contas do fundador (checklist no ESTADO da O5 e seção 3 do RUNBOOK). |
 | O6 | ✅ concluída (2026-09-19) — S1 fotos Unsplash · S2 site de exemplo em /demo (noindex, rede fictícia) · S3/S4 painéis sem preços, produto, pessoas e empresas do ex-cliente · S5 docs anonimizados + guarda por hash · S6 repositório novo, nascido de um commit único. Ver `06-limpeza-ex-cliente/ESTADO.md`. |
+| O7 | 🟦 em andamento — plano escrito (2026-09-19); 3 trilhas paralelas (motor de cadastro · celular · painel). Ver `07-prontidao-lancamento/ESTADO.md`. |
 
 _Legenda: ⬜ pendente · 🟦 em andamento · ✅ concluída._
 
