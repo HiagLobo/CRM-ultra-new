@@ -25,7 +25,7 @@ const RD_OPS: any[] = [
     sinais: [
       { icon: "user", t: "Anunciante particular", d: "Sem corretor, fala direto com o dono" },
       { icon: "clock", t: "72 dias no mercado", d: "Acima da média do bairro (38 dias): dono tende a negociar" },
-      { icon: "trending-up", t: "6% acima da média", d: "Pede R$ 720k; comparáveis em ~R$ 678k: espaço para ajuste" },
+      { icon: "trending-up", t: "6% acima da média", d: "Pede R$ 720k e os comparáveis ficam em ~R$ 678k, há espaço para ajuste" },
     ],
     comparaveis: [
       { end: "Rua Exemplo, 2q", m2: 65, price: "R$ 670.000" },

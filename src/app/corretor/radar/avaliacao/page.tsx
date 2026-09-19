@@ -195,7 +195,7 @@ function AvStep2({ form, set, setFeat }: any) {
 function AvStep3({ form, set }: any) {
   return (
     <div>
-      <StepHead icon="sparkles" title="Diferenciais & conservação" sub="Os fatores que ajustam o valor. Você poderá afiná-los no resultado também." />
+      <StepHead icon="sparkles" title="Diferenciais & conservação" sub="Os fatores que ajustam o valor. Dá para afiná-los no resultado também." />
       <div style={{ marginBottom: 22 }}>
         <div style={grpLbl}>Estado de conservação</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
