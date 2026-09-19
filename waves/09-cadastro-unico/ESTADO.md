@@ -61,6 +61,6 @@
 - CRECI de lead anterior à O7 gravado cru não é achado pela trava de repetido (o selo do painel acha).
 - Corrida checar → gravar pode gerar repetido sob concorrência (sem UNIQUE, por decisão); o selo cobre.
 - RUNBOOK §3 ainda descreve o Resend em `mail.crmultra.com.br`; o real é a raiz `crmultra.com.br`.
-- Contato do site/Reply-To ainda em `safeguardianrecife.com` (pergunta ao fundador) e razão social
-  diferente da Receita ("SAFE GUARDIAN LTDA").
+- Razão social diferente da Receita ("SAFE GUARDIAN LTDA"). (O contato do site/Reply-To passou para
+  `comercial@crmultra.com.br` no fechamento, a pedido do fundador.)
 - A gaveta do admin é `aria-modal` mas não prende o foco (anterior à O9).

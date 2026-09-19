@@ -34,7 +34,8 @@ export const brand: BrandConfig = {
   nomeCurto: "CRM Ultra",
   tagline: "O CRM imobiliário que fecha mais negócios.",
   contato: {
-    email: "comercial@safeguardianrecife.com",
+    // mesmo domínio do remetente do código (Reply-To alinhado ao From) — O9
+    email: "comercial@crmultra.com.br",
     // formato com DDI para o link do WhatsApp sair correto
     whatsapp: "+55 81 99450-9609",
     telefone: "(81) 99450-9609",

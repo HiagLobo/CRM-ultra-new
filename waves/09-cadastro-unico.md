@@ -26,4 +26,4 @@ a proteção dos conselhos. Decisões do fundador em 2026-09-19 (ver `09-cadastr
    (desktop e 390 px).
 
 ## Pendências fora de escopo
-Ver `09-cadastro-unico/ESTADO.md` (DNS/e-mail do domínio, Turnstile em produção contra cadastro que "ocupa" o CRECI de outro corretor, RUNBOOK §3 do Resend na raiz, contato em safeguardianrecife.com).
+Ver `09-cadastro-unico/ESTADO.md` (DNS/e-mail do domínio, Turnstile em produção contra cadastro que "ocupa" o CRECI de outro corretor, RUNBOOK §3 do Resend na raiz).
