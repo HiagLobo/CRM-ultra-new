@@ -97,11 +97,13 @@ arquivo do repositório (ele é público) nem em chat.
    (grátis) é só para uso pessoal **não comercial**. Captar lead de um produto à venda é uso
    comercial, e a Vercel pode pausar o projeto. Além disso, no Hobby o log dura só 1 hora.
 2. **Add New… → Project** → escolha o repositório no GitHub (autorize o GitHub se a Vercel pedir).
-   O framework é detectado sozinho (**Next.js**). Não mexa em Build/Output. Clique em **Deploy**.
+   O framework é detectado sozinho (**Next.js**). Não mexa em Build/Output e **deixe vazio o painel
+   "Environment Variables" dessa tela** (variável criada ali vale para todos os ambientes, Preview
+   incluído — elas entram no passo 3.6, só em Production). Clique em **Deploy**.
 3. **Esse primeiro deploy vai falhar** com `[env] Configuração de ambiente inválida`. É o esperado:
    as variáveis entram no passo 3.6, e só em Production. O projeto já fica criado.
-4. **Região das funções:** projeto → **Settings → Functions → Function Region** → **São Paulo,
-   Brazil (gru1)** → **Save**. Vale a partir do próximo deploy (passo 3.7). Sem isso as funções
+4. **Região das funções:** o `vercel.json` do repositório já fixa **São Paulo (`gru1`)**. Confira em
+   projeto → **Settings → Functions → Function Region** que aparece **São Paulo, Brazil (gru1)**. Vale a partir do próximo deploy (passo 3.7). Sem isso as funções
    rodam nos EUA (`iad1`): cada lead faria mais de dez idas e voltas entre os EUA e o banco em São
    Paulo, o que põe 1 a 2 s a mais no formulário.
 
@@ -113,7 +115,8 @@ arquivo do repositório (ele é público) nem em chat.
    (Vercel DNS). Ela indica `ns1.vercel-dns.com` e `ns2.vercel-dns.com`.
 3. [registro.br](https://registro.br) → entre na conta → clique em **crmultra.com.br** → na parte de
    DNS, **Alterar servidores DNS** → Servidor 1: `ns1.vercel-dns.com` · Servidor 2:
-   `ns2.vercel-dns.com` → **Salvar alterações**.
+   `ns2.vercel-dns.com` → **Salvar alterações**. Se a tela mostrar campos de **DNSSEC** (DS),
+   deixe-os **vazios**: um DS antigo publicado com servidores novos faz o domínio parar de resolver.
 4. Espere a Vercel mostrar **Valid Configuration** no domínio. Leva de minutos a algumas horas (raramente
    até 48 h). O certificado HTTPS sai sozinho em seguida.
 
@@ -136,6 +139,10 @@ arquivo do repositório (ele é público) nem em chat.
    Records**. Para **cada** registro do Resend, clique em **Add Record** e copie o mesmo **Type**,
    **Name**, **Value** e, no MX, **Priority**. O Name na Vercel é relativo a `crmultra.com.br`: se o
    Resend mostrar o nome completo (`send.mail.crmultra.com.br`), digite só `send.mail`.
+   Acrescente também o **DMARC** do subdomínio (Gmail e Yahoo pesam isso na entrega): **Add Record**
+   → Type **TXT** → Name `_dmarc.mail` → Value `v=DMARC1; p=none; rua=mailto:SEU-EMAIL` (troque pelo
+   e-mail que recebe os relatórios). Depois de algumas semanas sem problema, dá para subir para
+   `p=quarantine`.
 4. De volta ao Resend → **Verify DNS Records** → espere o status **Verified** (costuma levar
    minutos). **Sem Verified, o Resend só entrega no e-mail dono da conta.** Nenhum corretor recebe o
    código.

@@ -15,7 +15,7 @@ import Link from "next/link";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
-import { TEXTO_CONSENTIMENTO } from "@/features/lead/schema";
+import { TEXTO_CONSENTIMENTO, EXPIRACAO_CODIGO_MIN } from "@/features/lead/schema";
 
 const ATUALIZADA_EM = "11 de agosto de 2026";
 
@@ -163,7 +163,7 @@ export default function PrivacidadePage() {
         <Secao titulo="5. Por quanto tempo guardamos">
           <p style={{ margin: 0 }}>
             Enquanto durar o interesse comercial ou até você pedir a exclusão — o que vier primeiro. O
-            código de verificação vale <strong>10 minutos</strong>, é guardado apenas como resumo
+            código de verificação vale <strong>{EXPIRACAO_CODIGO_MIN} minutos</strong>, é guardado apenas como resumo
             criptográfico (nunca em texto legível) e é descartado assim que usado.
           </p>
         </Secao>

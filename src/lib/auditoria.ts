@@ -13,6 +13,7 @@
  * SERVER-ONLY (usa fs/pg).
  */
 import { promises as fs } from "fs";
+import { causaDoErro } from "./erros";
 import path from "path";
 import { poolPostgres } from "./db";
 
@@ -52,11 +53,9 @@ export async function registrarAuditoria(
     await fs.mkdir(path.dirname(destino), { recursive: true });
     await fs.appendFile(destino, `${JSON.stringify(evento)}\n`, "utf8");
   } catch (err) {
-    console.error(
-      "[auditoria] falha ao registrar:",
-      acao,
-      err instanceof Error ? err.name : "desconhecido",
-    );
+    // causa segura (db:42P01 = migração 002 não rodou) — nunca a mensagem do erro
+    const causa = causaDoErro(err, "db");
+    console.error("[auditoria] falha ao registrar:", acao, causa);
   }
 }
 

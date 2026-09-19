@@ -8,7 +8,7 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { exportarCsv } from "@/features/lead/admin";
-import { causaDoErro } from "../causaErro";
+import { causaDoErro } from "@/lib/erros";
 
 export const runtime = "nodejs";
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err) {
-    const causa = causaDoErro(err);
+    const causa = causaDoErro(err, "admin");
     console.error("[/api/admin/export] GET:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }

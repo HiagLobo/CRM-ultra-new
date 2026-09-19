@@ -11,7 +11,7 @@ import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { resumo, atualizarStatus, excluirLead, STATUS_DO_ADMIN } from "@/features/lead/admin";
-import { causaDoErro } from "../causaErro";
+import { causaDoErro } from "@/lib/erros";
 
 export const runtime = "nodejs"; // o store (arquivo/pg) exige runtime Node
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const dados = await resumo(leadStore());
     return NextResponse.json({ ok: true, ...dados });
   } catch (err) {
-    const causa = causaDoErro(err);
+    const causa = causaDoErro(err, "admin");
     console.error("[/api/admin/leads] GET:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }
@@ -67,7 +67,7 @@ export async function PATCH(req: NextRequest) {
     });
     return NextResponse.json({ ok: true, lead: r.lead });
   } catch (err) {
-    const causa = causaDoErro(err);
+    const causa = causaDoErro(err, "admin");
     console.error("[/api/admin/leads] PATCH:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }
@@ -104,7 +104,7 @@ export async function DELETE(req: NextRequest) {
     await registrarAuditoria("lead.exclusao", { id: parsed.data.id, motivo: "pedido_do_titular" });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const causa = causaDoErro(err);
+    const causa = causaDoErro(err, "admin");
     console.error("[/api/admin/leads] DELETE:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }

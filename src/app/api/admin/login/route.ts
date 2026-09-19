@@ -21,7 +21,7 @@ import {
   opcoesCookieAdmin,
   verificarSenha,
 } from "@/lib/adminAuth";
-import { causaDoErro } from "../causaErro";
+import { causaDoErro } from "@/lib/erros";
 
 export const runtime = "nodejs"; // crypto exige runtime Node (não Edge)
 
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     );
     return resposta;
   } catch (err) {
-    const causa = causaDoErro(err);
+    const causa = causaDoErro(err, "admin");
     console.error("[/api/admin/login] POST:", causa);
     return NextResponse.json({ ok: false, erro: "falha_interna" }, { status: 500 });
   }

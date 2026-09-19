@@ -47,6 +47,16 @@ export function normalizarTelefoneBR(bruto: string): string | null {
 /** E-mail normalizado (minúsculas, sem espaços) — reusado por todas as entradas públicas. */
 const emailSchema = z.string().trim().toLowerCase().email("e-mail inválido").max(254);
 
+/**
+ * Origem da campanha (utm/ref): texto livre vindo da URL ou da API pública. Saneado para
+ * [A-Za-z0-9._-] e 100 caracteres — é identificador de campanha, não texto — o que fecha
+ * a injeção de fórmula no CSV do admin em qualquer separador.
+ */
+const campoOrigem = z
+  .string()
+  .max(200)
+  .transform((v) => v.replace(/[^A-Za-z0-9._-]/g, "").slice(0, 100));
+
 export const LeadInputSchema = z.object({
   email: emailSchema,
   telefone: z.string().trim().transform((valor, ctx) => {
@@ -73,7 +83,7 @@ export const LeadInputSchema = z.object({
     errorMap: () => ({ message: "consentimento é obrigatório" }),
   }),
   origem: z
-    .object({ utm: z.string().max(200).optional(), ref: z.string().max(200).optional() })
+    .object({ utm: campoOrigem.optional(), ref: campoOrigem.optional() })
     .optional(),
 });
 
