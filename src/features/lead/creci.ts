@@ -16,11 +16,15 @@ export const EXEMPLO_CRECI = "PE 12345-F";
 
 export const MENSAGEM_CRECI_INVALIDO = `CRECI inválido (ex.: ${EXEMPLO_CRECI})`;
 
-/** As 27 UFs — cada conselho regional emite o próprio CRECI. */
-const UFS = new Set([
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA",
-  "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-]);
+/** As 27 UFs em ordem alfabética (a lista do formulário) — cada conselho regional emite o próprio CRECI. */
+export const LISTA_UFS = [
+  "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT", "PA",
+  "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO",
+] as const;
+export type Uf = (typeof LISTA_UFS)[number];
+const UFS: ReadonlySet<string> = new Set(LISTA_UFS);
+
+export const MENSAGEM_CRECI_SEM_UF = "informe o estado do CRECI";
 
 /**
  * Sufixo de categoria → forma canônica: F (pessoa física), J (jurídica),
@@ -75,4 +79,36 @@ export function normalizarCreci(bruto: string): string | null {
 
   if (numero === undefined || !NUMERO.test(numero)) return null;
   return `${uf ? `${uf} ` : ""}${numero}${sufixo ? `-${sufixo}` : ""}`;
+}
+
+/** Forma canônica → partes. Só para valores que já passaram por `normalizarCreci`. */
+function partes(canonico: string): { uf?: string; numero: string; sufixo?: string } | null {
+  const m = /^(?:([A-Z]{2}) )?(\d{2,7})(?:-([FJE]))?$/.exec(canonico);
+  if (!m) return null;
+  return { uf: m[1], numero: m[2]!, sufixo: m[3] };
+}
+
+/** UF do CRECI canônico ("PE 12345-F" → "PE"); `undefined` no legado sem UF. */
+export function ufDoCreci(canonico: string): string | undefined {
+  return partes(canonico)?.uf;
+}
+
+/**
+ * Chave de comparação (O9): UF + número + categoria, com a categoria ausente
+ * valendo F (pessoa física, o caso comum) — "PE 12345" e "PE 12345-F" são a
+ * mesma pessoa; "PE 12345-J" (imobiliária) é outra série. Cada conselho numera
+ * à parte, então sem UF só casa com outro sem UF.
+ */
+export function chaveCreci(canonico: string): string {
+  const p = partes(canonico);
+  if (!p) return canonico;
+  return `${p.uf ? `${p.uf} ` : ""}${p.numero}-${p.sufixo ?? "F"}`;
+}
+
+/** Todas as grafias canônicas com a mesma chave — o que o store procura no banco. */
+export function formasEquivalentesCreci(canonico: string): string[] {
+  const p = partes(canonico);
+  if (!p) return [canonico];
+  const base = `${p.uf ? `${p.uf} ` : ""}${p.numero}`;
+  return (p.sufixo ?? "F") === "F" ? [`${base}-F`, base] : [`${base}-${p.sufixo}`];
 }

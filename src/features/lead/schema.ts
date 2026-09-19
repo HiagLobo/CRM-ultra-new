@@ -4,7 +4,7 @@
  * Server/cliente: schema puro, sem segredos.
  */
 import { z } from "zod";
-import { MENSAGEM_CRECI_INVALIDO, normalizarCreci } from "./creci";
+import { MENSAGEM_CRECI_INVALIDO, MENSAGEM_CRECI_SEM_UF, normalizarCreci, ufDoCreci } from "./creci";
 
 /**
  * Texto da política carimbado no consentimento (LGPD).
@@ -76,6 +76,26 @@ export const creciSchema = z
   });
 
 /**
+ * CRECI do cadastro público (O9): com UF obrigatória — cada conselho numera à
+ * parte, e é a UF que diz em qual busca oficial o fundador confere. O cadastro
+ * manual do admin continua aceitando sem UF (`creciSchema`).
+ */
+export const creciComUfSchema = creciSchema.refine((creci) => ufDoCreci(creci) !== undefined, {
+  message: MENSAGEM_CRECI_SEM_UF,
+});
+
+/** "Maria da Silva", "Ana O'Neil", "João P. Souza": duas palavras ou mais, cada uma começando por letra. */
+const NOME_COMPLETO = /^\p{L}[\p{L}'’.-]*(?: \p{L}[\p{L}'’.-]*)+$/u;
+export const MENSAGEM_NOME = "informe nome e sobrenome";
+
+/** Nome completo do cadastro público (O9): espaços repetidos viram um, 2–120 caracteres. */
+export const nomeSchema = z
+  .string()
+  .max(200, "nome muito longo")
+  .transform((v) => v.trim().replace(/\s+/g, " "))
+  .pipe(z.string().max(120, "nome muito longo").regex(NOME_COMPLETO, MENSAGEM_NOME));
+
+/**
  * Origem da campanha (utm/ref): texto livre vindo da URL ou da API pública. Saneado para
  * [A-Za-z0-9._-] e 100 caracteres — é identificador de campanha, não texto — o que fecha
  * a injeção de fórmula no CSV do admin em qualquer separador.
@@ -114,10 +134,33 @@ export const PedidoAcessoSchema = LeadInputSchema.extend({
 
 export type PedidoAcesso = z.infer<typeof PedidoAcessoSchema>;
 
+/**
+ * Dados novos de quem já tinha cadastro e preencheu o formulário de novo (O9):
+ * viajam no `verify` e só valem DEPOIS do código certo (quem digita o e-mail de
+ * outra pessoa não troca o WhatsApp dela).
+ */
+export const AtualizacaoCadastroSchema = z.object({
+  nome: nomeSchema,
+  telefone: telefoneSchema,
+  creci: creciComUfSchema,
+});
+
+export type AtualizacaoCadastro = z.infer<typeof AtualizacaoCadastroSchema>;
+
 /** Entrada da verificação: e-mail + código de 6 dígitos (formato conferido antes de qualquer lógica). */
 export const VerifyInputSchema = z.object({
   email: emailSchema,
   codigo: z.string().trim().regex(/^\d{6}$/, "código inválido"),
+  atualizacao: AtualizacaoCadastroSchema.optional(),
 });
 
 export type VerifyInput = z.infer<typeof VerifyInputSchema>;
+
+/** "Já tenho cadastro" (O9): só o e-mail + os mesmos sinais anti-robô do pedido de acesso. */
+export const EntrarSchema = z.object({
+  email: emailSchema,
+  website: z.string().max(500).optional(),
+  turnstileToken: z.string().max(2048).optional(),
+});
+
+export type PedidoEntrar = z.infer<typeof EntrarSchema>;

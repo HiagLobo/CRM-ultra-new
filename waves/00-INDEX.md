@@ -68,6 +68,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | **O6** | Limpeza do ex-cliente | Tirar do produto todo conteúdo, imagem e negócio do ex-cliente (pré-requisito do deploy) | O0–O5 código |
 | **O7** | Prontidão de lançamento | Cadastro que não perde lead, anti-abuso, logs com causa, CRECI flexível, celular e painel de leads prático | O6 |
 | **O8** | Funil de leads e conversão | Etapas + retomar depois + Hoje, anotações e próxima ação, cadastro manual, "Quero usar" no demo, origem da campanha | O7 |
+| **O9** | Cadastro único e conferência do CRECI | Nome e UF no cadastro, WhatsApp/CRECI sem repetido, "Já tenho cadastro" (só e-mail + código), dados novos só depois do código, conferir CRECI no painel, "voltou ao demo" | O8 |
 
 ### Sub-entregas e "Pronto quando"
 
@@ -134,6 +135,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | O7 | ✅ código concluído (2026-09-19) — lead nunca se perde (falha/cota/timeout do e-mail), anti-abuso (limites, isca, Turnstile opcional), aviso de lead novo, log com causa, RUNBOOK do setup real, CRECI flexível, remetente nomeado, celular (menus, tour, Guia) e painel de leads prático (WhatsApp, busca, filtro, CSV pt-BR). 400 testes + crawl desktop/celular. Ver `07-prontidao-lancamento/ESTADO.md`. **Falta publicar (O5):** Neon, Resend, Vercel e smoke — nas contas do fundador, RUNBOOK §3. |
 | O8 | ✅ código concluído (2026-09-19) — funil com 7 etapas em abas (Hoje, Novos, Em contato, Demonstração, Negociação, Clientes, Retomar depois, Perdidos, Todos), retomar com data e motivo, perdido com motivo, próxima ação e anotações na ficha do lead, cadastro manual com dedupe, "Quero usar" no demo e origem da campanha (UTM/ref) no pedido de acesso. 576 testes + crawl desktop/celular. Ver `08-funil-leads/ESTADO.md`. **Publicar:** deploy primeiro, `migrations/004-funil.sql` no Neon logo em seguida (RUNBOOK 3.9). |
 
+| O9 | 🟦 em andamento — plano escrito e base pronta (2026-09-19). Publicação: `migrations/005` no Neon ANTES do deploy (só acrescenta colunas). Ver `09-cadastro-unico/ESTADO.md`. |
 _Legenda: ⬜ pendente · 🟦 em andamento · ✅ concluída._
 
 ### Rodada de hardening (fora do plano de ondas, 2026-08-12)
