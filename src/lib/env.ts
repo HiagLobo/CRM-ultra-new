@@ -41,7 +41,8 @@ const camposEnv = z.object({
   ADMIN_PASSWORD: z.string().min(8, "use uma senha forte (8+ caracteres)"),
 
   // O7·S1 — teto de e-mails que o app envia em 24h (códigos + avisos). Estourou:
-  // o lead é gravado mesmo assim e o fundador fala com ele pelo /admin.
+  // o lead NOVO é gravado mesmo assim e o fundador fala com ele pelo /admin (quem já
+  // tinha cadastro recebe 503 "envio_indisponivel" — O9).
   LIMITE_ENVIOS_DIA: opcional(
     z.coerce
       .number({ invalid_type_error: "use um número inteiro (ex.: 90)" })
