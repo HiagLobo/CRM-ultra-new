@@ -1,9 +1,10 @@
 "use client";
-/** Peças de formulário do fluxo de acesso (campo, aviso, botão de envio). */
+/** Peças de formulário do fluxo de acesso (campo, aviso, botão de envio). As miúdas estão em `pecas.tsx`. */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import { brand, linkWhatsapp } from "@/config/brand";
+import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
+import { LinkWhatsapp, estiloEntrada } from "./pecas";
 
 /**
  * Tira o DDI 55 de um número colado ou autopreenchido ("+55 81 99999-8888"),
@@ -35,6 +36,8 @@ export function Campo({
   aoMudar,
   erro,
   dica,
+  style,
+  "aria-describedby": descritoPor,
   ...rest
 }: {
   id: string;
@@ -45,6 +48,8 @@ export function Campo({
   dica?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "id" | "value" | "onChange">) {
   const idErro = `${id}-erro`;
+  // o erro e o que o passo quiser ligar ao campo (ex.: um aviso já na tela) são lidos juntos
+  const descricao = [erro ? idErro : "", descritoPor ?? ""].filter(Boolean).join(" ") || undefined;
   return (
     <div>
       <label
@@ -58,20 +63,9 @@ export function Campo({
         value={valor}
         onChange={(e) => aoMudar(e.target.value)}
         aria-invalid={!!erro}
-        aria-describedby={erro ? idErro : undefined}
-        style={{
-          width: "100%",
-          boxSizing: "border-box",
-          fontFamily: "var(--font-body)",
-          fontSize: 15,
-          padding: "12px 14px",
-          border: `1.5px solid ${erro ? p.error : p.g300}`,
-          borderRadius: 10,
-          background: "#fff",
-          color: p.ink,
-          outline: "none",
-        }}
+        aria-describedby={descricao}
         {...rest}
+        style={{ ...estiloEntrada(!!erro), ...style }} // o estilo do passo completa o base, não o troca
       />
       {erro ? (
         <div id={idErro} role="alert" style={{ fontSize: 13, color: p.error, marginTop: 6 }}>
@@ -86,15 +80,19 @@ export function Campo({
 
 export function Aviso({
   tipo,
+  id,
   children,
 }: {
   tipo: "erro" | "info" | "sucesso";
+  /** Para um campo apontar o aviso no `aria-describedby`. */
+  id?: string;
   children: React.ReactNode;
 }) {
   const cor = tipo === "erro" ? p.error : tipo === "sucesso" ? p.success : p.info;
   const icone = tipo === "erro" ? "alert-triangle" : tipo === "sucesso" ? "check-circle-2" : "help-circle";
   return (
     <div
+      id={id}
       role={tipo === "erro" ? "alert" : "status"}
       style={{
         display: "flex",
@@ -112,22 +110,9 @@ export function Aviso({
       <span style={{ flexShrink: 0, marginTop: 1 }}>
         <Ic n={icone} s={17} c={cor} />
       </span>
-      <span>{children}</span>
+      {/* e-mail comprido (dica, código enviado) quebra em vez de estourar a largura do celular */}
+      <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{children}</span>
     </div>
-  );
-}
-
-/** Saída na hora quando o fluxo trava: o WhatsApp da marca, com a mensagem já escrita (sem PII). */
-function LinkWhatsapp({ texto }: { texto: string }) {
-  return (
-    <a
-      href={linkWhatsapp(texto)}
-      target="_blank"
-      rel="noreferrer"
-      style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}
-    >
-      Falar no WhatsApp
-    </a>
   );
 }
 
@@ -148,14 +133,23 @@ export function AvisoSemCodigo({ mensagem }: { mensagem: string }) {
  * Erro na tela. Com `whatsapp`, o pedido travou antes de gravar (verificação de
  * segurança fora do ar, servidor com problema): sem o link, o contato se perderia.
  */
-export function AvisoErro({ mensagem, whatsapp }: { mensagem: string; whatsapp?: boolean }) {
+export function AvisoErro({
+  mensagem,
+  whatsapp,
+  textoWhatsapp = `Olá! Tentei pedir acesso ao demo do ${brand.nomeCurto} e o site não deixou concluir.`,
+}: {
+  mensagem: string;
+  whatsapp?: boolean;
+  /** Mensagem pronta do WhatsApp (sem PII) — o passo Entrar conta outra história. */
+  textoWhatsapp?: string;
+}) {
   return (
     <Aviso tipo="erro">
       {mensagem}
       {whatsapp && (
         <>
           {" "}
-          <LinkWhatsapp texto={`Olá! Tentei pedir acesso ao demo do ${brand.nomeCurto} e o site não deixou concluir.`} />
+          <LinkWhatsapp texto={textoWhatsapp} />
         </>
       )}
     </Aviso>
@@ -164,15 +158,16 @@ export function AvisoErro({ mensagem, whatsapp }: { mensagem: string; whatsapp?:
 
 export function BotaoSubmit({
   carregando,
+  disabled,
   children,
   ...rest
 }: { carregando?: boolean; children: React.ReactNode } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       type="submit"
-      disabled={carregando || rest.disabled}
       className="ds-btnpop"
       {...rest}
+      disabled={carregando || disabled} // depois do spread: `disabled={false}` não reabre o botão enviando
       style={{
         width: "100%",
         border: "none",

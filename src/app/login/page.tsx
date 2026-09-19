@@ -1,8 +1,9 @@
 "use client";
 /**
  * `/login` — a porta de entrada do demo ("Já tenho acesso" da landing).
- * Não existe conta com senha: quem já confirmou o e-mail escolhe um painel;
- * quem não confirmou pede o acesso pelo mesmo `AccessFlow` da landing.
+ * Não existe conta com senha: quem já confirmou o e-mail neste navegador escolhe
+ * um painel; quem não, entra com o e-mail do cadastro (O9·S2: o `AccessFlow`
+ * abre no passo Entrar) ou, na primeira vez, pede o acesso pelo cadastro.
  */
 import * as React from "react";
 import Link from "next/link";
@@ -25,7 +26,8 @@ const PAINEIS: [string, string][] = [
 export default function LoginPage() {
   const router = useRouter();
   const [liberado, setLiberado] = React.useState(false);
-  const [pedindoAcesso, setPedindoAcesso] = React.useState(false);
+  /** Passo em que o `AccessFlow` abre; `null` = fechado. */
+  const [pedindoAcesso, setPedindoAcesso] = React.useState<"entrar" | "dados" | null>(null);
 
   // quem chega direto no /login por um link de campanha também tem a origem registrada
   React.useEffect(() => {
@@ -88,17 +90,27 @@ export default function LoginPage() {
           ) : (
             <>
               <div style={{ fontSize: 14, color: "var(--gray-500)", marginTop: 6, marginBottom: 20 }}>
-                Confirme seu e-mail para abrir os três painéis (Corretor, CEO com associados e CEO com
-                franquias). Leva menos de um minuto.
+                Entre com o e-mail do seu cadastro e confirme o código para abrir os três painéis
+                (Corretor, CEO com associados e CEO com franquias). Leva menos de um minuto.
               </div>
               <button
                 type="button"
-                onClick={() => setPedindoAcesso(true)}
+                onClick={() => setPedindoAcesso("entrar")}
                 className="primary-btn"
                 style={{ width: "100%", border: "none", borderRadius: 10, padding: "14px", cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 15.5, color: "#fff", background: "var(--purple-primary)", display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}
               >
-                Pedir acesso ao demo <Icon n="arrow-right" s={19} c="#fff" sw={2.25} />
+                Entrar com meu e-mail <Icon n="arrow-right" s={19} c="#fff" sw={2.25} />
               </button>
+              <div style={{ fontSize: 14, color: "var(--gray-500)", marginTop: 16, textAlign: "center" }}>
+                Primeira vez aqui?{" "}
+                <button
+                  type="button"
+                  onClick={() => setPedindoAcesso("dados")}
+                  style={{ border: "none", background: "none", padding: 0, cursor: "pointer", fontFamily: "var(--font-body)", fontSize: 14, fontWeight: 600, color: "var(--purple-primary)" }}
+                >
+                  Pedir acesso ao demo
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -106,8 +118,9 @@ export default function LoginPage() {
 
       {pedindoAcesso && (
         <AccessFlow
+          passoInicial={pedindoAcesso}
           aoFechar={() => {
-            setPedindoAcesso(false);
+            setPedindoAcesso(null);
             setLiberado(estaLiberado()); // verificou dentro do fluxo? as entradas aparecem
           }}
         />

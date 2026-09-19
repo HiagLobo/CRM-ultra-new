@@ -1,30 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { solicitarAcesso, verificarCodigo, MENSAGEM_SEM_CODIGO } from "./api";
-
-const DADOS = {
-  email: "corretor@exemplo.com",
-  telefone: "+5511900000000",
-  creci: "SP 12345",
-  consentimento: true,
-} as const;
-
-/** fetch falso: devolve status + corpo escolhidos e guarda o que foi enviado. */
-function fetchFake(status: number, corpo: unknown, opts: { naoEhJson?: boolean } = {}) {
-  const chamadas: { url: string; body: unknown }[] = [];
-  const fake = vi.fn(async (url: string, init: RequestInit) => {
-    chamadas.push({ url, body: JSON.parse(String(init.body)) });
-    return {
-      ok: status >= 200 && status < 300,
-      status,
-      json: async () => {
-        if (opts.naoEhJson) throw new Error("não é json");
-        return corpo;
-      },
-    } as unknown as Response;
-  });
-  vi.stubGlobal("fetch", fake);
-  return chamadas;
-}
+import { DADOS, capturarConsole, fetchFake, fetchOffline } from "./apoioTestes";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -35,14 +11,14 @@ describe("solicitarAcesso (POST /api/lead)", () => {
   it("happy: 200 devolve enviado e repassa o codigoDev do fallback", async () => {
     const chamadas = fetchFake(200, { ok: true, codigoDev: "123456" });
     const r = await solicitarAcesso({ ...DADOS });
-    expect(r).toEqual({ status: "enviado", codigoDev: "123456" });
+    expect(r).toEqual({ status: "enviado", codigoDev: "123456", existente: false });
     expect(chamadas[0]!.url).toBe("/api/lead");
-    expect(chamadas[0]!.body).toEqual(DADOS); // envia o consentimento junto
+    expect(chamadas[0]!.body).toEqual(DADOS); // envia o nome (O9) e o consentimento junto
   });
 
   it("sem codigoDev (produção) segue sendo sucesso", async () => {
     fetchFake(200, { ok: true });
-    expect(await solicitarAcesso({ ...DADOS })).toEqual({ status: "enviado", codigoDev: undefined });
+    expect(await solicitarAcesso({ ...DADOS })).toEqual({ status: "enviado", codigoDev: undefined, existente: false });
   });
 
   it("400 vira 'invalido' com os campos da API", async () => {
@@ -64,9 +40,7 @@ describe("solicitarAcesso (POST /api/lead)", () => {
     fetchFake(500, { ok: false });
     expect((await solicitarAcesso({ ...DADOS })).status).toBe("erro");
 
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw new Error("offline");
-    }));
+    fetchOffline();
     const r = await solicitarAcesso({ ...DADOS });
     expect(r.status).toBe("erro");
     expect(r.status === "erro" && r.mensagem).toMatch(/conex/i);
@@ -82,7 +56,7 @@ describe("solicitarAcesso — O7·S1 (lead sem código e anti-robô)", () => {
   it("202 vira 'recebido_sem_codigo' com a mensagem honesta", async () => {
     fetchFake(202, { ok: true, status: "recebido_sem_codigo" });
     const r = await solicitarAcesso({ ...DADOS });
-    expect(r).toEqual({ status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO });
+    expect(r).toEqual({ status: "recebido_sem_codigo", mensagem: MENSAGEM_SEM_CODIGO, existente: false });
     expect(MENSAGEM_SEM_CODIGO).toMatch(/Recebemos seus dados/);
     expect(MENSAGEM_SEM_CODIGO).toMatch(/não saiu agora/);
   });
@@ -115,9 +89,7 @@ describe("solicitarAcesso — O7·S1 (lead sem código e anti-robô)", () => {
     expect(await solicitarAcesso({ ...DADOS })).not.toHaveProperty("whatsapp");
     fetchFake(500, { ok: false });
     expect(await solicitarAcesso({ ...DADOS })).toMatchObject({ status: "erro", whatsapp: true });
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw new Error("offline");
-    }));
+    fetchOffline();
     expect(await solicitarAcesso({ ...DADOS })).toMatchObject({ status: "erro", whatsapp: true });
   });
 
@@ -185,25 +157,18 @@ describe("verificarCodigo (POST /api/lead/verify)", () => {
 
 describe("sem PII no console", () => {
   it("nenhum caminho loga e-mail, telefone, CRECI ou código", async () => {
-    const logs: string[] = [];
-    for (const nivel of ["log", "info", "warn", "error", "debug"] as const) {
-      vi.spyOn(console, nivel).mockImplementation((...args: unknown[]) => {
-        logs.push(args.map(String).join(" "));
-      });
-    }
+    const logs = capturarConsole();
 
     fetchFake(200, { ok: true, codigoDev: "123456" });
     await solicitarAcesso({ ...DADOS });
     fetchFake(400, { ok: false, erro: "codigo_invalido", mensagem: "código inválido" });
     await verificarCodigo(DADOS.email, "654321");
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw new Error("offline");
-    }));
+    fetchOffline();
     await solicitarAcesso({ ...DADOS });
     await verificarCodigo(DADOS.email, "654321");
 
     const saida = logs.join("\n");
-    for (const pii of [DADOS.email, DADOS.telefone, DADOS.creci, "123456", "654321"]) {
+    for (const pii of [DADOS.nome, DADOS.email, DADOS.telefone, DADOS.creci, "123456", "654321"]) {
       expect(saida).not.toContain(pii);
     }
   });

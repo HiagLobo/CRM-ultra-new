@@ -26,7 +26,12 @@ export default function LandingPage() {
   const [acessoAberto, setAcessoAberto] = React.useState(false);
   const [acessoExpirou, setAcessoExpirou] = React.useState(false);
   const abrirAcesso = React.useCallback(() => setAcessoAberto(true), []);
-  const fecharAcesso = React.useCallback(() => setAcessoAberto(false), []);
+  // o aviso de acesso vencido (e abrir no "Entrar") vale só para a volta do painel:
+  // fechou, o próximo "Acessar CRM" abre o cadastro normal (O9·S2)
+  const fecharAcesso = React.useCallback(() => {
+    setAcessoAberto(false);
+    setAcessoExpirou(false);
+  }, []);
 
   /**
    * Origem da campanha (O8·S3): utm/ref do link ou o site de onde a pessoa veio,
@@ -40,7 +45,8 @@ export default function LandingPage() {
   /**
    * Chegou aqui rebatido de um painel? O gate do servidor recusou o cookie
    * (expirado ou inexistente). Limpa o espelho velho — senão o `/login`
-   * continuaria mostrando as 3 entradas — e abre o fluxo já explicando.
+   * continuaria mostrando as 3 entradas — e abre o fluxo já explicando, direto
+   * no "Entrar" (O9·S2): quem volta de um painel já tem cadastro.
    */
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);

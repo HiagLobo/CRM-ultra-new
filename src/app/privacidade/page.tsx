@@ -111,13 +111,22 @@ export default function PrivacidadePage() {
           </p>
           <ul style={{ margin: "10px 0 0", paddingLeft: 20, display: "grid", gap: 8 }}>
             <li>
+              <strong>Nome completo</strong> — saber com quem estamos falando.
+            </li>
+            <li>
               <strong>E-mail</strong> — enviar o código de verificação e falar com você sobre o produto.
             </li>
             <li>
               <strong>Telefone</strong> — contato comercial.
             </li>
             <li>
-              <strong>CRECI</strong> — confirmar que você atua no mercado imobiliário.
+              <strong>CRECI e o estado do conselho</strong> — confirmar que você atua no mercado
+              imobiliário. A conferência é feita por uma pessoa da nossa equipe na consulta pública do
+              conselho regional, e anotamos o resultado junto do seu cadastro.
+            </li>
+            <li>
+              <strong>Data e hora do último acesso à demonstração</strong> — saber se o acesso está sendo
+              usado.
             </li>
             <li>
               <strong>Data, hora e endereço IP do consentimento</strong> — prova de que a autorização

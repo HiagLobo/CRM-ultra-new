@@ -1,175 +1,190 @@
 "use client";
 /**
- * Passo 1 — dados do corretor + consentimento (LGPD).
- * Valida no client com o MESMO Zod da rota (`LeadInputSchema`), então o que
- * passa aqui passa lá: telefone vira E.164, o e-mail vem em minúsculas e o
- * CRECI chega na forma canônica ("CRECI-PE 12.345-F" → "PE 12345-F").
+ * Passo 1 — cadastro: nome, e-mail, WhatsApp, CRECI (Estado + Número) e
+ * consentimento (LGPD). Valida no client com os MESMOS schemas da rota
+ * (`cadastro.ts`), então o que passa aqui passa lá: nome sem espaços sobrando,
+ * telefone em E.164, e-mail minúsculo e CRECI canônico com UF ("PE 12345-F").
  * O texto do consentimento é o mesmo que o servidor carimba no registro.
  *
  * Anti-robô (O7·S1): campo-isca sempre; Turnstile quando a chave pública veio no
  * build. Se o lead foi gravado mas o e-mail não saiu, a tela diz isso com
- * honestidade e oferece o WhatsApp — o formulário continua preenchido para
- * tentar de novo.
+ * honestidade e oferece o WhatsApp — o formulário continua preenchido.
  *
  * Origem (O8·S3): a campanha que a landing guardou nesta aba vai junto do pedido.
+ *
+ * Cadastro único (O9·S2): "Já tenho cadastro" leva ao passo Entrar; WhatsApp ou
+ * CRECI de outro cadastro (409) viram um aviso com a saída; e-mail que já existia
+ * sem código enviado (503) vira aviso + WhatsApp — nada foi gravado. Os campos
+ * moram no fluxo (`AccessFlow`), só em memória: voltam preenchidos ao corrigir.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
-import { LeadInputSchema, TEXTO_CONSENTIMENTO } from "@/features/lead/schema";
-import { EXEMPLO_CRECI } from "@/features/lead/creci";
+import { Ic } from "@/components/Icon";
 import { lerOrigemGuardada } from "@/lib/origemCampanha";
 import { solicitarAcesso, type DadosSolicitacao } from "./api";
+import {
+  ID_CAMPO,
+  comTelefone,
+  comUf,
+  errosPorCampo,
+  primeiroCampoComErro,
+  validarCadastro,
+  type ErrosCadastro,
+  type FormCadastro,
+} from "./cadastro";
 import { Campo, AvisoErro, AvisoSemCodigo, BotaoSubmit, mascararTelefone } from "./ui";
-import { CampoIsca, WidgetTurnstile, SITE_KEY_TURNSTILE, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
+import { BotaoTexto } from "./pecas";
+import { PecasAntiRobo, useAntiRobo, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
+import { AvisoRepetido, type Repetido } from "./AvisosCadastro";
+import { WHATSAPP_ENTRAR_SEM_CODIGO } from "./mensagens";
+import CampoCreci from "./CampoCreci";
+import CampoConsentimento from "./CampoConsentimento";
 
-type Campos = Record<string, string[] | undefined>;
 /** Aviso geral da tela; `whatsapp` quando o pedido travou sem gravar (ver `AvisoErro`). */
-type AvisoGeral = { mensagem: string; whatsapp?: boolean };
+type AvisoGeral = { mensagem: string; whatsapp?: boolean; textoWhatsapp?: string };
 
 export default function StepDados({
-  aoEnviar,
+  form,
+  aoMudarForm,
+  aoEnviado,
+  aoGravadoSemCodigo,
+  aoIrParaEntrar,
 }: {
-  /** Chamado no sucesso: o fluxo guarda os dados (para reenvio) e vai ao passo do código. */
-  aoEnviar: (dados: DadosSolicitacao, codigoDev?: string) => void;
+  form: FormCadastro;
+  aoMudarForm: (form: FormCadastro) => void;
+  /** Código enviado: o fluxo guarda os dados (para reenvio e `verify`) e vai ao passo do código. */
+  aoEnviado: (dados: DadosSolicitacao, existente: boolean, codigoDev?: string) => void;
+  /** 202: o cadastro NOVO foi gravado sem código — é desta pessoa, não "já tinha cadastro". */
+  aoGravadoSemCodigo: (email: string, existente: boolean) => void;
+  aoIrParaEntrar: (opcoes: { email?: string; dica?: string | null }) => void;
 }) {
-  const [email, setEmail] = React.useState("");
-  const [telefone, setTelefone] = React.useState("");
-  const [creci, setCreci] = React.useState("");
   const [consentimento, setConsentimento] = React.useState(false);
-  const [erros, setErros] = React.useState<Campos>({});
+  const [erros, setErros] = React.useState<ErrosCadastro>({});
   const [avisoGeral, setAvisoGeral] = React.useState<AvisoGeral | null>(null);
+  const [repetido, setRepetido] = React.useState<Repetido | null>(null);
   const [semCodigo, setSemCodigo] = React.useState<string | null>(null);
   const [carregando, setCarregando] = React.useState(false);
-  const [isca, setIsca] = React.useState("");
-  const [tokenTurnstile, setTokenTurnstile] = React.useState<string | null>(null);
-  const [versaoTurnstile, setVersaoTurnstile] = React.useState(0);
+  const antiRobo = useAntiRobo();
+  const refAvisos = React.useRef<HTMLDivElement>(null);
+
+  // aviso novo: o foco (e a rolagem) vai até ele — no celular, o topo do formulário sai da tela
+  React.useEffect(() => {
+    if (avisoGeral || repetido || semCodigo) refAvisos.current?.focus();
+  }, [avisoGeral, repetido, semCodigo]);
+
+  function mostrarErros(novos: ErrosCadastro) {
+    setErros(novos);
+    const primeiro = primeiroCampoComErro(novos);
+    if (primeiro) document.getElementById(ID_CAMPO[primeiro])?.focus();
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     if (carregando) return;
     setAvisoGeral(null);
+    setRepetido(null);
     setSemCodigo(null);
 
-    const parsed = LeadInputSchema.safeParse({ email, telefone, creci, consentimento });
-    if (!parsed.success) {
-      setErros(parsed.error.flatten().fieldErrors);
-      return;
-    }
+    const validacao = validarCadastro(form, consentimento);
+    if (!validacao.ok) return mostrarErros(validacao.erros);
     setErros({});
-    if (SITE_KEY_TURNSTILE && !tokenTurnstile) {
-      setAvisoGeral({ mensagem: MENSAGEM_AGUARDE_TURNSTILE });
-      return;
-    }
+    if (antiRobo.aguardando) return setAvisoGeral({ mensagem: MENSAGEM_AGUARDE_TURNSTILE });
     setCarregando(true);
 
     // origem da campanha (O8·S3): lida no envio — no clique, nunca no render
     const origem = lerOrigemGuardada();
-    const dados: DadosSolicitacao = {
-      email: parsed.data.email,
-      telefone: parsed.data.telefone,
-      creci: parsed.data.creci,
-      consentimento: true,
-      ...(origem ? { origem } : {}),
-    };
-    const r = await solicitarAcesso(dados, { website: isca, turnstileToken: tokenTurnstile ?? undefined });
+    const dados: DadosSolicitacao = { ...validacao.dados, ...(origem ? { origem } : {}) };
+    const r = await solicitarAcesso(dados, antiRobo.sinais);
     setCarregando(false);
 
-    if (r.status === "enviado") return aoEnviar(dados, r.codigoDev);
-    // o token do Turnstile é de uso único: qualquer outra resposta pede um novo
-    if (SITE_KEY_TURNSTILE) {
-      setTokenTurnstile(null);
-      setVersaoTurnstile((v) => v + 1);
+    if (r.status === "enviado") return aoEnviado(dados, r.existente, r.codigoDev);
+    antiRobo.renovar(); // o token do Turnstile é de uso único: qualquer outra resposta pede um novo
+    if (r.status === "recebido_sem_codigo") {
+      aoGravadoSemCodigo(dados.email, r.existente);
+      return setSemCodigo(r.mensagem);
     }
-    if (r.status === "recebido_sem_codigo") return setSemCodigo(r.mensagem);
+    if (r.status === "envio_indisponivel") {
+      return setAvisoGeral({ mensagem: r.mensagem, whatsapp: true, textoWhatsapp: WHATSAPP_ENTRAR_SEM_CODIGO });
+    }
+    if (r.status === "telefone_em_uso") return setRepetido({ tipo: "telefone", dica: r.dica });
+    if (r.status === "creci_em_uso") return setRepetido({ tipo: "creci" });
     if (r.status === "invalido") {
-      setErros(r.campos ?? {});
-      setAvisoGeral({ mensagem: r.mensagem });
-      return;
+      const naTela = errosPorCampo(r.campos, form);
+      // erro num campo que a tela não tem: aviso geral, para não ficar sem resposta
+      return primeiroCampoComErro(naTela) ? mostrarErros(naTela) : setAvisoGeral({ mensagem: r.mensagem });
     }
     setAvisoGeral({ mensagem: r.mensagem, whatsapp: "whatsapp" in r && r.whatsapp });
   }
 
-  const erro = (campo: string) => erros[campo]?.[0];
+  const mudar = (campo: "nome" | "email" | "numero") => (valor: string) => aoMudarForm({ ...form, [campo]: valor });
 
   return (
     <form onSubmit={enviar} noValidate style={{ display: "grid", gap: 16 }}>
-      <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: 0 }}>
-        Enviamos um código para o seu e-mail e liberamos o demo do {brand.nomeCurto} na hora.
-      </p>
+      <div style={{ display: "grid", gap: 8 }}>
+        <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: 0 }}>
+          Enviamos um código para o seu e-mail e liberamos o demo do {brand.nomeCurto} na hora.
+        </p>
+        <BotaoTexto
+          onClick={() => aoIrParaEntrar({ email: form.email })}
+          disabled={carregando} // com o pedido no ar, sair daqui deixaria a resposta sem tela
+          style={{ fontSize: 14, display: "inline-flex", alignItems: "center", gap: 6, justifySelf: "start" }}
+        >
+          Já tenho cadastro <Ic n="arrow-right" s={15} c={carregando ? p.g500 : p.primary} />
+        </BotaoTexto>
+      </div>
 
-      {semCodigo && <AvisoSemCodigo mensagem={semCodigo} />}
-      {avisoGeral && <AvisoErro {...avisoGeral} />}
+      {(semCodigo || avisoGeral || repetido) && (
+        <div ref={refAvisos} tabIndex={-1} style={{ display: "grid", gap: 12, outline: "none" }}>
+          {semCodigo && <AvisoSemCodigo mensagem={semCodigo} />}
+          {avisoGeral && <AvisoErro {...avisoGeral} />}
+          {repetido && <AvisoRepetido repetido={repetido} aoEntrar={(dica) => aoIrParaEntrar({ dica })} />}
+        </div>
+      )}
 
       <Campo
-        id="acesso-email"
+        id={ID_CAMPO.nome}
+        label="Nome completo"
+        autoComplete="name"
+        placeholder="Nome e sobrenome"
+        valor={form.nome}
+        aoMudar={mudar("nome")}
+        erro={erros.nome}
+        autoFocus
+      />
+      <Campo
+        id={ID_CAMPO.email}
         label="E-mail"
         type="email"
         autoComplete="email"
         placeholder="voce@imobiliaria.com.br"
-        valor={email}
-        aoMudar={setEmail}
-        erro={erro("email")}
-        autoFocus
+        valor={form.email}
+        aoMudar={mudar("email")}
+        erro={erros.email}
       />
       <Campo
-        id="acesso-telefone"
-        label="Telefone (WhatsApp)"
+        id={ID_CAMPO.telefone}
+        label="WhatsApp (com DDD)"
         type="tel"
         inputMode="numeric"
         autoComplete="tel"
         placeholder="(11) 90000-0000"
-        valor={telefone}
-        aoMudar={(v) => setTelefone(mascararTelefone(v))}
-        erro={erro("telefone")}
+        valor={form.telefone}
+        aoMudar={(v) => aoMudarForm(comTelefone(form, mascararTelefone(v)))}
+        erro={erros.telefone}
       />
-      <Campo
-        id="acesso-creci"
-        label="CRECI"
-        placeholder={EXEMPLO_CRECI}
-        valor={creci}
-        aoMudar={setCreci}
-        erro={erro("creci")}
-        dica="Usamos para confirmar que você atua no mercado imobiliário."
+      <CampoCreci
+        uf={form.uf}
+        numero={form.numero}
+        erroUf={erros.uf}
+        erroNumero={erros.numero}
+        aoMudarUf={(uf) => aoMudarForm(comUf(form, uf))}
+        aoMudarNumero={mudar("numero")}
       />
 
-      <div>
-        <label
-          htmlFor="acesso-consentimento"
-          style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, lineHeight: 1.55, color: p.g700, cursor: "pointer" }}
-        >
-          <input
-            id="acesso-consentimento"
-            type="checkbox"
-            checked={consentimento}
-            onChange={(e) => setConsentimento(e.target.checked)}
-            aria-invalid={!!erro("consentimento")}
-            style={{ marginTop: 2, width: 17, height: 17, accentColor: p.primary, flexShrink: 0 }}
-          />
-          <span>
-            {TEXTO_CONSENTIMENTO}{" "}
-            <a
-              href="/privacidade"
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()} // abrir a política não marca a caixa
-              style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}
-            >
-              Ler a política
-            </a>
-          </span>
-        </label>
-        {erro("consentimento") && (
-          <div role="alert" style={{ fontSize: 13, color: p.error, marginTop: 6 }}>
-            {erro("consentimento")}
-          </div>
-        )}
-      </div>
+      <CampoConsentimento marcado={consentimento} aoMudar={setConsentimento} erro={erros.consentimento} />
 
-      <CampoIsca valor={isca} aoMudar={setIsca} />
-      {SITE_KEY_TURNSTILE && (
-        <WidgetTurnstile key={versaoTurnstile} siteKey={SITE_KEY_TURNSTILE} aoMudarToken={setTokenTurnstile} />
-      )}
+      <PecasAntiRobo antiRobo={antiRobo} />
 
       <BotaoSubmit carregando={carregando}>{semCodigo ? "Tentar enviar de novo" : "Receber código"}</BotaoSubmit>
     </form>
