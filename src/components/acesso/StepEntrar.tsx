@@ -78,7 +78,7 @@ export default function StepEntrar({
   return (
     <form onSubmit={enviar} noValidate style={{ display: "grid", gap: 16 }}>
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: 0 }}>
-        Digite o e-mail do seu cadastro. Enviamos um código para você entrar — sem senha.
+        Digite o e-mail do seu cadastro. Enviamos um código para você entrar, sem senha.
       </p>
 
       {dica && (

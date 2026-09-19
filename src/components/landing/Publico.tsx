@@ -36,7 +36,7 @@ export default function Publico() {
         <Eyebrow>Para quem é</Eyebrow>
         <Titulo>Três painéis, três formas de trabalhar</Titulo>
         <Sub>
-          Ao liberar seu acesso você escolhe por qual deles quer começar — e pode voltar e testar os
+          Ao liberar seu acesso você escolhe por qual deles quer começar, e pode voltar e testar os
           outros dois quando quiser.
         </Sub>
       </div>

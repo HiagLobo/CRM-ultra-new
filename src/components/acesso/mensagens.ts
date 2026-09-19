@@ -12,7 +12,7 @@ import { brand } from "@/config/brand";
 /** Dados novos que o `verify` deixou como estavam por já estarem em outro cadastro. */
 export type CampoNaoAtualizado = "telefone" | "creci";
 
-export const MENSAGEM_EXISTENTE = "Esse e-mail já tem cadastro — enviamos um código para você entrar.";
+export const MENSAGEM_EXISTENTE = "Esse e-mail já tem cadastro. Enviamos um código para você entrar.";
 export const MENSAGEM_SEM_CADASTRO = "Não achamos cadastro com esse e-mail.";
 export const MENSAGEM_ENVIO_INDISPONIVEL =
   "Não conseguimos enviar o código agora. Tente de novo em alguns minutos ou fale com a gente.";

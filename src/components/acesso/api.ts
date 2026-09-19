@@ -76,7 +76,7 @@ export const FALHA_REDE: FalhaComum = { status: "erro", mensagem: ERRO_REDE, wha
 
 /** Mensagem honesta do "recebido sem código": o contato ficou, o e-mail não saiu. */
 export const MENSAGEM_SEM_CODIGO =
-  "Recebemos seus dados. O e-mail com o código não saiu agora — tente reenviar em alguns minutos ou fale com a gente.";
+  "Recebemos seus dados. O e-mail com o código não saiu agora. Tente reenviar em alguns minutos ou fale com a gente.";
 const DESAFIO_RECUSADO = "não conseguimos confirmar que você é uma pessoa. Refaça a verificação e tente de novo.";
 const DESAFIO_FORA = "a verificação de segurança está fora do ar agora. Tente de novo em instantes ou fale com a gente.";
 // o limite é por e-mail E por rede: a pessoa pode não ter pedido nada ainda

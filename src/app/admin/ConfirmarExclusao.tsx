@@ -27,12 +27,12 @@ export default function ConfirmarExclusao({
   return (
     <Dialogo idTitulo="titulo-excluir-lead" titulo="Excluir este lead?" aoFechar={aoCancelar} ocupado={ocupado}>
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: "0 0 6px" }}>
-        Todos os dados de <strong style={{ color: p.ink }}>{identificacaoLead(lead)}</strong> serão apagados —
+        Todos os dados de <strong style={{ color: p.ink }}>{identificacaoLead(lead)}</strong> serão apagados:
         contato, consentimento, etapa e anotações. <strong>Não dá para desfazer.</strong>
       </p>
       <p style={{ fontSize: 13, color: p.g500, margin: "0 0 18px" }}>
         Use quando o titular pedir a eliminação dos dados (LGPD). Para só parar o follow-up, mova para
-        &ldquo;Perdido&rdquo; ou &ldquo;Retomar depois&rdquo; — o histórico fica.
+        &ldquo;Perdido&rdquo; ou &ldquo;Retomar depois&rdquo;. O histórico fica.
       </p>
       {erro && (
         <div role="alert" style={{ ...caixaErro, marginBottom: 14 }}>

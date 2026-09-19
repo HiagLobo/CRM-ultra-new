@@ -37,7 +37,7 @@ export default function StepOk({
           <Ic n="check-circle-2" s={24} c={p.success} />
         </span>
         <p style={{ fontSize: 14.5, lineHeight: 1.55, color: p.g700, margin: 0 }}>
-          E-mail confirmado. A demonstração do {brand.nomeCurto} está liberada — escolha por onde
+          E-mail confirmado. A demonstração do {brand.nomeCurto} está liberada. Escolha por onde
           começar.
         </p>
       </div>

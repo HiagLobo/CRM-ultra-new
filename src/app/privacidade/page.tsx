@@ -93,7 +93,7 @@ export default function PrivacidadePage() {
             O responsável pelo tratamento dos seus dados é a{" "}
             <strong>{brand.empresa.razaoSocial}</strong>, inscrita no CNPJ{" "}
             <strong>{brand.empresa.cnpj}</strong>
-            {brand.contato.endereco ? `, com sede em ${brand.contato.endereco}` : ""} — responsável
+            {brand.contato.endereco ? `, com sede em ${brand.contato.endereco}` : ""}, responsável
             pelo desenvolvimento e pela operação do {brand.nome} ({brand.dominio}).
           </p>
           <p style={{ margin: "12px 0 0" }}>
@@ -111,29 +111,29 @@ export default function PrivacidadePage() {
           </p>
           <ul style={{ margin: "10px 0 0", paddingLeft: 20, display: "grid", gap: 8 }}>
             <li>
-              <strong>Nome completo</strong> — saber com quem estamos falando.
+              <strong>Nome completo</strong>: saber com quem estamos falando.
             </li>
             <li>
-              <strong>E-mail</strong> — enviar o código de verificação e falar com você sobre o produto.
+              <strong>E-mail</strong>: enviar o código de verificação e falar com você sobre o produto.
             </li>
             <li>
-              <strong>Telefone</strong> — contato comercial.
+              <strong>Telefone</strong>: contato comercial.
             </li>
             <li>
-              <strong>CRECI e o estado do conselho</strong> — confirmar que você atua no mercado
+              <strong>CRECI e o estado do conselho</strong>: confirmar que você atua no mercado
               imobiliário. A conferência é feita por uma pessoa da nossa equipe na consulta pública do
               conselho regional, e anotamos o resultado junto do seu cadastro.
             </li>
             <li>
-              <strong>Data e hora do último acesso à demonstração</strong> — saber se o acesso está sendo
+              <strong>Data e hora do último acesso à demonstração</strong>: saber se o acesso está sendo
               usado.
             </li>
             <li>
-              <strong>Data, hora e endereço IP do consentimento</strong> — prova de que a autorização
+              <strong>Data, hora e endereço IP do consentimento</strong>: prova de que a autorização
               foi dada, como a LGPD exige.
             </li>
             <li>
-              <strong>Origem do link</strong> — se você chegou por um anúncio, post ou link de
+              <strong>Origem do link</strong>: se você chegou por um anúncio, post ou link de
               parceiro, registramos junto do pedido de acesso o identificador da campanha (os
               parâmetros <code>utm</code> e <code>ref</code> do link) e/ou o domínio do site de onde você veio,
               para sabermos quais divulgações funcionam. Até o envio do pedido, isso fica só na aba do
@@ -142,7 +142,7 @@ export default function PrivacidadePage() {
           </ul>
           <p style={{ marginBottom: 0 }}>
             Não usamos cookies de rastreamento nem compartilhamos seus dados com anunciantes. Os dados
-            que aparecem dentro da demonstração são <strong>fictícios</strong> — nenhum cliente,
+            que aparecem dentro da demonstração são <strong>fictícios</strong>: nenhum cliente,
             imóvel ou negócio real.
           </p>
         </Secao>
@@ -178,7 +178,7 @@ export default function PrivacidadePage() {
 
         <Secao titulo="5. Por quanto tempo guardamos">
           <p style={{ margin: 0 }}>
-            Enquanto durar o interesse comercial ou até você pedir a exclusão — o que vier primeiro. O
+            Enquanto durar o interesse comercial ou até você pedir a exclusão, o que vier primeiro. O
             código de verificação vale <strong>{EXPIRACAO_CODIGO_MIN} minutos</strong>, é guardado apenas como resumo
             criptográfico (nunca em texto legível) e é descartado assim que usado.
           </p>
@@ -195,7 +195,7 @@ export default function PrivacidadePage() {
             <a href={`mailto:${brand.contato.email}`} style={{ color: p.primary, fontWeight: 600 }}>
               {brand.contato.email}
             </a>
-            . A exclusão apaga o registro por completo — contato, consentimento e histórico — e você
+            . A exclusão apaga o registro por completo (contato, consentimento e histórico) e você
             pode pedir acesso de novo depois, se quiser.
           </p>
         </Secao>

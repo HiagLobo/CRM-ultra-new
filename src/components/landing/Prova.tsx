@@ -16,7 +16,7 @@ const GARANTIAS: { icone: string; titulo: string; texto: string }[] = [
     icone: "layout-dashboard",
     titulo: "Demonstração de verdade",
     texto:
-      "Você navega pelos painéis reais do produto — não é vídeo, não é apresentação de slides.",
+      "Você navega pelos painéis reais do produto. Não é vídeo, não é apresentação de slides.",
   },
   {
     icone: "shield-check",
@@ -87,7 +87,7 @@ export default function Prova() {
               Espaço reservado para depoimentos
             </div>
             <div style={{ fontSize: 14, color: p.g500, marginTop: 4 }}>
-              Entram aqui quando os primeiros corretores usarem o produto — com nome e autorização.
+              Entram aqui quando os primeiros corretores usarem o produto, com nome e autorização.
             </div>
           </div>
           <AvisoIlustrativo>Nada publicado sem cliente real</AvisoIlustrativo>

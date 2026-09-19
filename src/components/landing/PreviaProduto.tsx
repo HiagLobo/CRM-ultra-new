@@ -134,7 +134,7 @@ function EtiquetaAutomatica() {
         <Ic n="check" s={13} c={p.success} />
       </span>
       <span style={{ fontSize: 12, color: p.ink }}>
-        <strong style={{ fontWeight: 700 }}>Visita agendada</strong> — etapa movida sozinha
+        <strong style={{ fontWeight: 700 }}>Visita agendada</strong>: etapa movida sozinha
       </span>
     </div>
   );

@@ -79,7 +79,7 @@ export default function Hero({ onAcessar }: { onAcessar: () => void }) {
 
           <p className="lp-entra lp-entra-2" style={{ fontSize: 18, lineHeight: 1.6, color: "rgba(255,255,255,.85)", maxWidth: 560, marginTop: 20 }}>
             O {brand.nomeCurto} organiza leads, atendimento, carteira de imóveis e comissões num lugar
-            só — para o corretor autônomo, para a imobiliária com associados e para a rede de franquias.
+            só: para o corretor autônomo, para a imobiliária com associados e para a rede de franquias.
           </p>
 
           <div className="lp-entra lp-entra-3" style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 32 }}>

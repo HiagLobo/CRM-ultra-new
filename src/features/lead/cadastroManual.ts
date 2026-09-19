@@ -25,7 +25,7 @@ export const IP_CADASTRO_MANUAL = "admin";
 /** O texto que fica carimbado no consentimento do lead cadastrado à mão. */
 export function textoConsentimentoManual(canal: CanalManual): string {
   return (
-    `Cadastro manual pelo administrador — canal ${ROTULO_CANAL[canal]} — base legal: legítimo interesse ` +
+    `Cadastro manual pelo administrador, canal ${ROTULO_CANAL[canal]}, base legal: legítimo interesse ` +
     "(contato iniciado pelo titular ou indicação consentida)."
   );
 }
