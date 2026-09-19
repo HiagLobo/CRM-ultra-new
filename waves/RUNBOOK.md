@@ -52,7 +52,7 @@ o sintoma:
 | `APP_SECRET` | build | o deploy falha (16+ caracteres) |
 | `ADMIN_PASSWORD` | build | o deploy falha (8+ caracteres) |
 | `DATABASE_URL` | 1ª requisição | em produção **nenhum lead é gravado**: o site abre, mas pedir acesso e entrar no `/admin` dão erro, e o log diz `config:DATABASE_URL`. Em dev, usa `data/leads.json` |
-| `RESEND_API_KEY` | 1ª requisição | em produção o site **fica no ar**, mas nenhum código sai: todo lead é gravado sem código (a pessoa vê "Recebemos seus dados") e o log diz `config:RESEND_API_KEY`. Em dev, o código aparece na tela |
+| `RESEND_API_KEY` | 1ª requisição | em produção o site **fica no ar**, mas nenhum código sai: todo lead **novo** é gravado sem código (a pessoa vê "Recebemos seus dados"); quem já tinha cadastro não tem nada gravado e vê "Não conseguimos enviar o código agora" (503). O log diz `config:RESEND_API_KEY`. Em dev, o código aparece na tela |
 | `EMAIL_FROM` | build (formato) · 1ª requisição (ausência) | formato inválido: o deploy falha. Ausente: igual à linha de cima, log `config:EMAIL_FROM` |
 | `LIMITE_ENVIOS_DIA` | build | opcional. Padrão 90 e-mails em 24h (códigos + avisos), abaixo dos 100/dia do Resend Free. Valor que não é número inteiro: o deploy falha |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | build | opcionais. Sem as duas, o formulário roda só com o campo-isca. **Uma sem a outra: o deploy falha** |
@@ -239,8 +239,9 @@ isso, o site no ar continua usando o valor antigo.
 2. **Acessar CRM** → preencher com nome completo e um e-mail **seu** (telefone e CRECI — com o
    estado — seus ou de teste). O e-mail
    com o código chega de `CRM Ultra <acesso@mail.crmultra.com.br>` (olhe também o spam). Se a
-   tela disser "Recebemos seus dados. O e-mail com o código não saiu agora", o e-mail **não** saiu:
-   veja o log (seção 6).
+   tela disser "Recebemos seus dados. O e-mail com o código não saiu agora" (e-mail novo) ou "Não
+   conseguimos enviar o código agora" (e-mail que já tinha cadastro), o e-mail **não** saiu: veja o
+   log (seção 6).
 3. Digitar o código → cai na escolha dos 3 painéis → abrir um. Com `AVISO_LEADS_EMAIL`, chega também
    o aviso "novo lead confirmado".
 4. Entrar em `https://crmultra.com.br/admin/login` com a `ADMIN_PASSWORD`. O seu lead aparece na
@@ -400,10 +401,16 @@ números do seu funil.
 
 **Lead que chegou sem código.** Se o e-mail com o código não sai (Resend fora do ar ou travado por
 mais de 8 s, domínio não verificado, cota do dia, `RESEND_API_KEY`/`EMAIL_FROM` faltando) ou o teto
-diário (`LIMITE_ENVIOS_DIA`) estourou, o lead é **gravado mesmo assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
+diário (`LIMITE_ENVIOS_DIA`) estourou, o lead **novo** é **gravado mesmo assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
 agora — tente reenviar em alguns minutos ou fale com a gente", com um botão de WhatsApp. No
 `/admin` ele aparece como qualquer lead novo: é só ligar ou chamar no WhatsApp. O motivo fica no
 log (seção 6).
+
+Já o e-mail que **já tinha cadastro** (cadastro de novo ou "Já tenho cadastro") não tem nada a
+gravar: a resposta é 503 e a pessoa vê "Não conseguimos enviar o código agora. Tente de novo em alguns minutos ou fale com a gente.",
+com o WhatsApp. O lead continua no `/admin` com os dados de antes, e um código anterior ainda no
+prazo segue valendo. Log: `[/api/lead] código não enviado; e-mail já cadastrado, nada gravado: <causa>`
+(ou `[/api/lead/entrar] código não enviado: <causa>`).
 
 **Aviso de lead novo.** Com `AVISO_LEADS_EMAIL` definida, cada lead que confirma o e-mail pela
 **primeira** vez gera um aviso "novo lead confirmado" com o link do `/admin` — sem e-mail, telefone
@@ -551,6 +558,7 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 ```text
 [/api/lead] erro ao processar: config:DATABASE_URL
 [/api/lead] código não enviado; lead gravado sem código: email:daily_quota_exceeded
+[/api/lead] código não enviado; e-mail já cadastrado, nada gravado: email:PrazoEsgotado
 [/api/lead/verify] erro ao processar: db:42P01
 [/api/lead/entrar] código não enviado: teto_diario
 [verify] último acesso não registrado: db:42703
@@ -561,8 +569,8 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | Causa | O que quebrou | O que fazer |
 |-------|---------------|-------------|
 | `config:DATABASE_URL` | produção sem a variável do banco: **nenhum lead é gravado** | criar `DATABASE_URL` em Production (3.6) → **Redeploy** (3.7) |
-| `config:RESEND_API_KEY` · `config:EMAIL_FROM` | produção sem a variável do Resend: os leads entram **sem código** | criar a variável (3.6) → **Redeploy**. Os leads desse meio estão no `/admin`: fale com eles |
-| `teto_diario` | o dia bateu o `LIMITE_ENVIOS_DIA` (a proteção da cota do Resend) | o lead está no `/admin`: fale com ele. Volta sozinho em 24 h. No plano pago do Resend, suba o limite → Redeploy |
+| `config:RESEND_API_KEY` · `config:EMAIL_FROM` | produção sem a variável do Resend: os leads **novos** entram **sem código**; quem já tinha cadastro recebe 503 e nada é gravado | criar a variável (3.6) → **Redeploy**. Os leads desse meio estão no `/admin`: fale com eles |
+| `teto_diario` | o dia bateu o `LIMITE_ENVIOS_DIA` (a proteção da cota do Resend) | o lead está no `/admin` (o novo, gravado sem código; quem já tinha cadastro, com os dados de antes): fale com ele. Volta sozinho em 24 h. No plano pago do Resend, suba o limite → Redeploy |
 | `email:daily_quota_exceeded` · `email:monthly_quota_exceeded` | acabou a cota do Resend (Free: 100 por dia, 3.000 por mês) | os leads estão no `/admin`. Espere virar o dia/mês ou mude de plano no Resend (e suba o `LIMITE_ENVIOS_DIA`) |
 | `email:rate_limit_exceeded` | envios demais por segundo | passageiro. Se repetir, pode ser robô no formulário: ligue o Turnstile (3.5) |
 | `email:validation_error` · `email:invalid_from_address` | domínio não verificado, ou `EMAIL_FROM` fora de `@mail.crmultra.com.br` | Resend → Domains: `mail.crmultra.com.br` está **Verified**? O `EMAIL_FROM` termina exatamente nele? Corrigiu a variável → Redeploy |
@@ -598,12 +606,13 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | Trocou uma variável e nada mudou | falta o Redeploy | 3.7 |
 | Domínio não abre, ou "Invalid Configuration" na Vercel | DNS ainda propagando, ou servidores errados no registro.br | conferir `ns1.vercel-dns.com` e `ns2.vercel-dns.com` no registro.br e esperar |
 | Site abre, mas **pedir acesso dá "algo falhou do nosso lado"** e o `/admin` não entra | log `config:DATABASE_URL`, `db:*` ou `rede:*` | tabela "Causa no log" acima |
-| **Todo** corretor vê "Recebemos seus dados…" | log `config:RESEND_API_KEY`, `config:EMAIL_FROM` ou `email:*` | tabela "Causa no log" acima |
+| **Todo** corretor novo vê "Recebemos seus dados…" (e quem já tinha cadastro, "Não conseguimos enviar o código agora") | log `config:RESEND_API_KEY`, `config:EMAIL_FROM` ou `email:*` | tabela "Causa no log" acima |
 | E-mail não chega e não há erro no log | caiu no spam, ou o endereço devolveu | Resend → Emails: veja o status do envio. Se "Delivered", peça para a pessoa olhar o spam |
 | "Código expirado" | passou de 10 min | pedir novo código (botão reenviar) |
 | "Tentativas esgotadas" | 5 erros no mesmo código | pedir novo código |
 | "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail, ou 10 pela mesma rede (IP) | esperar a janela |
-| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | log `[/api/lead] código não enviado; lead gravado sem código: <causa>` | o lead está no `/admin`: fale com ele. A causa diz o resto (tabela acima) |
+| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | e-mail novo; log `[/api/lead] código não enviado; lead gravado sem código: <causa>` | o lead está no `/admin`: fale com ele. A causa diz o resto (tabela acima) |
+| Corretor que já tinha cadastro vê "Não conseguimos enviar o código agora" (503 no `/api/lead` ou no `/api/lead/entrar`) | log `[/api/lead] código não enviado; e-mail já cadastrado, nada gravado: <causa>` ou `[/api/lead/entrar] código não enviado: <causa>` | nada foi gravado: o lead já está no `/admin`, com os dados de antes — fale com ele. A causa diz o resto (tabela acima) |
 | Tela pede "verificação de segurança" / 403 no `/api/lead` | Turnstile recusou o token (robô, ou widget expirado); log `token emitido fora do domínio: <host>` = o widget rodou fora de `brand.dominio`/subdomínio/`.vercel.app` | a pessoa refaz a verificação; se for com todo mundo, confira se a site key é do mesmo widget da secret e se o site está sendo aberto pelo domínio |
 | 503 no `/api/lead` + log `[turnstile]` | Cloudflare fora do ar, ou `TURNSTILE_SECRET_KEY` errada (log diz `config:TURNSTILE_SECRET_KEY`) | conferir a chave; se a Cloudflare estiver fora, tirar as duas chaves do Turnstile e fazer Redeploy desliga o desafio |
 | Não chega o aviso de lead novo | `AVISO_LEADS_EMAIL` vazia, teto diário atingido ou envio recusado (log `[aviso-lead]` com a causa) | conferir a variável e a causa; os leads continuam no `/admin` |

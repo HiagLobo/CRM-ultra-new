@@ -7,12 +7,13 @@
  * Campo a campo: só o que mudou, e pulando o que já é de OUTRO lead (a mesma
  * regra do cadastro: WhatsApp e CRECI não se repetem). O que foi pulado volta
  * em `naoAtualizados` para a tela avisar. O consentimento é carimbado de novo
- * (a pessoa aceitou o texto do formulário outra vez).
+ * (a pessoa aceitou o texto do formulário outra vez). CRECI trocado num lead já
+ * conferido limpa a conferência NA MESMA escrita: a conferência do número antigo
+ * não vale para o novo, e o selo nunca sobrevive à troca.
  *
- * SERVER-ONLY. Nada aqui loga contato: só a causa segura (`causaDoErro`).
+ * SERVER-ONLY. Nada aqui loga contato.
  */
 import type { AtualizacaoContato, LeadStore } from "../../lib/leadStore";
-import { causaDoErro } from "../../lib/erros";
 import { chaveCreci, formasEquivalentesCreci } from "./creci";
 import { registrarConsentimento, type Lead } from "./lead";
 import type { AtualizacaoCadastro } from "./schema";
@@ -47,20 +48,11 @@ export async function aplicarAtualizacao(
 
   if (Object.keys(mudou).length === 0) return naoAtualizados;
 
-  const em = ctx.agora.toISOString();
-  await store.atualizarContato(lead.id, { ...mudou, consentimento: registrarConsentimento(ctx.ip, ctx.agora), atualizadoEm: em });
-  if (mudou.creci && lead.creciConferencia) await desfazerConferencia(store, lead.id, em);
+  await store.atualizarContato(lead.id, {
+    ...mudou,
+    limparConferencia: Boolean(mudou.creci && lead.creciConferencia),
+    consentimento: registrarConsentimento(ctx.ip, ctx.agora),
+    atualizadoEm: ctx.agora.toISOString(),
+  });
   return naoAtualizados;
-}
-
-/**
- * CRECI novo: a conferência feita no número antigo não vale para ele. À prova
- * de falha — o pior caso é um selo velho no painel, nunca o login travado.
- */
-async function desfazerConferencia(store: LeadStore, id: string, em: string): Promise<void> {
-  try {
-    await store.atualizarFunil(id, { creciConferencia: null, creciConferidoEm: null, atualizadoEm: em });
-  } catch (err) {
-    console.error("[verify] conferência do CRECI antigo não desfeita:", causaDoErro(err, "db"));
-  }
 }

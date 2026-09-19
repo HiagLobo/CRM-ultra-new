@@ -73,16 +73,15 @@ describe("lead não se perde quando o e-mail não sai (O7·S1)", () => {
     const { deps, email } = montarDeps();
     const r1 = await solicitarAcesso(deps, pedido(), { ip: "5.5.5.5" });
     if (r1.status !== "enviado") throw new Error("pré-condição: 1º envio sai");
-    const hashA = (await deps.store.buscarPorEmail(EMAIL_TESTE))!.codigo.hash;
+    const antes = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
 
     email.falharCodigo = new Error("provedor caiu");
     const r2 = await solicitarAcesso(deps, pedido({ telefone: "(21) 98888-7777" }), { ip: "5.5.5.5" });
-    expect(r2.status).toBe("recebido_sem_codigo");
+    // emenda da O9: e-mail que já existe e o código não saiu → 503, nada gravado
+    expect(r2).toEqual({ status: "envio_indisponivel", motivo: "falha_envio", causa: "email:Error" });
 
-    const salvo = (await deps.store.buscarPorEmail(EMAIL_TESTE))!;
-    expect(salvo.codigo.hash).toBe(hashA); // código anterior preservado
-    expect(salvo.telefone).toBe("+5511900000000"); // O9: sem provar o e-mail, o contato não muda
-    expect(await deps.store.listar()).toHaveLength(1); // upsert, sem duplicar
+    expect(await deps.store.buscarPorEmail(EMAIL_TESTE)).toEqual(antes); // nem código, nem contato
+    expect(await deps.store.listar()).toHaveLength(1); // sem duplicar
     const v = await verificarCodigo(
       { store: deps.store, limiter: new MemoriaRateLimiter(), secret: SECRET, agora: T0 },
       { email: EMAIL_TESTE, codigo: r1.codigo },

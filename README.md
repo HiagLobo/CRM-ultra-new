@@ -86,8 +86,10 @@ adaptador — o domínio não muda.
   repetido, sem dica (o CRECI é público). E-mail que já existe vira "entrar": só o código muda —
   nome, WhatsApp e CRECI novos são aplicados **depois do código certo**, e nunca por cima de outro
   lead. Toda checagem vem depois do rate-limit (as portas não viram ferramenta de varredura).
-- **Lead não se perde**: se o e-mail com o código não sai (falha do provedor ou teto do dia), o
-  contato é gravado assim mesmo e a pessoa recebe uma mensagem honesta, com saída pelo WhatsApp.
+- **Lead novo não se perde**: se o e-mail com o código não sai (falha do provedor ou teto do dia), o
+  contato **novo** é gravado assim mesmo e a pessoa recebe uma mensagem honesta, com saída pelo
+  WhatsApp. E-mail que já tinha cadastro: nada é gravado (503 `envio_indisponivel`) e a tela diz que
+  o código não saiu, com o WhatsApp.
 - **Aviso de lead novo** opcional (`AVISO_LEADS_EMAIL`): um e-mail sem PII, só com o link do `/admin`.
 - Acesso ao demo e sessão do admin em **cookie httpOnly assinado**, validados **no servidor** (os 3
   painéis nem renderizam sem token); `/api/admin/*` inteiro atrás de
@@ -102,7 +104,7 @@ adaptador — o domínio não muda.
 - Segredos só por env, validados com Zod: sem `APP_SECRET`/`ADMIN_PASSWORD` o **build** falha. Em
   produção, `DATABASE_URL` é exigida na **primeira requisição** que usa o banco (não no boot): sem
   ela o app não cai no disco temporário, onde os leads se perderiam em silêncio — a requisição
-  responde 500 e o log diz `config:DATABASE_URL`. Sem `RESEND_API_KEY`, o código nunca vai na resposta: o lead é gravado sem
+  responde 500 e o log diz `config:DATABASE_URL`. Sem `RESEND_API_KEY`, o código nunca vai na resposta: o lead novo é gravado sem
   código, aparece no `/admin` e o log diz `config:RESEND_API_KEY`.
 - **Diagnóstico sem PII**: os erros das rotas vão ao log como uma causa curta — `config:<VARIÁVEL>`,
   `email:<código do Resend>`, `db:<SQLSTATE>`, `rede:<errno>` — nunca a mensagem, que pode ter

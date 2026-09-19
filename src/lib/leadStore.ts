@@ -154,15 +154,22 @@ export class FileLeadStore implements LeadStore {
   }
 
   async atualizarContato(id: string, dados: AtualizacaoContato): Promise<void> {
-    const { nome, telefone, creci, consentimento, atualizadoEm } = dados;
-    const r = await this.alterar(id, (atual) => ({
-      ...atual,
-      ...(nome !== undefined ? { nome } : {}),
-      ...(telefone !== undefined ? { telefone } : {}),
-      ...(creci !== undefined ? { creci } : {}),
-      consentimento,
-      atualizadoEm,
-    }));
+    const { nome, telefone, creci, limparConferencia, consentimento, atualizadoEm } = dados;
+    const r = await this.alterar(id, (atual) => {
+      const novo: Registro = {
+        ...atual,
+        ...(nome !== undefined ? { nome } : {}),
+        ...(telefone !== undefined ? { telefone } : {}),
+        ...(creci !== undefined ? { creci } : {}),
+        consentimento,
+        atualizadoEm,
+      };
+      if (limparConferencia) {
+        delete novo.creciConferencia;
+        delete novo.creciConferidoEm;
+      }
+      return novo;
+    });
     if (!r) throw new Error("lead não encontrado para atualizar");
   }
 

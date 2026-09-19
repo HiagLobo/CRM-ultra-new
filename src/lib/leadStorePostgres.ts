@@ -95,7 +95,8 @@ export class PostgresLeadStore implements LeadStore {
   /**
    * UPDATE só dos campos de contato que vieram + consentimento (O9, depois do
    * código certo): `status`, código, `verificado_em`, origem e `criado_em` nem
-   * aparecem no SQL.
+   * aparecem no SQL. `limparConferencia` zera a conferência do CRECI no MESMO
+   * UPDATE (só vem quando o lead tinha conferência — então a coluna existe).
    */
   async atualizarContato(id: string, dados: AtualizacaoContato): Promise<void> {
     const opcionais: Coluna[] = [
@@ -105,6 +106,12 @@ export class PostgresLeadStore implements LeadStore {
     ];
     const colunas: Coluna[] = [
       ...opcionais.filter(([, v]) => v !== undefined),
+      ...(dados.limparConferencia
+        ? ([
+            ["creci_conferencia", null],
+            ["creci_conferido_em", null],
+          ] satisfies Coluna[])
+        : []),
       ["consentimento_texto", dados.consentimento.texto],
       ["consentimento_aceito_em", dados.consentimento.aceitoEm],
       ["consentimento_ip", dados.consentimento.ip],

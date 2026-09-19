@@ -11,8 +11,11 @@
  *    mascarado do dono; CRECI de outro lead → barrado, SEM dica (o CRECI é
  *    público: a dica exporia o e-mail de outro corretor);
  * 6–8. provedor → teto diário → envio com prazo (`enviarComTeto`). Falhou →
- *    lead novo gravado SEM código (o fundador liga): nunca perde o contato;
- * 9. e-mail saiu → persiste o código novo.
+ *    - e-mail NOVO: lead gravado SEM código (o fundador liga) → `recebido_sem_codigo`;
+ *    - e-mail que JÁ tinha lead (ou criado por outro pedido nesse meio): nada é
+ *      gravado → `envio_indisponivel` (a rota responde 503, nunca "recebemos seus
+ *      dados": não havia nada a receber — emenda do contrato da O9);
+ * 9. e-mail saiu → persiste o código novo (`novo` = este pedido criou o lead).
  */
 import { formasEquivalentesCreci } from "./creci";
 import { enviarComTeto, portaria, type Barrado, type DepsEnvioCodigo, type MotivoSemCodigo } from "./envioCodigo";
@@ -39,8 +42,10 @@ export type Repetido = { status: "telefone_em_uso"; dica: string | null } | { st
 export type ResultadoSolicitacao =
   /** `novo: false` = o e-mail já tinha lead (a rota responde `existente: true`). */
   | { status: "enviado"; novo: boolean; codigo: string }
-  /** E-mail não saiu (lead novo gravado sem código). `causa` é categoria segura para log (sem PII). */
+  /** E-mail NOVO, código não saiu: lead gravado sem código. `causa` é categoria segura para log (sem PII). */
   | { status: "recebido_sem_codigo"; motivo: MotivoSemCodigo; causa: string }
+  /** E-mail que JÁ tinha lead, código não saiu: nada gravado. `causa` idem. */
+  | { status: "envio_indisponivel"; motivo: MotivoSemCodigo; causa: string }
   | Repetido
   | Barrado;
 
@@ -74,11 +79,17 @@ export async function solicitarAcesso(
 
   const envio = await enviarComTeto(deps, input.email, prep.codigo, agora);
   if (envio.status === "nao_enviado") {
-    // o contato fica gravado mesmo assim (lead novo); a causa (sem PII) vai para o log
-    await prep.persistirSemCodigo();
-    return { status: "recebido_sem_codigo", motivo: envio.motivo, causa: envio.causa };
+    const { motivo, causa } = envio;
+    // e-mail que já tinha lead: nada a gravar (o código anterior, se no prazo, segue valendo)
+    if (!prep.novo) return { status: "envio_indisponivel", motivo, causa };
+    // lead novo: o contato fica gravado mesmo assim; a causa (sem PII) vai para o log.
+    // Corrida (outro pedido criou o e-mail nesse meio): nada foi gravado → como acima.
+    const gravacao = await prep.persistirSemCodigo();
+    return gravacao === "criado"
+      ? { status: "recebido_sem_codigo", motivo, causa }
+      : { status: "envio_indisponivel", motivo, causa };
   }
 
-  await prep.persistir();
-  return { status: "enviado", novo: prep.novo, codigo: prep.codigo };
+  const gravacao = await prep.persistir();
+  return { status: "enviado", novo: gravacao === "criado", codigo: prep.codigo };
 }

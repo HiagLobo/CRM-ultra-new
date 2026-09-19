@@ -115,18 +115,27 @@ export interface ResultadoCriacao {
   novo: boolean;
 }
 
+/**
+ * O que a gravação fez: `criado` = este pedido criou o lead; `mesclado` = o
+ * e-mail já tinha lead (antes, ou criado por outro pedido nesse meio).
+ */
+export type Gravacao = "criado" | "mesclado";
+
 export interface SolicitacaoPreparada extends ResultadoCriacao {
   /**
    * Persiste com o código novo. Separado da preparação para o chamador enviar o
    * e-mail ANTES — um envio que falha não sobrescreve um código válido anterior.
+   * Lead que já existia (ou foi criado por outro pedido nesse meio): só o código.
    */
-  persistir(): Promise<void>;
+  persistir(): Promise<Gravacao>;
   /**
-   * O e-mail não saiu. Lead novo: grava o contato com o código inutilizado (o
-   * lead não se perde). Lead existente: não grava nada — o código e o status
-   * que ele já tinha continuam valendo.
+   * O e-mail não saiu. Só o lead NOVO é gravado (contato + código inutilizado:
+   * o lead novo não se perde) → `criado`. E-mail que já tinha lead — antes, ou
+   * criado por outro pedido nesse meio — NÃO grava nada (o código e o status
+   * que ele já tinha continuam valendo) → `mesclado`: a rota responde 503
+   * `envio_indisponivel`, nunca "recebemos seus dados".
    */
-  persistirSemCodigo(): Promise<void>;
+  persistirSemCodigo(): Promise<Gravacao>;
 }
 
 /** Código novo: o texto puro (só para o envio) e o registro com o hash (o que se grava). */
@@ -144,13 +153,15 @@ async function criarOuMesclar(
   store: LeadStore,
   lead: Lead & { email: string },
   codigo?: CodigoVerificacao,
-): Promise<void> {
+): Promise<Gravacao> {
   try {
     await store.criar(lead);
+    return "criado";
   } catch (err) {
     const atual = await store.buscarPorEmail(lead.email);
     if (!atual) throw err;
     if (codigo) await store.atualizarCodigo(atual.id, { codigo, atualizadoEm: lead.atualizadoEm });
+    return "mesclado";
   }
 }
 
@@ -178,8 +189,11 @@ export async function prepararSolicitacao(
       lead: { ...existente, codigo: registro },
       codigo,
       novo: false,
-      persistir: () => store.atualizarCodigo(existente.id, { codigo: registro, atualizadoEm: agora.toISOString() }),
-      persistirSemCodigo: async () => undefined,
+      persistir: async () => {
+        await store.atualizarCodigo(existente.id, { codigo: registro, atualizadoEm: agora.toISOString() });
+        return "mesclado";
+      },
+      persistirSemCodigo: async () => "mesclado", // nada gravado
     };
   }
 
@@ -202,7 +216,7 @@ export async function prepararSolicitacao(
     codigo,
     novo: true,
     persistir: () => criarOuMesclar(store, lead, registro),
-    // corrida: se outro pedido criou o lead nesse meio, o código dele é preservado
+    // corrida: se outro pedido criou o lead nesse meio, nada é gravado (o código dele fica)
     persistirSemCodigo: () => criarOuMesclar(store, { ...lead, codigo: codigoInutilizado(agora) }),
   };
 }
@@ -217,6 +231,6 @@ export async function criarOuAtualizarLead(
   ctx: ContextoCriacao,
 ): Promise<ResultadoCriacao> {
   const prep = await prepararSolicitacao(store, input, ctx);
-  await prep.persistir();
-  return { lead: prep.lead, codigo: prep.codigo, novo: prep.novo };
+  const gravacao = await prep.persistir();
+  return { lead: prep.lead, codigo: prep.codigo, novo: gravacao === "criado" };
 }

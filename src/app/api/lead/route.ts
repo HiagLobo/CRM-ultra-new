@@ -8,7 +8,9 @@
  * - 200 `{ ok, status: "enviado", existente }` — o e-mail saiu. `existente: true` = o
  *   e-mail já tinha cadastro: virou "entrar" (nada foi regravado; os dados novos vão no verify).
  *   Robô: 200 `{ ok, status: "enviado" }` falso, sem `existente`;
- * - 202 `{ ok, status: "recebido_sem_codigo" }` — lead gravado, e-mail não saiu;
+ * - 202 `{ ok, status: "recebido_sem_codigo" }` — só e-mail NOVO: lead gravado, e-mail não saiu;
+ * - 503 `{ ok: false, erro: "envio_indisponivel" }` — e-mail que JÁ tinha lead e o código não saiu
+ *   (provedor fora, falha/prazo ou teto): nada foi gravado (emenda do contrato da O9);
  * - 409 `{ ok: false, erro: "telefone_em_uso", dica }` — WhatsApp de outro lead; `dica` = e-mail
  *   mascarado do dono (`null` se ele não tem e-mail) · 409 `{ ok: false, erro: "creci_em_uso" }`;
  * - 400 dados inválidos · 403 anti-robô recusou · 429 limite · 503 anti-robô fora do ar · 500.
@@ -53,6 +55,12 @@ export async function POST(req: NextRequest) {
         console.error("[/api/lead] código não enviado; lead gravado sem código:", causa);
         return NextResponse.json({ ok: true, status: "recebido_sem_codigo" }, { status: 202 });
       }
+      case "envio_indisponivel": {
+        // e-mail que já tinha lead: nada foi gravado, então nada de "recebemos seus dados"
+        const causa = resultado.causa;
+        console.error("[/api/lead] código não enviado; e-mail já cadastrado, nada gravado:", causa);
+        return NextResponse.json({ ok: false, erro: "envio_indisponivel" }, { status: 503 });
+      }
       case "enviado":
         return NextResponse.json({
           ok: true,
@@ -60,6 +68,11 @@ export async function POST(req: NextRequest) {
           existente: !resultado.novo,
           ...(emailModoDev ? { codigoDev: resultado.codigo } : {}),
         });
+      default: {
+        // um resultado novo no caso de uso sem resposta aqui não compila (e não passa calado)
+        const _naoTratado: never = resultado;
+        throw new Error("resultado inesperado");
+      }
     }
   } catch (err) {
     // banco/config/bug: só a categoria (config:VAR, db:SQLSTATE, rede:errno) — nunca a

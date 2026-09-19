@@ -47,7 +47,8 @@
 ## Contrato da API (as duas trilhas seguem isto à risca)
 **`POST /api/lead`** — body `{ nome, email, telefone, creci, consentimento: true, origem?, website?, turnstileToken? }`
 - `200 { ok: true, status: "enviado", existente: boolean, codigoDev? }`
-- `202 { ok: true, status: "recebido_sem_codigo" }`
+- `202 { ok: true, status: "recebido_sem_codigo" }` — **só para e-mail NOVO** (o lead foi gravado sem código)
+- `503 { ok: false, erro: "envio_indisponivel" }` — e-mail que JÁ existe e o código não saiu (provedor fora, falha/prazo ou teto): nada foi gravado, então não dá para dizer "recebemos seus dados" *(emenda de 2026-09-19, achado da revisão da trilha B)*
 - `409 { ok: false, erro: "telefone_em_uso", dica: string | null }` — `dica` = e-mail mascarado do lead dono do WhatsApp (`null` se ele não tem e-mail)
 - `409 { ok: false, erro: "creci_em_uso" }`
 - `400 { ok: false, erro: "dados inválidos", campos: { nome?, email?, telefone?, creci?, ... } }`

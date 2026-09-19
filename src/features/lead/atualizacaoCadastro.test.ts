@@ -96,6 +96,34 @@ describe("verify com atualizacao — só depois do código certo", () => {
     expect(salvo).not.toHaveProperty("creciConferidoEm");
   });
 
+  it("retentativa: o selo NUNCA sobrevive à troca do CRECI (limpeza na mesma escrita do CRECI novo)", async () => {
+    const { store, lead, codigo } = await cenario();
+    await store.atualizarFunil(lead.id, { creciConferencia: "conferido", creciConferidoEm: T0.toISOString(), atualizadoEm: T0.toISOString() });
+    const funil = vi.spyOn(store, "atualizarFunil");
+    vi.spyOn(store, "atualizarContato").mockRejectedValueOnce(Object.assign(new Error("caiu"), { code: "08006" }));
+    const nova = { nome: "Corretor Exemplo", telefone: "(11) 90000-0000", creci: "PE 4321" };
+
+    await expect(verificar(store, codigo, nova)).rejects.toThrow();
+    // a escrita falhou inteira: CRECI antigo e a conferência dele, coerentes
+    expect(await store.buscarPorId(lead.id)).toMatchObject({ creci: "SP 12345", creciConferencia: "conferido" });
+
+    expect((await verificar(store, codigo, nova)).status).toBe("verificado");
+    const salvo = (await store.buscarPorId(lead.id))!;
+    expect(salvo.creci).toBe("PE 4321");
+    expect(salvo).not.toHaveProperty("creciConferencia");
+    expect(salvo).not.toHaveProperty("creciConferidoEm");
+    expect(funil).not.toHaveBeenCalled(); // nada de escrita separada que pudesse falhar sozinha
+  });
+
+  it("CRECI igual (mesma chave) ou lead sem conferência: a conferência não é tocada", async () => {
+    const { store, lead, codigo } = await cenario();
+    await store.atualizarFunil(lead.id, { creciConferencia: "nao_confere", creciConferidoEm: T0.toISOString(), atualizadoEm: T0.toISOString() });
+    const contato = vi.spyOn(store, "atualizarContato");
+    await verificar(store, codigo, { nome: "Maria da Silva", telefone: "(11) 90000-0000", creci: "SP 12345-F" });
+    expect(contato.mock.calls[0]![1]).toMatchObject({ nome: "Maria da Silva", limparConferencia: false });
+    expect(await store.buscarPorId(lead.id)).toMatchObject({ creciConferencia: "nao_confere" });
+  });
+
   it("banco falhou ao gravar a atualização: 500 no caller e o código segue valendo (dá para tentar de novo)", async () => {
     const { store, codigo } = await cenario();
     vi.spyOn(store, "atualizarContato").mockRejectedValueOnce(Object.assign(new Error("falhou"), { code: "08006" }));

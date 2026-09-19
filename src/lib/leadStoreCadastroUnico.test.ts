@@ -87,6 +87,22 @@ describe("PostgresLeadStore — O9", () => {
     expect(desfaz.consultas[0]!.params).toEqual(["lead-1", null, null, T]);
   });
 
+  it("atualizarContato com limparConferencia: as 2 colunas da conferência zeradas no MESMO UPDATE", async () => {
+    const { loja, consultas } = poolFake([{ id: "lead-1" }]);
+    const consentimento = { texto: "t", aceitoEm: T, ip: "203.0.113.1" };
+    await loja.atualizarContato("lead-1", { creci: "PE 4321", limparConferencia: true, consentimento, atualizadoEm: T });
+    expect(consultas).toHaveLength(1);
+    expect(consultas[0]!.sql).toBe(
+      "UPDATE leads SET creci = $2, creci_conferencia = $3, creci_conferido_em = $4, consentimento_texto = $5, " +
+        "consentimento_aceito_em = $6, consentimento_ip = $7, atualizado_em = $8 WHERE id = $1 RETURNING id",
+    );
+    expect(consultas[0]!.params).toEqual(["lead-1", "PE 4321", null, null, "t", T, "203.0.113.1", T]);
+
+    const sem = poolFake([{ id: "lead-1" }]);
+    await sem.loja.atualizarContato("lead-1", { creci: "PE 4321", limparConferencia: false, consentimento, atualizadoEm: T });
+    expect(sem.consultas[0]!.sql).not.toContain("creci_conferencia");
+  });
+
   it("leitura: colunas da 005 viram campos; valor de conferência desconhecido e colunas ausentes somem", async () => {
     const { loja } = poolFake([
       linha({ ultimo_acesso_em: new Date("2026-06-20T10:00:00.000Z"), creci_conferencia: "nao_confere" }),
@@ -142,6 +158,14 @@ describe("FileLeadStore — O9", () => {
     const desfeito = await store.atualizarFunil("1", { creciConferencia: null, creciConferidoEm: null, atualizadoEm: T });
     expect(desfeito).not.toHaveProperty("creciConferencia");
     expect(desfeito).not.toHaveProperty("creciConferidoEm");
+
+    // CRECI novo com limparConferencia: some junto, na mesma escrita
+    await store.atualizarFunil("1", { creciConferencia: "conferido", creciConferidoEm: T, atualizadoEm: T });
+    await store.atualizarContato("1", { creci: "PE 11111", limparConferencia: true, consentimento, atualizadoEm: T });
+    const trocado = (await store.buscarPorId("1"))!;
+    expect(trocado.creci).toBe("PE 11111");
+    expect(trocado).not.toHaveProperty("creciConferencia");
+    expect(trocado).not.toHaveProperty("creciConferidoEm");
     await expect(store.atualizarContato("x", { consentimento, atualizadoEm: T })).rejects.toThrow("lead não encontrado");
   });
 });

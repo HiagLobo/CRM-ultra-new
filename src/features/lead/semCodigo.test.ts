@@ -97,7 +97,8 @@ describe("verificação durante o envio do e-mail não é desfeita", () => {
 
   it("sem código: status, verificadoEm e contato ficam; o código consumido NÃO ressuscita", async () => {
     const { deps, r1, r2, salvo } = await verificaDuranteOReenvio("falha");
-    expect(r2.status).toBe("recebido_sem_codigo");
+    // e-mail que já existe: nada gravado → 503 envio_indisponivel (emenda da O9)
+    expect(r2).toEqual({ status: "envio_indisponivel", motivo: "falha_envio", causa: "email:Error" });
     expect(salvo.status).toBe("novo"); // a etapa é do admin; o selo é o verificadoEm
     expect(salvo.verificadoEm).toBe(T0.toISOString());
     expect(salvo.codigo.hash).toBe(""); // consumido na verificação — uso único

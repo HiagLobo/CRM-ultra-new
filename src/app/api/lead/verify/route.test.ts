@@ -104,6 +104,18 @@ describe("POST /api/lead/verify — aviso de lead novo", () => {
     expect(log()).toContain("config:RESEND_API_KEY");
   });
 
+  it("registrarAcesso falhando (coluna da 005 faltando): 200 + cookie do mesmo jeito, log só com a causa", async () => {
+    const log = capturarConsole();
+    vi.spyOn(dubles.store, "registrarAcesso").mockRejectedValueOnce(
+      Object.assign(new Error(`column "ultimo_acesso_em" does not exist; ${EMAIL}`), { code: "42703" }),
+    );
+    const res = await verificar(await pedirCodigo());
+    expect(res.status).toBe(200);
+    expect(res.cookies.get(COOKIE_TOKEN_DEMO)?.value).toBeTruthy();
+    expect(log()).toContain("[verify] último acesso não registrado: db:42703");
+    expect(log()).not.toContain(EMAIL);
+  });
+
   it("código errado: 400, sem cookie e sem aviso", async () => {
     const codigo = await pedirCodigo();
     const res = await verificar(codigo === "000000" ? "111111" : "000000");

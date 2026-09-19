@@ -21,6 +21,12 @@ export interface AtualizacaoContato {
   nome?: string;
   telefone?: string;
   creci?: string;
+  /**
+   * CRECI trocado num lead já conferido: limpa a conferência (resultado e dia)
+   * NA MESMA escrita do CRECI novo — o selo nunca sobrevive à troca, nem se a
+   * gravação falhar e a pessoa tentar de novo.
+   */
+  limparConferencia?: boolean;
   consentimento: Consentimento;
   atualizadoEm: string;
 }

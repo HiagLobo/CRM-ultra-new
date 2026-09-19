@@ -49,6 +49,11 @@ export async function POST(req: NextRequest) {
           status: "enviado",
           ...(emailModoDev ? { codigoDev: resultado.codigo } : {}),
         });
+      default: {
+        // um resultado novo no caso de uso sem resposta aqui não compila (e não passa calado)
+        const _naoTratado: never = resultado;
+        throw new Error("resultado inesperado");
+      }
     }
   } catch (err) {
     // banco/config/bug: só a categoria — nunca a mensagem (valores da linha, host do banco)
