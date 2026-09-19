@@ -56,6 +56,9 @@ export async function PATCH(req: NextRequest) {
         ? await mudarEtapa(leadStore(), pedido.id, pedido.mudanca)
         : await definirProximaAcao(leadStore(), pedido.id, pedido.proximaAcao);
     if (r.status === "nao_encontrado") return leadNaoEncontrado();
+    if (r.status === "fora_da_fila") {
+      return NextResponse.json({ ok: false, erro: "fora_da_fila" }, { status: 409 });
+    }
     if (r.status === "data_invalida") {
       return NextResponse.json(
         { ok: false, erro: "data_invalida", campos: { [r.campo]: [MENSAGEM_DATA[r.campo]] } },

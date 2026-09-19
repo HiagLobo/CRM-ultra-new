@@ -145,7 +145,13 @@ export default function GavetaLead({
 
           <section aria-labelledby="gaveta-acao">
             <h3 id="gaveta-acao" style={tituloSecao}>Próxima ação</h3>
-            <BlocoProximaAcao key={`${lead.proximaAcaoEm}|${lead.proximaAcao}`} lead={lead} agora={agora} ocupado={ocupado} aoSalvar={aoDefinirProximaAcao} />
+            {lead.status === "retomar" || lead.status === "perdido" ? (
+              <p style={{ fontSize: 14, color: p.g700, margin: 0, lineHeight: 1.5 }}>
+                Fora da fila de trabalho. Para marcar uma próxima ação, mude a etapa.
+              </p>
+            ) : (
+              <BlocoProximaAcao key={`${lead.proximaAcaoEm}|${lead.proximaAcao}`} lead={lead} agora={agora} ocupado={ocupado} aoSalvar={aoDefinirProximaAcao} />
+            )}
           </section>
 
           <section aria-labelledby="gaveta-notas">

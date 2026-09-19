@@ -140,4 +140,15 @@ describe("definirProximaAcao", () => {
       status: "nao_encontrado",
     });
   });
+
+  it("lead em retomar/perdido → fora_da_fila (nada gravado); limpar continua valendo", async () => {
+    const { store, id } = await umLead();
+    await mudarEtapa(store, id, { etapa: "perdido", motivo: "preço" }, T0);
+    expect(await definirProximaAcao(store, id, { em: AMANHA, texto: "ligar" }, T0)).toEqual({ status: "fora_da_fila" });
+    expect((await store.buscarPorId(id))!.proximaAcaoEm).toBeUndefined();
+
+    await mudarEtapa(store, id, { etapa: "retomar", retomarEm: "2026-07-01" }, T0);
+    expect(await definirProximaAcao(store, id, { em: AMANHA, texto: "ligar" }, T0)).toEqual({ status: "fora_da_fila" });
+    expect(await definirProximaAcao(store, id, null, T0)).toMatchObject({ status: "ok" });
+  });
 });

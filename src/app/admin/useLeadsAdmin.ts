@@ -67,7 +67,8 @@ export function useLeadsAdmin() {
       setLeads((atuais) => atuais.map((l) => (l.id === id ? lead : l)));
       return { ok: true };
     } finally {
-      setOcupado(null);
+      // só libera se ninguém marcou outro lead como ocupado nesse meio
+      setOcupado((atual) => (atual === id ? null : atual));
     }
   }
 
@@ -96,7 +97,7 @@ export function useLeadsAdmin() {
       setLeads((atuais) => atuais.filter((l) => l.id !== id));
       return { ok: true };
     } finally {
-      setOcupado(null);
+      setOcupado((atual) => (atual === id ? null : atual));
     }
   }
 

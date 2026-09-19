@@ -21,7 +21,9 @@ export type ResultadoFunil =
   | { status: "ok"; lead: LeadAdmin; auditoria: EventoAuditoriaAdmin }
   | { status: "nao_encontrado" }
   /** A data não serve: "retomar" pede dia depois de hoje; a próxima ação, hoje ou depois. */
-  | { status: "data_invalida"; campo: "retomarEm" | "proximaAcao" };
+  | { status: "data_invalida"; campo: "retomarEm" | "proximaAcao" }
+  /** Lead em "retomar"/"perdido" está fora da fila: só ganha próxima ação mudando de etapa. */
+  | { status: "fora_da_fila" };
 
 /**
  * Move o lead de etapa. "Retomar depois" exige um dia DEPOIS de hoje (Recife);
@@ -63,7 +65,8 @@ export async function mudarEtapa(
 /**
  * Define (dia + o que fazer) ou limpa (`null`) a próxima ação. O dia não pode
  * ser antes de hoje em Recife: ação vencida se resolve andando a data, não
- * cadastrando atraso.
+ * cadastrando atraso. Lead em "retomar"/"perdido" não recebe ação (mudarEtapa
+ * a limpa ao entrar lá); limpar continua valendo.
  */
 export async function definirProximaAcao(
   store: LeadStore,
@@ -73,6 +76,11 @@ export async function definirProximaAcao(
 ): Promise<ResultadoFunil> {
   if (acao && !(diaValido(acao.em) && acao.em >= diaRecife(agora))) {
     return { status: "data_invalida", campo: "proximaAcao" };
+  }
+  if (acao) {
+    const atual = await store.buscarPorId(id);
+    if (!atual) return { status: "nao_encontrado" };
+    if (atual.status === "retomar" || atual.status === "perdido") return { status: "fora_da_fila" };
   }
   const lead = await store.atualizarFunil(id, {
     proximaAcaoEm: acao?.em ?? null,

@@ -49,6 +49,9 @@ function primeiraMensagem(corpo: unknown): string | null {
 export function mensagemDeErro(r: RespostaApi, oQue: string): string {
   if (r.status === SEM_CONEXAO) return `Sem conexão: não deu para ${oQue}. Confira a internet e tente de novo.`;
   if (r.status === 404) return "Esse lead não existe mais (foi excluído?). Recarregue a lista.";
+  if (r.status === 409 && (r.corpo as { erro?: unknown } | null)?.erro === "fora_da_fila") {
+    return "Esse lead está em Retomar depois ou Perdido: mude a etapa antes de marcar a próxima ação.";
+  }
   if (r.status === 400) {
     const detalhe = primeiraMensagem(r.corpo);
     return detalhe ? `Não deu para ${oQue}: ${detalhe}.` : `Não deu para ${oQue}. Tente de novo.`;
