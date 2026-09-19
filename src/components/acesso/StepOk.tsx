@@ -2,6 +2,7 @@
 /**
  * Passo 3 — acesso liberado: escolha por qual dos três painéis começar.
  * O8·S3: e, para quem já quer conversar, o WhatsApp comercial a um clique.
+ * O9·S2: dado novo que não foi atualizado (já estava em outro cadastro) é avisado aqui.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
@@ -9,8 +10,16 @@ import { brand, linkWhatsapp } from "@/config/brand";
 import { Ic } from "@/components/Icon";
 import EscolhaPainel from "./EscolhaPainel";
 import { MENSAGEM_CONVERSAR } from "./QueroUsar";
+import { AvisoNaoAtualizados } from "./AvisosCadastro";
+import type { CampoNaoAtualizado } from "./mensagens";
 
-export default function StepOk({ aoFechar }: { aoFechar: () => void }) {
+export default function StepOk({
+  aoFechar,
+  naoAtualizados = [],
+}: {
+  aoFechar: () => void;
+  naoAtualizados?: readonly CampoNaoAtualizado[];
+}) {
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -32,6 +41,8 @@ export default function StepOk({ aoFechar }: { aoFechar: () => void }) {
           começar.
         </p>
       </div>
+
+      <AvisoNaoAtualizados campos={naoAtualizados} />
 
       <EscolhaPainel aoEscolher={aoFechar} />
 

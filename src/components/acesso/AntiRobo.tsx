@@ -11,11 +11,14 @@
  * - `WidgetTurnstile`: Cloudflare Turnstile, só quando a chave pública veio no
  *   build. O script oficial é carregado sob demanda, uma vez por página, e o
  *   widget só aparece se a Cloudflare pedir interação.
+ * - `useAntiRobo` + `PecasAntiRobo` (O9·S2): o estado das duas peças, igual nos
+ *   passos que pedem código (cadastro, Entrar e reenvio).
  *
  * Nada aqui vai para o console; erro de carregamento vira aviso na tela.
  */
 import * as React from "react";
 import { AvisoErro } from "./ui";
+import type { AntiRobo } from "./api";
 
 /** Chave pública do Turnstile, inlinada no build (NEXT_PUBLIC_). Ausente = widget desligado. */
 export const SITE_KEY_TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || undefined;
@@ -142,5 +145,42 @@ export function WidgetTurnstile({
       <div ref={alvo} />
       {erro && <AvisoErro mensagem={erro} whatsapp />}
     </div>
+  );
+}
+
+/**
+ * Estado anti-robô de um formulário (O9·S2): isca, token do Turnstile e a troca
+ * do token depois de cada resposta (é de uso único). Cadastro, Entrar e o
+ * reenvio do código usam o mesmo.
+ */
+export function useAntiRobo() {
+  const [isca, setIsca] = React.useState("");
+  const [token, setToken] = React.useState<string | null>(null);
+  const [versao, setVersao] = React.useState(0);
+  const sinais: AntiRobo = { website: isca, turnstileToken: token ?? undefined };
+  return {
+    /** Clicou antes de o Turnstile devolver o token (leva ~1 s). */
+    aguardando: !!SITE_KEY_TURNSTILE && !token,
+    sinais,
+    /** Depois de usar o token, pede outro (remonta o widget). */
+    renovar: () => {
+      if (!SITE_KEY_TURNSTILE) return;
+      setToken(null);
+      setVersao((v) => v + 1);
+    },
+    isca: { valor: isca, aoMudar: setIsca },
+    turnstile: { versao, aoMudarToken: setToken },
+  };
+}
+
+/** Isca (quando o formulário tem) + widget do Turnstile (quando ligado no build). */
+export function PecasAntiRobo({ antiRobo, comIsca = true }: { antiRobo: ReturnType<typeof useAntiRobo>; comIsca?: boolean }) {
+  return (
+    <>
+      {comIsca && <CampoIsca valor={antiRobo.isca.valor} aoMudar={antiRobo.isca.aoMudar} />}
+      {SITE_KEY_TURNSTILE && (
+        <WidgetTurnstile key={antiRobo.turnstile.versao} siteKey={SITE_KEY_TURNSTILE} aoMudarToken={antiRobo.turnstile.aoMudarToken} />
+      )}
+    </>
   );
 }
