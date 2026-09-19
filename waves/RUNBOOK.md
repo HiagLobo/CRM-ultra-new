@@ -244,7 +244,8 @@ isso, o site no ar continua usando o valor antigo.
    o aviso "novo lead confirmado".
 4. Entrar em `https://crmultra.com.br/admin/login` com a `ADMIN_PASSWORD`. O seu lead aparece na
    lista, na etapa **Novo**, com o selo de e-mail confirmado.
-5. Mudar a etapa para **Em contato** → escrever uma anotação → **Exportar CSV** → abrir no Excel
+5. Na linha do lead, mudar a etapa para **Em contato** → clicar na linha (abre a ficha do lead) →
+   escrever uma anotação → fechar a ficha → **Exportar CSV** → abrir no Excel
    (colunas separadas, datas legíveis, colunas `etapa` e `canal`). Depois, no Neon → SQL Editor,
    confira a auditoria:
 
@@ -254,7 +255,8 @@ isso, o site no ar continua usando o valor antigo.
 
    Têm de aparecer `lead.export`, `lead.nota` e `lead.etapa`.
 
-**Terminado o smoke, exclua o lead de teste:** `/admin` → **Excluir** na linha dele → confirme. Ele
+**Terminado o smoke, exclua o lead de teste:** `/admin` → clique na linha dele → no fim da ficha,
+**Excluir (LGPD)** → confirme. Ele
 sai da lista e dos números do funil. A auditoria guarda só `lead.exclusao` com o id (motivo:
 pedido do titular, que no caso é você).
 
@@ -338,11 +340,34 @@ preenche recebe um "sucesso" falso e nada é gravado nem enviado. Com as duas ch
 no env, entra também o desafio da Cloudflare — quase sempre invisível; só aparece quando a
 Cloudflare desconfia.
 
-**Funil de leads.** Cada lead está numa **etapa**: **Novo** → **Em contato** → **Demonstração** →
-**Negociação** → **Cliente**. Fora da fila de trabalho ficam **Retomar depois** e **Perdido**:
+**O painel, em uma olhada.** No topo, 4 números: **Para hoje**, **Em andamento** (contato,
+demonstração ou negociação), **Clientes** e **Conversão**. Embaixo, uma aba por etapa, com a
+contagem: **Hoje** · Novos · Em contato · Demonstração · Negociação · Clientes · Retomar depois ·
+Perdidos · Todos. A busca (nome, e-mail, telefone ou CRECI) vale dentro da aba aberta. No celular as
+abas rolam para o lado e cada lead vira um cartão.
 
-- **Retomar depois** pede o dia de voltar (depois de hoje, no horário de Recife) e, se quiser, o
-  motivo. É a "quarentena" de quem recusou por agora.
+**A aba Hoje** é a sua lista do dia (sempre no horário de Recife). Entra nela:
+
+- lead com a **próxima ação** vencida ou marcada para hoje;
+- lead em **Retomar depois** cuja data chegou (ou passou);
+- lead **Novo** criado há 24 h ou mais, sem ninguém ter falado com ele e sem próxima ação marcada.
+
+A ordem é a da urgência: ações vencidas (a mais antiga primeiro), retornos, ações do dia, novos
+parados. O painel abre na aba Hoje quando há o que fazer; com tudo em dia, abre em **Todos**. A
+coluna **Próximo passo** diz o que falta em cada lead (em vermelho quando está atrasado).
+
+**A ficha do lead.** Clique na linha (no celular, no cartão): abre a ficha, com os botões de
+WhatsApp e e-mail, a etapa, a próxima ação (editar ou limpar), as anotações, de onde o lead veio e o
+**Excluir (LGPD)**. Esc ou o X fecham.
+
+**Funil de leads.** Cada lead está numa **etapa**: **Novo** → **Em contato** → **Demonstração** →
+**Negociação** → **Cliente**. A etapa muda no seletor da própria linha ou na ficha. Fora da fila de
+trabalho ficam **Retomar depois** e **Perdido**:
+
+- **Retomar depois** pede o dia de voltar (depois de hoje, no horário de Recife, com os atalhos
+  "em 1 semana", "em 1 mês" e "em 3 meses") e, se quiser, o motivo. É a "quarentena" de quem
+  recusou por agora: no dia marcado, o lead volta sozinho para a aba Hoje. Para mudar a data, abra
+  a ficha → **Alterar**.
 - **Perdido** pede o motivo (preço, já usa outro CRM, sem interesse, sem resposta, outro).
 - Indo para uma dessas duas, a próxima ação é limpa: o lead sai da fila. Saindo delas, a data de
   retomar e o motivo são limpos.
@@ -359,8 +384,10 @@ mais antiga. Não vão para o CSV e somem junto com o lead na exclusão (seção
 canal são obrigatórios; nome, e-mail, CRECI e observação são opcionais (a observação vira a primeira
 anotação). A caixa "a pessoa sabe e concordou em ser contatada" é obrigatória: marque só se for
 verdade, porque é a base do registro (seção 5). O lead manual não recebe código. Telefone ou e-mail
-que já existe não vira um segundo lead: o painel avisa e aponta o que já está lá. Se a pessoa depois
-pedir acesso pelo site com o mesmo e-mail, continua sendo o mesmo lead.
+que já existe não vira um segundo lead: o painel avisa e oferece **Abrir o existente**. Cadastrado,
+a ficha do lead abre sozinha. O botão de WhatsApp de um lead manual abre a conversa com um "Oi!"
+neutro (ele não pediu o demo pelo site). Se a pessoa depois pedir acesso pelo site com o mesmo
+e-mail, continua sendo o mesmo lead.
 
 Toda mudança de etapa, próxima ação, anotação e cadastro manual fica na auditoria (seção 5), sem o
 texto do motivo, da ação ou da anotação.
@@ -392,7 +419,7 @@ com janela maior.
 pessoa leu + data/hora + IP. O texto vive em `src/features/lead/schema.ts`
 (`TEXTO_CONSENTIMENTO`) — mudou o texto, mudou o que é gravado dali em diante.
 
-**Pedido de exclusão (art. 18).** No `/admin`, **Excluir** no lead → confirmação → apaga de vez
+**Pedido de exclusão (art. 18).** No `/admin`, abra o lead → **Excluir (LGPD)** → confirmação → apaga de vez
 (contato, consentimento, etapa, próxima ação e **todas as anotações**). Fica na auditoria que houve
 exclusão e de qual id — nunca o contato apagado, senão o log manteria o que se pediu para eliminar.
 

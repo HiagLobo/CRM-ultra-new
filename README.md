@@ -7,7 +7,8 @@ franquias.
 Esta fase entrega o **motor de entrada no mercado**: uma landing que vende o produto, um fluxo que
 captura o corretor (e-mail + telefone + CRECI, com consentimento LGPD), verificação por código
 enviado por e-mail, acesso a um **demo navegável** dos três painéis, e um **painel de leads** com funil — etapas,
-"retomar depois", próxima ação, anotações e cadastro manual — onde o fundador trabalha cada contato.
+"retomar depois", próxima ação, anotações e cadastro manual — onde o fundador trabalha cada contato:
+uma aba **Hoje** com o que fazer no dia, abas por etapa e a ficha de cada lead (no computador e no celular).
 
 Os painéis do CRM são **demonstração**: telas completas com dados fictícios. O backend real do
 produto é outra fase.
