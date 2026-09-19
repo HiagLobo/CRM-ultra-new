@@ -10,6 +10,7 @@ vi.mock("resend", () => ({
 }));
 
 import { ConsoleEmail, ResendEmail, mascararEmail } from "./email";
+import { ErroEnvioEmail, causaDoErro } from "./erros";
 
 const MARCA: BrandConfig = {
   nome: "Marca Teste Completa",
@@ -63,6 +64,25 @@ describe("ResendEmail — remetente e resposta", () => {
     const erro = await envio.catch((e: Error) => e.message);
     expect(erro).not.toContain(PARA);
     expect(erro).not.toContain("123456");
+  });
+
+  it("falha do Resend vira a causa email:<código> no log (O7·S2) — cota, chave, domínio", async () => {
+    for (const codigo of ["daily_quota_exceeded", "invalid_api_Key", "validation_error"]) {
+      enviar.mockResolvedValue({ data: null, error: { name: codigo, message: `recusado para ${PARA}` } });
+      const erro = await new ResendEmail("re_teste", { endereco: ENDERECO })
+        .enviarCodigo(PARA, "123456", MARCA)
+        .catch((e: unknown) => e);
+      expect(erro).toBeInstanceOf(ErroEnvioEmail);
+      expect(causaDoErro(erro, "email")).toBe(`email:${codigo}`);
+    }
+  });
+
+  it("código do Resend fora do formato não entra no log: email:desconhecido", async () => {
+    enviar.mockResolvedValue({ data: null, error: { name: `quota ${PARA}`, message: "x" } });
+    const erro = await new ResendEmail("re_teste", { endereco: ENDERECO })
+      .enviarAvisoNovoLead(PARA, MARCA)
+      .catch((e: unknown) => e);
+    expect(causaDoErro(erro, "email")).toBe("email:desconhecido");
   });
 });
 

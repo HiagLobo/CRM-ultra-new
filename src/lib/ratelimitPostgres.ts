@@ -14,6 +14,7 @@
  */
 import type { Pool } from "pg";
 import type { LimiteChave, RateLimiter, RegraRate } from "./ratelimit";
+import { causaDoErro } from "./erros";
 
 /** Remove registros vencidos de vez em quando (1 chamada em ~20). */
 const CHANCE_PODA = 20;
@@ -112,9 +113,9 @@ export class PostgresRateLimiter implements RateLimiter {
       );
     } catch (err) {
       // limpeza é conveniência: falhar aqui não afeta a requisição, mas fica no log
-      // (só o código/tipo do erro — nada de chave, que pode carregar e-mail/IP)
-      const causa = (err as { code?: unknown })?.code ?? (err instanceof Error ? err.name : "desconhecido");
-      console.warn("[rate-limit] poda falhou:", String(causa));
+      // (só a categoria, ex.: db:42P01 — nada de chave, que pode carregar e-mail/IP)
+      const causa = causaDoErro(err, "db");
+      console.warn("[rate-limit] poda falhou:", causa);
     }
   }
 }

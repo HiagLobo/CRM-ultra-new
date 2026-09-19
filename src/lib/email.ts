@@ -11,7 +11,7 @@ import { env, emailModoDev } from "./env";
 import { montarEmailCodigo, type EmailCodigo } from "./emailCodigo";
 import { montarEmailAviso } from "./emailAviso";
 import { interpretarRemetente, montarRemetente, MENSAGEM_REMETENTE_INVALIDO, type Remetente } from "./remetente";
-import { ErroConfiguracao } from "./erros";
+import { ErroConfiguracao, ErroEnvioEmail } from "./erros";
 import type { BrandConfig } from "../config/brand";
 
 export interface ProvedorEmail {
@@ -68,8 +68,9 @@ export class ResendEmail implements ProvedorEmail {
       html: conteudo.html,
       text: conteudo.texto,
     });
-    // erro sem PII (só o nome do erro do provedor); não engole — propaga.
-    if (error) throw new Error(`falha no envio de e-mail (${error.name})`);
+    // só o código do erro do Resend (ex.: daily_quota_exceeded), que vira a causa
+    // `email:<código>` no log; a mensagem pode citar o destinatário. Não engole — propaga.
+    if (error) throw new ErroEnvioEmail(error.name);
   }
 }
 

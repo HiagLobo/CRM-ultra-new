@@ -136,7 +136,7 @@ describe("PostgresRateLimiter", () => {
     expect(await rl.permitir(["email:a@x.com"], REGRA, T0)).toBe(true);
     await new Promise((r) => setTimeout(r, 0));
     const log = avisos.mock.calls.map((c) => c.join(" ")).join("\n");
-    expect(log).toContain("42P01");
+    expect(log).toContain("[rate-limit] poda falhou: db:42P01"); // categoria do RUNBOOK §6
     expect(log).not.toContain("a@x.com");
     avisos.mockRestore();
   });

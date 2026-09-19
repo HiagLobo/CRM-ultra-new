@@ -33,7 +33,9 @@ e o código de verificação aparece na própria tela.
 | `npm test` | a suíte completa (inclui as guardas de marca, PII e conteúdo do ex-cliente) |
 | `npm run seed` | 8 leads fictícios para o painel do admin (só dev) |
 
-**Operar, publicar e resolver problema: [`waves/RUNBOOK.md`](waves/RUNBOOK.md).**
+**Operar, publicar e resolver problema: [`waves/RUNBOOK.md`](waves/RUNBOOK.md).** Produção: Vercel
+(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 3 migrações em `migrations/`) + Resend
+(`mail.crmultra.com.br`, São Paulo), domínio `crmultra.com.br` — passo a passo na seção 3.
 
 ---
 
@@ -85,10 +87,14 @@ adaptador — o domínio não muda.
 - **PII nunca vai para log** — há teste que prova isso em cada caminho.
 - **Consentimento carimbado** com o texto exato que a pessoa leu + data/hora + IP.
 - **Exclusão de lead** (LGPD art. 18) no painel, com confirmação e auditoria.
-- Segredos só por env, validados no boot: sem `APP_SECRET`/`ADMIN_PASSWORD` o app não sobe; em
-  produção, sem `DATABASE_URL` também não (evita perder leads em silêncio). Sem `RESEND_API_KEY`, o
-  código nunca vai na resposta: o lead é gravado sem código, aparece no `/admin` e o log diz
-  `config:RESEND_API_KEY`.
+- Segredos só por env, validados com Zod: sem `APP_SECRET`/`ADMIN_PASSWORD` o **build** falha. Em
+  produção, `DATABASE_URL` é exigida na **primeira requisição** que usa o banco (não no boot): sem
+  ela o app não cai no disco temporário, onde os leads se perderiam em silêncio — a requisição
+  responde 500 e o log diz `config:DATABASE_URL`. Sem `RESEND_API_KEY`, o código nunca vai na resposta: o lead é gravado sem
+  código, aparece no `/admin` e o log diz `config:RESEND_API_KEY`.
+- **Diagnóstico sem PII**: os erros das rotas vão ao log como uma causa curta — `config:<VARIÁVEL>`,
+  `email:<código do Resend>`, `db:<SQLSTATE>`, `rede:<errno>` — nunca a mensagem, que pode ter
+  e-mail, telefone ou o host do banco. O que fazer com cada causa: seção 6 do runbook.
 
 Pendências abertas antes de divulgar publicamente estão na **seção 7 do runbook**.
 

@@ -8,6 +8,9 @@
  * - 200 `{ ok, status: "enviado" }` — o e-mail saiu (ou robô: sucesso falso);
  * - 202 `{ ok, status: "recebido_sem_codigo" }` — lead gravado, e-mail não saiu;
  * - 400 dados inválidos · 403 anti-robô recusou · 429 limite · 503 anti-robô fora do ar · 500.
+ *
+ * O 500 loga a causa segura (O7·S2): `config:DATABASE_URL`, `db:42P01`,
+ * `rede:ENOTFOUND`… — o RUNBOOK §6 diz o que fazer com cada uma.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { env, emailModoDev } from "@/lib/env";
@@ -17,6 +20,7 @@ import { leadStore } from "@/lib/criarLeadStore";
 import { provedorEmail } from "@/lib/email";
 import { rateLimiter } from "@/lib/criarRateLimiter";
 import { criarVerificadorTurnstile } from "@/lib/turnstile";
+import { causaDoErro } from "@/lib/erros";
 import { PedidoAcessoSchema, solicitarAcesso } from "@/features/lead";
 
 export const runtime = "nodejs"; // store/crypto exigem runtime Node (não Edge)
@@ -104,8 +108,9 @@ export async function POST(req: NextRequest) {
         });
     }
   } catch (err) {
-    // erro do store/banco/config: não vaza caminho/conteúdo/PII — loga só o tipo do erro.
-    const causa = err instanceof Error ? err.name : "desconhecido";
+    // banco/config/bug: só a categoria (config:VAR, db:SQLSTATE, rede:errno) — nunca a
+    // mensagem, que traz os valores da linha (e-mail, telefone) ou o host do banco.
+    const causa = causaDoErro(err);
     console.error("[/api/lead] erro ao processar:", causa);
     return NextResponse.json({ ok: false, erro: "falha ao processar solicitação" }, { status: 500 });
   }

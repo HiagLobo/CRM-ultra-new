@@ -5,6 +5,8 @@
  *
  * Na PRIMEIRA verificação de um lead, avisa o fundador (`AVISO_LEADS_EMAIL`,
  * opcional) com um e-mail sem PII. O aviso nunca derruba a verificação.
+ *
+ * O 500 loga a causa segura (O7·S2) — ver RUNBOOK §6.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
@@ -13,6 +15,7 @@ import { brand } from "@/config/brand";
 import { leadStore } from "@/lib/criarLeadStore";
 import { provedorEmail } from "@/lib/email";
 import { rateLimiter } from "@/lib/criarRateLimiter";
+import { causaDoErro } from "@/lib/erros";
 import { assinarTokenDemo, COOKIE_TOKEN_DEMO, VALIDADE_TOKEN_DIAS } from "@/lib/token";
 import { VerifyInputSchema, avisarLeadNovo, verificarCodigo, type MotivoFalha } from "@/features/lead";
 
@@ -91,8 +94,9 @@ export async function POST(req: NextRequest) {
     );
     return resposta;
   } catch (err) {
-    // erro do store: não vaza caminho/conteúdo/PII — loga só o tipo do erro.
-    const causa = err instanceof Error ? err.name : "desconhecido";
+    // banco/config/bug: só a categoria (config:VAR, db:SQLSTATE, rede:errno) — nunca a
+    // mensagem, que traz os valores da linha (e-mail, telefone) ou o host do banco.
+    const causa = causaDoErro(err);
     console.error("[/api/lead/verify] erro ao processar:", causa);
     return NextResponse.json(
       { ok: false, erro: "falha_interna", mensagem: "falha ao processar verificação" },
