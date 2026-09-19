@@ -287,8 +287,8 @@ Passo a passo:
 
    ```sql
    SELECT column_name FROM information_schema.columns
-    WHERE table_name = leads
-      AND column_name IN (nome, canal, retomar_em, motivo, proxima_acao_em, proxima_acao)
+    WHERE table_name = 'leads'
+      AND column_name IN ('nome', 'canal', 'retomar_em', 'motivo', 'proxima_acao_em', 'proxima_acao')
     ORDER BY 1;
    ```
 
@@ -302,7 +302,7 @@ Passo a passo:
    `descartado`.
 
    ```sql
-   SELECT to_regclass(public.lead_notas);
+   SELECT to_regclass('public.lead_notas');
    ```
 
    Tem de voltar `lead_notas`. Vazio quer dizer que a tabela das anotações não foi criada.
