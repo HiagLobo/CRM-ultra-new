@@ -235,7 +235,7 @@ export function SiteFooter() {
         ])}
       </div>
       <div className="ds-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "20px 32px", borderTop: "1px solid rgba(255,255,255,.15)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, fontSize: 13, color: "rgba(255,255,255,.6)" }}>
-        <span>{demo.nome} — site de exemplo com dados fictícios</span>
+        <span>{demo.nome}: site de exemplo com dados fictícios</span>
         <Link href="/" style={{ color: "rgba(255,255,255,.85)", textDecoration: "none", fontWeight: 600 }}>
           Feito com {brand.nome}
         </Link>

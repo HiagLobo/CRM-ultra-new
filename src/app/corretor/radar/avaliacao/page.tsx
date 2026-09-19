@@ -133,7 +133,7 @@ function AvStep1({ form, set, onToast }: any) {
   const buscar = () => { setBusy(true); setTimeout(() => { set("rua", "Av. Exemplo"); set("bairro", "Campo Belo"); set("cidade", "São Paulo, SP"); setBusy(false); onToast("Endereço preenchido pelo CEP", "map-pin"); }, 850); };
   return (
     <div>
-      <StepHead icon="map-pin" title="Endereço & finalidade" sub="Comece pelo endereço — o CEP preenche o resto — e diga se é para vender ou alugar." />
+      <StepHead icon="map-pin" title="Endereço & finalidade" sub="Comece pelo endereço (o CEP preenche o resto) e diga se é para vender ou alugar." />
       <Field label="Cidade"><div style={{ position: "relative" }}><select value={form.cidade} onChange={(e) => set("cidade", e.target.value)} style={{ ...inputSt, appearance: "none" as any, cursor: "pointer", paddingRight: 36 }}>{AVM_CITIES.map((c) => <option key={c}>{c}</option>)}</select><Ic n="chevron-down" s={17} c={pal.g500} style={{ position: "absolute", right: 12, top: 12, pointerEvents: "none" } as React.CSSProperties} /></div></Field>
       <div style={{ marginTop: 16 }}>
         <Field label="CEP" hint="Preenchimento automático via ViaCEP.">
@@ -171,7 +171,7 @@ function AvStep2({ form, set, setFeat }: any) {
   const fields = AVM_FEATURES[form.tipo] || AVM_FEATURES.Apartamento;
   return (
     <div>
-      <StepHead icon="ruler" title="Tipo & características" sub="Os campos se adaptam ao tipo — a mesma lógica do cadastro de imóvel." />
+      <StepHead icon="ruler" title="Tipo & características" sub="Os campos se adaptam ao tipo, na mesma lógica do cadastro de imóvel." />
       <div style={grpLbl}>Tipo de imóvel</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginBottom: 22 }}>
         {AVM_TYPES.map((t) => {
@@ -195,7 +195,7 @@ function AvStep2({ form, set, setFeat }: any) {
 function AvStep3({ form, set }: any) {
   return (
     <div>
-      <StepHead icon="sparkles" title="Diferenciais & conservação" sub="Os fatores que ajustam o valor — você poderá afiná-los no resultado também." />
+      <StepHead icon="sparkles" title="Diferenciais & conservação" sub="Os fatores que ajustam o valor. Você poderá afiná-los no resultado também." />
       <div style={{ marginBottom: 22 }}>
         <div style={grpLbl}>Estado de conservação</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -375,7 +375,7 @@ function AvResult({ form, onUseAnuncio, onLaudo, onToast, isMobile, onRestart }:
       </div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: 7, fontSize: 11.5, color: pal.g500, lineHeight: 1.45 }}>
-          <Ic n="info" s={14} c={pal.g500} style={{ flexShrink: 0, marginTop: 1 } as React.CSSProperties} /><span>Estimativa de mercado — não substitui laudo oficial de avaliação.</span>
+          <Ic n="info" s={14} c={pal.g500} style={{ flexShrink: 0, marginTop: 1 } as React.CSSProperties} /><span>Estimativa de mercado: não substitui laudo oficial de avaliação.</span>
         </div>
         <button onClick={onRestart} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "none", background: "transparent", color: pal.primary, cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13 }}><Ic n="rotate-ccw" s={15} c={pal.primary} /> Nova avaliação</button>
       </div>
@@ -475,7 +475,7 @@ export default function RadarAvaliacaoPage() {
   return (
     <CorretorChrome
       title="Radar"
-      subtitle="Avaliação de imóvel — preço com comparáveis transparentes."
+      subtitle="Avaliação de imóvel: preço com comparáveis transparentes."
       searchPlaceholder="Buscar avaliação salva"
       radar="Avaliação"
       radarRight={<RadarCredits />}

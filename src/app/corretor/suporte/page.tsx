@@ -32,7 +32,7 @@ const MEUS_REDE: any[] = [
     status: 'Em atendimento', resp: `Suporte ${demo.nomeCurto} · Carla M.`, sla: 'resposta até 16:30',
     thread: [
       { de: 'eu', t: '08:30', m: 'Fechei uma venda em co-corretagem. O sistema divide a comissão automaticamente ou preciso pedir?' },
-      { de: 'sup', t: '09:10', m: 'Oi, Júlia! Divide sim — pelo percentual combinado na parceria (no seu caso 50/50). Você acompanha em Comissões > a receber. 😊' },
+      { de: 'sup', t: '09:10', m: 'Oi, Júlia! Divide sim, pelo percentual combinado na parceria (no seu caso 50/50). Você acompanha em Comissões > a receber. 😊' },
     ],
   },
   {
@@ -40,7 +40,7 @@ const MEUS_REDE: any[] = [
     status: 'Resolvido', resp: `Suporte ${demo.nomeCurto} · Tiago R.`, nota: 5,
     thread: [
       { de: 'eu', t: '08/06 14:20', m: 'Minha cliente do Apto Graças diz que o boleto não chegou no e-mail.' },
-      { de: 'sup', t: '08/06 14:55', m: 'E-mail estava com erro de digitação no cadastro. Corrigi e reenviei — chegou agora. Confere com ela?' },
+      { de: 'sup', t: '08/06 14:55', m: 'E-mail estava com erro de digitação no cadastro. Corrigi e reenviei, chegou agora. Confere com ela?' },
       { de: 'eu', t: '08/06 15:30', m: 'Chegou! Obrigada 🙏' },
     ],
   },
@@ -53,7 +53,7 @@ const MEUS_TI: any[] = [
     contexto: 'Capturado automaticamente: página /corretor/imoveis · Chrome 126 · Android',
     thread: [
       { de: 'eu', t: 'ontem 16:40', m: 'O upload trava em 80% sempre nas mesmas 3 fotos. Print anexado.', anexo: 'print-erro.png' },
-      { de: 'dev', t: 'hoje 09:05', m: 'Olá, Júlia! Identificamos: as 3 fotos passam de 25 MB (limite por arquivo). Vamos subir o aviso mais cedo na tela — enquanto isso, pode reduzir a resolução e tentar de novo?' },
+      { de: 'dev', t: 'hoje 09:05', m: 'Olá, Júlia! Identificamos: as 3 fotos passam de 25 MB (limite por arquivo). Vamos subir o aviso mais cedo na tela. Enquanto isso, pode reduzir a resolução e tentar de novo?' },
     ],
   },
   {
@@ -62,7 +62,7 @@ const MEUS_TI: any[] = [
     contexto: 'Capturado: página /corretor/funil · pico 18h',
     thread: [
       { de: 'eu', t: '02/06', m: 'Todo fim de tarde o funil demora pra carregar.' },
-      { de: 'dev', t: '04/06', m: 'Otimizamos a consulta do funil na versão 1.8.2 (publicada hoje). Deve carregar em menos de 1s agora — qualquer coisa, reabre este chamado em até 7 dias.' },
+      { de: 'dev', t: '04/06', m: 'Otimizamos a consulta do funil na versão 1.8.2 (publicada hoje). Deve carregar em menos de 1s agora. Qualquer coisa, reabre este chamado em até 7 dias.' },
     ],
   },
 ];
@@ -111,7 +111,7 @@ function SpAbrir({ tipo }: { tipo: 'rede' | 'ti' }) {
             {tipo === 'rede' ? `Abrir chamado para o time da ${demo.nomeCurto}` : 'Reportar problema com o sistema'}
           </div>
           <div style={{ fontSize: 12.5, color: sp.g500 }}>
-            {tipo === 'rede' ? 'Dúvidas de comissão, leads, contratos e operação' : 'Vai direto para a equipe técnica — a página atual e o navegador são anexados automaticamente'}
+            {tipo === 'rede' ? 'Dúvidas de comissão, leads, contratos e operação' : 'Vai direto para a equipe técnica: a página atual e o navegador são anexados automaticamente'}
           </div>
         </div>
       </div>
@@ -127,7 +127,7 @@ function SpAbrir({ tipo }: { tipo: 'rede' | 'ti' }) {
       </div>
       {tipo === 'ti' && (
         <div style={{ fontSize: 11.5, color: sp.g500, marginTop: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Ic n="info" s={12} c={sp.g500} /> Problema grave (sistema fora do ar)? Marque "Erro" — severidade alta aciona a equipe na hora, qualquer dia/horário.
+          <Ic n="info" s={12} c={sp.g500} /> Problema grave (sistema fora do ar)? Marque "Erro". Severidade alta aciona a equipe na hora, qualquer dia/horário.
         </div>
       )}
     </div>

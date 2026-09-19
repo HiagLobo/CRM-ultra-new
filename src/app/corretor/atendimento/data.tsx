@@ -51,7 +51,7 @@ export const SEED: any[] = [
       { t: 'Lead qualificado: Quente', d: 'Hoje · 09:29', icon: 'sparkles' },
       { t: 'Transferido para você', d: 'Hoje · 09:30', icon: 'arrow-right-left' },
       { t: '1ª resposta em 4 min', d: 'Hoje · 09:34', icon: 'zap' },
-      { t: 'Visita agendada — amanhã 15h', d: 'Hoje · 09:40', icon: 'calendar-check', accent: true },
+      { t: 'Visita agendada: amanhã 15h', d: 'Hoje · 09:40', icon: 'calendar-check', accent: true },
     ],
     messages: [
       m('them', 'Oi Ricardo! Vi o apartamento de Boa Viagem, achei lindo 😍 ainda dá pra visitar?', '09:32', null),
@@ -114,7 +114,7 @@ export const SEED: any[] = [
       m('them', 'Gostei muito do apartamento dos Aflitos! Já quero seguir.', '10:20', null),
       m('me', 'Que ótimo, Rafael! Vou te passar todos os detalhes.', '10:21', 'read'),
       { from: 'me', kind: 'blocked', text: 'Me passa seu WhatsApp pessoal? Te chamo lá pra adiantar.', time: '10:22' },
-      { from: 'system', kind: 'advisory', text: `Mensagem não entregue ao cliente. Para a segurança de todos, o atendimento acontece somente por este canal da ${demo.nomeCurto} — não combine contato por fora da plataforma.` },
+      { from: 'system', kind: 'advisory', text: `Mensagem não entregue ao cliente. Para a segurança de todos, o atendimento acontece somente por este canal da ${demo.nomeCurto}. Não combine contato por fora da plataforma.` },
       m('me', 'Perfeito! Consigo adiantar tudo por aqui mesmo. Qual o melhor dia pra visita?', '10:24', 'read'),
       m('them', 'Pode ser sábado de manhã!', '10:26', null),
     ],

@@ -205,7 +205,7 @@ function PreviewPanel({ card, onClose, onToast }: { card: any; onClose: () => vo
         <button onClick={() => onToast('Abrindo conversa no Atendimento…', 'message-circle')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: 'none', background: pal.primary, color: '#fff', borderRadius: 12, padding: '13px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: 14.5, boxShadow: 'var(--shadow-purple)' }}>
           <Ic n="message-circle" s={18} c="#fff" /> Abrir no Atendimento
         </button>
-        <div style={{ textAlign: 'center', fontSize: 11.5, color: pal.g500, marginTop: 9 }}>O trabalho acontece no Atendimento — o Funil é o mapa.</div>
+        <div style={{ textAlign: 'center', fontSize: 11.5, color: pal.g500, marginTop: 9 }}>O trabalho acontece no Atendimento. O Funil é o mapa.</div>
       </div>
     </div>
   );
@@ -305,7 +305,7 @@ export default function FunilPage() {
   };
 
   return (
-    <CorretorChrome title="Funil" subtitle="O mapa dos seus negócios — atualizado pelos atendimentos." searchPlaceholder="Buscar cliente, imóvel ou código">
+    <CorretorChrome title="Funil" subtitle="O mapa dos seus negócios, atualizado pelos atendimentos." searchPlaceholder="Buscar cliente, imóvel ou código">
       {narrow ? <NarrowNotice /> : loading ? <Skeleton /> : (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, padding: '24px 28px 0', background: pal.page, height: '100%' }}>
           <SummaryBand cards={cards} />

@@ -117,7 +117,7 @@ function BuyModal({ isMobile, saldo = 47, onClose, onBought }: { isMobile?: bool
           <React.Fragment>
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderBottom: `1px solid ${pal.g100}` }}>
               <span style={{ width: 38, height: 38, borderRadius: 10, background: pal.lilac2, display: "grid", placeItems: "center" }}><Ic n="coins" s={19} c={pal.primary} /></span>
-              <div style={{ flex: 1 }}><div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: pal.ink }}>Comprar créditos</div><div style={{ fontSize: 12, color: pal.g500 }}>Créditos comprados acumulam — não expiram na virada do mês</div></div>
+              <div style={{ flex: 1 }}><div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: pal.ink }}>Comprar créditos</div><div style={{ fontSize: 12, color: pal.g500 }}>Créditos comprados acumulam e não expiram na virada do mês</div></div>
               <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "none", background: pal.g100, display: "grid", placeItems: "center", cursor: "pointer" }}><Ic n="x" s={19} c={pal.g700} /></button>
             </div>
             <div style={{ padding: 18, flex: 1, overflowY: "auto" }}>

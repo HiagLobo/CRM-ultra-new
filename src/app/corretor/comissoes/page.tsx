@@ -243,7 +243,7 @@ function DealDetail({ d, isMobile, onClose, onAntecipar }: { d: any; isMobile: b
         </div>
         <div style={{ display: "flex", gap: 9, background: pal.g100, borderRadius: 11, padding: "11px 13px", fontSize: 12, color: pal.g700, lineHeight: 1.45 }}>
           <Ic n="info" s={16} c={pal.g500} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>O split de {d.split}% reflete seu perfil e score. Tudo calculado automaticamente — sem ajuste manual.</span>
+          <span>O split de {d.split}% reflete seu perfil e score. Tudo calculado automaticamente, sem ajuste manual.</span>
         </div>
       </div>
       {d.status === "A receber" && (
@@ -361,11 +361,11 @@ export default function ComissoesPage() {
         </div>
       </div>
 
-      <Block icon="handshake" title="Comissões por negócio" sub="Cada comissão com o split à mostra — toque para ver o cálculo.">
+      <Block icon="handshake" title="Comissões por negócio" sub="Cada comissão com o split à mostra. Toque para ver o cálculo.">
         {CM_DEALS.map((d: any) => <DealRow key={d.id} d={d} isMobile={isMobile} onOpen={setDetail} onAntecipar={setAntecip} />)}
       </Block>
 
-      <Block icon="repeat" title="Recorrência (aluguéis)" sub={`Sua renda recorrente — ${pctLabel(RECUR_PCT)} dos aluguéis que você trouxe, enquanto o contrato estiver ativo.`}
+      <Block icon="repeat" title="Recorrência (aluguéis)" sub={`Sua renda recorrente: ${pctLabel(RECUR_PCT)} dos aluguéis que você trouxe, enquanto o contrato estiver ativo.`}
         right={<div style={{ textAlign: "right" }}><div style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 17, color: "#1E7A43" }}>{brl(recurTotal)}/mês</div><div style={{ fontSize: 11, color: pal.g500 }}>e crescendo</div></div>}>
         {CM_RECUR.map((r: any) => <RecurRow key={r.id} r={r} isMobile={isMobile} />)}
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 18px", fontSize: 12.5, color: pal.g500 }}>
@@ -373,7 +373,7 @@ export default function ComissoesPage() {
         </div>
       </Block>
 
-      <Block icon="receipt-text" title="Extrato" sub="Todo movimento registrado — imutável e auditável.">
+      <Block icon="receipt-text" title="Extrato" sub="Todo movimento registrado, imutável e auditável.">
         {CM_LEDGER.map((l: any) => <LedgerRow key={l.id} l={l} isMobile={isMobile} />)}
       </Block>
 
@@ -384,7 +384,7 @@ export default function ComissoesPage() {
   );
 
   return (
-    <CorretorChrome title="Comissões" subtitle="Transparência total — cada centavo rastreável." searchPlaceholder="Buscar negócio ou cliente">
+    <CorretorChrome title="Comissões" subtitle="Transparência total: cada centavo rastreável." searchPlaceholder="Buscar negócio ou cliente">
       {content}
       {detail  && <DealDetail  d={detail}  isMobile={isMobile} onClose={() => setDetail(null)}  onAntecipar={(d) => { setDetail(null); setAntecip(d); }} />}
       {antecip && <AntecipModal d={antecip} isMobile={isMobile} onClose={() => setAntecip(null)} onConfirm={() => fire("Antecipação solicitada", "zap")} />}

@@ -81,7 +81,7 @@ function AcionarModal({ p, isMobile, onClose, onSent }: { p: any; isMobile: bool
           <div style={{ padding: "40px 24px", textAlign: "center", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#E6F4EC", display: "grid", placeItems: "center", margin: "0 auto 16px" }}><Ic n="check" s={30} c="#2E9E5B" /></div>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 19, color: pal.ink }}>Solicitação enviada</div>
-            <div style={{ fontSize: 13.5, color: pal.g500, marginTop: 6, lineHeight: 1.5 }}><strong>{p.name}</strong> entrará em contato — e o desconto <strong style={{ color: "#1E7A43" }}>{p.benefit}</strong> já está aplicado.</div>
+            <div style={{ fontSize: 13.5, color: pal.g500, marginTop: 6, lineHeight: 1.5 }}><strong>{p.name}</strong> entrará em contato, e o desconto <strong style={{ color: "#1E7A43" }}>{p.benefit}</strong> já está aplicado.</div>
             <button onClick={onClose} style={{ marginTop: 22, alignSelf: "center", border: "none", background: pal.primary, color: "#fff", borderRadius: 11, padding: "12px 28px", cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14, boxShadow: "var(--shadow-purple)" }}>Concluir</button>
           </div>
         ) : (
@@ -104,7 +104,7 @@ function AcionarModal({ p, isMobile, onClose, onSent }: { p: any; isMobile: bool
                 <Ic n="chevron-down" s={17} c={pal.g500} style={{ position: "absolute", right: 13, top: 13, pointerEvents: "none" } as React.CSSProperties} />
               </div>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: pal.g700, marginBottom: 7 }}>Observação <span style={{ color: pal.g500, fontWeight: 400 }}>(opcional)</span></div>
-              <textarea value={obs} onChange={(e: any) => setObs(e.target.value)} rows={3} placeholder="Detalhe o que precisa — o parceiro já recebe com contexto." style={{ width: "100%", border: `1px solid ${pal.g300}`, borderRadius: 10, padding: "11px 13px", fontFamily: "var(--font-body)", fontSize: 14, lineHeight: 1.5, color: pal.ink, outline: "none", resize: "vertical" }} />
+              <textarea value={obs} onChange={(e: any) => setObs(e.target.value)} rows={3} placeholder="Detalhe o que precisa: o parceiro já recebe com contexto." style={{ width: "100%", border: `1px solid ${pal.g300}`, borderRadius: 10, padding: "11px 13px", fontFamily: "var(--font-body)", fontSize: 14, lineHeight: 1.5, color: pal.ink, outline: "none", resize: "vertical" }} />
               <div style={{ display: "flex", gap: 9, marginTop: 14, background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 11, padding: "11px 13px", fontSize: 12.5, color: pal.g700 }}>
                 <Ic n="shield-check" s={16} c={pal.primary} style={{ flexShrink: 0, marginTop: 1 }} /> <span>Fica tudo registrado: o parceiro recebe seu contato e o cliente garante o benefício pela {demo.nomeCurto}.</span>
               </div>

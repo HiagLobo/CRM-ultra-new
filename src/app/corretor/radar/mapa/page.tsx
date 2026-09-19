@@ -138,7 +138,7 @@ function AnunciosFilters({ onToast, onBuscar }: { onToast: (m: string, i?: strin
           })}
         </div>
       </div>
-      {([["Apenas anúncios particulares", "Direto com o dono — sem corretor no anúncio", particular, setParticular], ["Apenas endereços completos", "Imóveis com localização exata informada", completos, setCompletos]] as any[]).map(([t, d, v, set]: any, i: number) => (
+      {([["Apenas anúncios particulares", "Direto com o dono, sem corretor no anúncio", particular, setParticular], ["Apenas endereços completos", "Imóveis com localização exata informada", completos, setCompletos]] as any[]).map(([t, d, v, set]: any, i: number) => (
         <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
           <div style={{ flex: 1 }}><div style={{ fontSize: 13.5, fontWeight: 600, color: pal.ink }}>{t}</div><div style={{ fontSize: 12, color: pal.g500, marginTop: 2, lineHeight: 1.4 }}>{d}</div></div>
           <Tg value={v} onChange={set} />
@@ -234,7 +234,7 @@ function RegionPanel({ bairro, showDemand, setShowDemand, onVerImoveis, onClose,
           <span style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 10, background: "#fff", display: "grid", placeItems: "center" }}><Ic n="flame" s={19} c="#EA580C" /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: pal.ink }}>Sobrepor demanda da rede</div>
-            <div style={{ fontSize: 12, color: pal.g600, marginTop: 2, lineHeight: 1.45 }}>Veja onde os clientes da {demo.nomeCurto} procuram — capture onde há procura e pouca oferta.</div>
+            <div style={{ fontSize: 12, color: pal.g600, marginTop: 2, lineHeight: 1.45 }}>Veja onde os clientes da {demo.nomeCurto} procuram. Capture onde há procura e pouca oferta.</div>
           </div>
           <Tg value={showDemand} onChange={setShowDemand} />
         </div>
@@ -575,7 +575,7 @@ export default function RadarMapaPage() {
   return (
     <CorretorChrome
       title="Radar"
-      subtitle="Inteligência de mercado — anúncios e captação."
+      subtitle="Inteligência de mercado: anúncios e captação."
       searchPlaceholder="Buscar imóvel, bairro ou tipo"
       radar="Mapa"
       radarRight={<RadarCredits />}

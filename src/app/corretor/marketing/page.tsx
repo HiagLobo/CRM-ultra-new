@@ -133,7 +133,7 @@ function MyPage({ isMobile, onToast }: { isMobile: boolean; onToast: (msg: strin
             <div style={{ flexShrink: 0, padding: 6, background: "#fff", borderRadius: 9, border: `1px solid ${pal.lilac2}` }}><QR text={"https://" + a.url} size={84} fg={pal.deep} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13.5, fontWeight: 700, color: pal.ink }}>QR da sua página</div>
-              <div style={{ fontSize: 12, color: pal.g500, marginTop: 2, lineHeight: 1.45 }}>Imprima onde quiser — leva direto à sua página.</div>
+              <div style={{ fontSize: 12, color: pal.g500, marginTop: 2, lineHeight: 1.45 }}>Imprima onde quiser: leva direto à sua página.</div>
               <button onClick={() => onToast("QR da página baixado (PNG)", "download")} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 9, border: `1px solid ${pal.g300}`, background: "#fff", borderRadius: 9, padding: "7px 12px", cursor: "pointer", fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 12.5, color: pal.g700 }}><Ic n="download" s={14} c={pal.primary} /> Baixar QR</button>
             </div>
           </div>
@@ -170,7 +170,7 @@ function Gallery({ onPick }: { onPick: (t: any) => void }) {
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         <span style={{ width: 32, height: 32, borderRadius: 9, background: pal.lilac2, display: "grid", placeItems: "center" }}><Ic n="palette" s={18} c={pal.primary} /></span>
-        <div><h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, margin: 0, color: pal.ink }}>Materiais de marketing</h2><div style={{ fontSize: 12.5, color: pal.g500 }}>Na marca da {demo.nomeCurto}, com QR que captura o lead — nunca no WhatsApp pessoal.</div></div>
+        <div><h2 style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18, margin: 0, color: pal.ink }}>Materiais de marketing</h2><div style={{ fontSize: 12.5, color: pal.g500 }}>Na marca da {demo.nomeCurto}, com QR que captura o lead, nunca no WhatsApp pessoal.</div></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
         {MKT_TEMPLATES.map((t: any) => (
@@ -453,7 +453,7 @@ function Editor({ t, isMobile, onClose, onToast }: { t: any; isMobile: boolean; 
             <div style={{ background: pal.lilac1, border: `1px solid ${pal.lilac2}`, borderRadius: 11, padding: "11px 13px", marginBottom: 16 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}><Ic n="badge-check" s={15} c={pal.primary} /><span style={{ fontSize: 12.5, fontWeight: 700, color: pal.ink }}>Seus dados (fixos)</span></div>
               <div style={{ fontSize: 12, color: pal.g700 }}>{MKT_AGENT.name} · {MKT_AGENT.creci} · logo da {demo.nomeCurto}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: pal.g500, marginTop: 5 }}><Ic n="shield" s={12} c={pal.g500} /> Sem WhatsApp pessoal — o contato é sempre o sistema.</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: pal.g500, marginTop: 5 }}><Ic n="shield" s={12} c={pal.g500} /> Sem WhatsApp pessoal: o contato é sempre o sistema.</div>
             </div>
             {/* QR destination */}
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase", color: pal.g500, marginBottom: 9 }}>Destino do QR code</div>
@@ -534,19 +534,19 @@ export default function MarketingPage() {
       {!isMobile && (
         <div style={{ marginBottom: 18 }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 26, margin: 0, color: pal.ink, letterSpacing: "-0.01em" }}>Marketing</h2>
-          <p style={{ fontSize: 13.5, color: pal.g500, margin: "4px 0 0" }}>Sua página e materiais prontos — todo QR captura o lead pra dentro da {demo.nomeCurto}.</p>
+          <p style={{ fontSize: 13.5, color: pal.g500, margin: "4px 0 0" }}>Sua página e materiais prontos: todo QR captura o lead pra dentro da {demo.nomeCurto}.</p>
         </div>
       )}
       <MyPage isMobile={isMobile} onToast={fire} />
       <Gallery onPick={setEditing} />
       <div style={{ textAlign: "center", fontSize: 11.5, color: pal.g500, padding: "20px 0 8px" }}>
-        <Ic n="shield-check" s={12} c={pal.g500} style={{ verticalAlign: "middle", marginRight: 4 }} /> Todo material leva a logo da {demo.nomeCurto} e um QR que captura o lead — nunca o WhatsApp pessoal.
+        <Ic n="shield-check" s={12} c={pal.g500} style={{ verticalAlign: "middle", marginRight: 4 }} /> Todo material leva a logo da {demo.nomeCurto} e um QR que captura o lead, nunca o WhatsApp pessoal.
       </div>
     </div>
   );
 
   return (
-    <CorretorChrome title="Marketing" subtitle={`Divulgue na marca da ${demo.nomeCurto} — o lead sempre volta pra você.`} searchPlaceholder="Buscar modelo de material">
+    <CorretorChrome title="Marketing" subtitle={`Divulgue na marca da ${demo.nomeCurto}: o lead sempre volta pra você.`} searchPlaceholder="Buscar modelo de material">
       {content}
       {editing && <Editor t={editing} isMobile={isMobile} onClose={() => setEditing(null)} onToast={fire} />}
       <Toast toast={toast} />

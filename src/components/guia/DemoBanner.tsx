@@ -70,7 +70,7 @@ export default function DemoBanner({
         <Rotulo
           longo={
             <>
-              <strong style={{ fontWeight: 700 }}>Modo demonstração</strong> — você está explorando o{" "}
+              <strong style={{ fontWeight: 700 }}>Modo demonstração</strong>: você está explorando o{" "}
               {brand.nomeCurto} com dados fictícios. Nada aqui é de cliente real.
             </>
           }

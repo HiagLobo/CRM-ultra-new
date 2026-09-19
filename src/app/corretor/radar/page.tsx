@@ -23,9 +23,9 @@ const RD_OPS: any[] = [
     demanda: "3 clientes procurando 2q em Campo Belo", demandaN: 3,
     anunciante: "Particular", av: ["#6366F1", "#312E81"],
     sinais: [
-      { icon: "user", t: "Anunciante particular", d: "Sem corretor — fala direto com o dono" },
-      { icon: "clock", t: "72 dias no mercado", d: "Acima da média do bairro (38 dias) — dono tende a negociar" },
-      { icon: "trending-up", t: "6% acima da média", d: "Pede R$ 720k; comparáveis em ~R$ 678k — espaço para ajuste" },
+      { icon: "user", t: "Anunciante particular", d: "Sem corretor, fala direto com o dono" },
+      { icon: "clock", t: "72 dias no mercado", d: "Acima da média do bairro (38 dias): dono tende a negociar" },
+      { icon: "trending-up", t: "6% acima da média", d: "Pede R$ 720k; comparáveis em ~R$ 678k: espaço para ajuste" },
     ],
     comparaveis: [
       { end: "Rua Exemplo, 2q", m2: 65, price: "R$ 670.000" },
@@ -44,8 +44,8 @@ const RD_OPS: any[] = [
     potencial: "Alto", motivo: "90 dias anunciado · dono provavelmente motivado",
     demanda: null, demandaN: 0, anunciante: "Imobiliária", av: ["#4338CA", "#231038"],
     sinais: [
-      { icon: "clock", t: "90 dias no mercado", d: "Bem acima da média de alto padrão — sinal de motivação" },
-      { icon: "gem", t: "Alto padrão", d: "Cobertura de 180m² no Itaim — ticket e comissão altos" },
+      { icon: "clock", t: "90 dias no mercado", d: "Bem acima da média de alto padrão: sinal de motivação" },
+      { icon: "gem", t: "Alto padrão", d: "Cobertura de 180m² no Itaim: ticket e comissão altos" },
     ],
     comparaveis: [
       { end: "Rua Exemplo, cobertura", m2: 175, price: "R$ 2.350.000" },
@@ -62,7 +62,7 @@ const RD_OPS: any[] = [
     potencial: "Alto", motivo: "Preço caiu 5% esta semana", precoQueda: true,
     demanda: null, demandaN: 0, anunciante: "Particular", av: ["#2563A8", "#163A5C"],
     sinais: [
-      { icon: "trending-down", t: "Queda de 5% esta semana", d: "De R$ 1.030.000 para R$ 980.000 — dono ajustando para vender" },
+      { icon: "trending-down", t: "Queda de 5% esta semana", d: "De R$ 1.030.000 para R$ 980.000: dono ajustando para vender" },
       { icon: "user", t: "Anunciante particular", d: "Negociação direta com o proprietário" },
     ],
     comparaveis: [
@@ -94,7 +94,7 @@ const RD_OPS: any[] = [
     potencial: "Médio", motivo: "12 dias no mercado · recém-anunciado",
     demanda: "1 cliente procurando", demandaN: 1, anunciante: "Particular", av: ["#B5632F", "#7A3B16"],
     sinais: [
-      { icon: "sparkles", t: "Recém-anunciado", d: "12 dias — chegar cedo dá vantagem na captação" },
+      { icon: "sparkles", t: "Recém-anunciado", d: "12 dias: chegar cedo dá vantagem na captação" },
       { icon: "user", t: "Anunciante particular", d: "Contato direto com o dono" },
     ],
     comparaveis: [
@@ -112,7 +112,7 @@ const RD_OPS: any[] = [
     potencial: "Baixo", motivo: "8 dias · preço de mercado · sem sinais fortes",
     demanda: null, demandaN: 0, anunciante: "Imobiliária", av: ["#5A6B8C", "#2E3A52"],
     sinais: [
-      { icon: "info", t: "Sem sinais fortes ainda", d: "Recém-anunciado e a preço de mercado — vale acompanhar" },
+      { icon: "info", t: "Sem sinais fortes ainda", d: "Recém-anunciado e a preço de mercado: vale acompanhar" },
     ],
     comparaveis: [
       { end: "Rua Exemplo, 1q", m2: 52, price: "R$ 630.000" },
@@ -418,7 +418,7 @@ export default function RadarOportunidadesPage() {
         <div style={{ textAlign: "center", padding: "70px 20px", color: pal.g500 }}>
           <div style={{ width: 64, height: 64, borderRadius: 18, background: pal.lilac2, display: "grid", placeItems: "center", margin: "0 auto 14px" }}><Ic n="radar" s={30} c={pal.primary} /></div>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: pal.ink }}>Nenhuma oportunidade com esses filtros</div>
-          <div style={{ fontSize: 13.5, marginTop: 6 }}>Ajuste os filtros — ou volte amanhã, o Radar atualiza todo dia.</div>
+          <div style={{ fontSize: 13.5, marginTop: 6 }}>Ajuste os filtros ou volte amanhã, o Radar atualiza todo dia.</div>
         </div>
       ) : (
         <div data-tour="radar-lista" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
@@ -429,7 +429,7 @@ export default function RadarOportunidadesPage() {
   );
 
   return (
-    <CorretorChrome title="Radar" subtitle="Inteligência de captação — oportunidades pra você." searchPlaceholder="Buscar imóvel, bairro ou tipo" radar="Oportunidades" radarRight={<RadarCredits />}>
+    <CorretorChrome title="Radar" subtitle="Inteligência de captação: oportunidades pra você." searchPlaceholder="Buscar imóvel, bairro ou tipo" radar="Oportunidades" radarRight={<RadarCredits />}>
       {loading ? <Skeleton isMobile={isMobile} /> : feed}
       {detail && <DetailPanel op={detail} isMobile={isMobile} onClose={() => setDetail(null)} onCaptar={onCaptar} />}
       <Toast toast={toast} />

@@ -38,7 +38,7 @@ export default function PortalDemoBanner() {
     >
       <Ic n="building" s={16} c={p.primary} />
       <span>
-        <strong style={{ fontWeight: 700 }}>Site de exemplo</strong> — é assim que a carteira de uma
+        <strong style={{ fontWeight: 700 }}>Site de exemplo</strong>: é assim que a carteira de uma
         imobiliária aparece para o público no {brand.nomeCurto}. Tudo aqui é fictício: a imobiliária,
         os imóveis e os preços; as fotos são ilustrativas.
       </span>

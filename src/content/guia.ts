@@ -26,7 +26,7 @@ export const GUIA: Record<Painel, GuiaPainel> = {
     nome: "Painel do Corretor",
     titulo: "Este é o dia a dia de quem atende",
     resumo:
-      "Aqui o corretor vê os próprios clientes, onde cada negócio parou e o que fazer em seguida. Explore à vontade — os dados são inventados.",
+      "Aqui o corretor vê os próprios clientes, onde cada negócio parou e o que fazer em seguida. Explore à vontade: os dados são inventados.",
     passos: [
       {
         titulo: "Comece pelo Funil",
@@ -34,7 +34,7 @@ export const GUIA: Record<Painel, GuiaPainel> = {
       },
       {
         titulo: "Abra o Atendimento",
-        texto: "Conversas, modelos de mensagem e a ficha do cliente na mesma tela — sem pular entre aplicativos.",
+        texto: "Conversas, modelos de mensagem e a ficha do cliente na mesma tela, sem pular entre aplicativos.",
       },
       {
         titulo: "Passe pelo Radar",
@@ -66,7 +66,7 @@ export const GUIA: Record<Painel, GuiaPainel> = {
       },
       {
         titulo: "Financeiro e Jurídico",
-        texto: "Cobranças, repasses e contratos — a parte que costuma viver fora do CRM.",
+        texto: "Cobranças, repasses e contratos: a parte que costuma viver fora do CRM.",
       },
     ],
   },
@@ -119,7 +119,7 @@ export const SECOES: SecaoGuia[] = [
     titulo: "Funil de vendas",
     dicas: [
       "Cada coluna é uma etapa do negócio: da primeira conversa até a assinatura.",
-      "O que trava mais é a passagem de 'visita' para 'proposta' — é aí que o acompanhamento vale mais.",
+      "O que trava mais é a passagem de 'visita' para 'proposta'. É aí que o acompanhamento vale mais.",
       "Um card parado há dias na mesma coluna é o sinal para retomar o contato.",
     ],
   },
@@ -128,8 +128,8 @@ export const SECOES: SecaoGuia[] = [
     titulo: "Atendimento",
     dicas: [
       "O assistente de IA atende antes de você: o resumo do pré-atendimento traz imóvel, orçamento, finalidade e urgência já levantados.",
-      "A etapa do funil anda sozinha conforme a conversa evolui — o selo 'automático' mostra isso. Discordou? Clique na etapa certa.",
-      "A conversa, a ficha do cliente e o histórico ficam lado a lado — não precisa abrir outro app.",
+      "A etapa do funil anda sozinha conforme a conversa evolui. O selo 'automático' mostra isso. Discordou? Clique na etapa certa.",
+      "A conversa, a ficha do cliente e o histórico ficam lado a lado: não precisa abrir outro app.",
       "As ações rápidas (agendar visita, reunião, proposta) já saem preenchidas com o que a IA levantou.",
     ],
   },
@@ -138,7 +138,7 @@ export const SECOES: SecaoGuia[] = [
     titulo: "Carteira de imóveis",
     dicas: [
       "É o cadastro do que você tem para vender ou alugar, com fotos e situação de cada imóvel.",
-      "O cadastro é em etapas — dá para salvar no meio e terminar depois.",
+      "O cadastro é em etapas: dá para salvar no meio e terminar depois.",
       "Imóvel em curadoria é o que ainda precisa de aprovação antes de ir para o site.",
     ],
   },
@@ -149,7 +149,7 @@ export const SECOES: SecaoGuia[] = [
       "Aqui o assunto é achar imóvel para captar, não vender o que já se tem.",
       "A lista sai de sinais cruzados todo dia (anúncio antigo, preço fora da curva, movimento na região) e vem ordenada pelos mais promissores.",
       "O mapa mostra concentração de oportunidades; os alertas avisam quando algo muda na sua região.",
-      "Ver a lista é livre; abrir o contato do proprietário consome crédito — cada consulta dessas tem custo real.",
+      "Ver a lista é livre; abrir o contato do proprietário consome crédito, porque cada consulta dessas tem custo real.",
     ],
   },
   {
@@ -174,7 +174,7 @@ export const SECOES: SecaoGuia[] = [
     titulo: "Visão geral",
     dicas: [
       "O resumo da operação: o que entrou, o que fechou e o que precisa de atenção agora.",
-      "Serve para decidir onde olhar — cada bloco leva para a tela detalhada.",
+      "Serve para decidir onde olhar: cada bloco leva para a tela detalhada.",
     ],
   },
   {
@@ -198,7 +198,7 @@ export const SECOES: SecaoGuia[] = [
     titulo: "Financeiro",
     dicas: [
       "Entradas, repasses e cobranças da operação.",
-      "Comissão de negócio fechado aparece aqui e no painel do corretor — mesma fonte.",
+      "Comissão de negócio fechado aparece aqui e no painel do corretor: é a mesma fonte.",
     ],
   },
   {
@@ -223,7 +223,7 @@ export const SECOES: SecaoGuia[] = [
     titulo: "Visão da unidade",
     dicas: [
       "A tela inteira é a sua unidade: desempenho, time, leads e a posição na rede.",
-      "O ranking compara unidades — serve para saber o que está funcionando em outra praça.",
+      "O ranking compara unidades: serve para saber o que está funcionando em outra praça.",
       "Assentos são as vagas de corretor que a unidade pode ocupar.",
     ],
   },
@@ -291,7 +291,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="fab-guia"]',
       titulo: "E se a dúvida voltar",
       texto:
-        "Este botão abre o guia da tela em que você estiver — e dá para refazer este tour por ele quando quiser.",
+        "Este botão abre o guia da tela em que você estiver, e dá para refazer este tour por ele quando quiser.",
     },
   ],
 
@@ -306,19 +306,19 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="atendimento-ia"]',
       titulo: "O cliente chega já qualificado",
       texto:
-        "O assistente de IA atende primeiro e só passa para você depois de descobrir o essencial: imóvel de interesse, orçamento, finalidade, forma de pagamento e urgência. Este resumo é dele — você entra na conversa sabendo com quem está falando.",
+        "O assistente de IA atende primeiro e só passa para você depois de descobrir o essencial: imóvel de interesse, orçamento, finalidade, forma de pagamento e urgência. Este resumo é dele. Você entra na conversa sabendo com quem está falando.",
     },
     {
       alvo: '[data-tour="atendimento-conversa"]',
       titulo: "A conversa continua de onde ela parou",
       texto:
-        "Texto, áudio e envio de imóvel no mesmo lugar. Reunião gravada vira resumo automático, e os modelos resolvem o que se repete — primeiro contato, confirmação de visita.",
+        "Texto, áudio e envio de imóvel no mesmo lugar. Reunião gravada vira resumo automático, e os modelos resolvem o que se repete: primeiro contato, confirmação de visita.",
     },
     {
       alvo: '[data-tour="atendimento-etapa"]',
       titulo: "A etapa do funil se move sozinha",
       texto:
-        "Repare no selo 'automático': conforme a conversa evolui, o cliente anda de etapa sem você arrastar card nenhum. Se discordar, é só clicar na etapa certa — o sistema aprende com a correção, não briga com ela.",
+        "Repare no selo 'automático': conforme a conversa evolui, o cliente anda de etapa sem você arrastar card nenhum. Se discordar, é só clicar na etapa certa. O sistema aprende com a correção, não briga com ela.",
     },
     {
       alvo: '[data-tour="atendimento-acoes"]',
@@ -330,7 +330,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="atendimento-ficha"]',
       titulo: "A ficha, sempre à vista",
       texto:
-        "Quem é, o que procura, etiquetas e histórico — tudo montado pelo caminho. Nada aqui você precisou digitar.",
+        "Quem é, o que procura, etiquetas e histórico: tudo montado pelo caminho. Nada aqui você precisou digitar.",
     },
   ],
 
@@ -345,7 +345,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="radar-lista"]',
       titulo: "Oportunidades encontradas para você",
       texto:
-        "Cada card é um imóvel com sinal de que pode ir à venda — anúncio antigo, preço fora da curva, mudança na região. A IA cruza esses sinais todo dia e ordena pelos mais promissores.",
+        "Cada card é um imóvel com sinal de que pode ir à venda: anúncio antigo, preço fora da curva, mudança na região. A IA cruza esses sinais todo dia e ordena pelos mais promissores.",
     },
     {
       alvo: '[data-tour="radar-creditos"]',
@@ -363,19 +363,19 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="ceo-menu"]',
       titulo: "Este painel é a operação inteira",
       texto:
-        "Diferente do painel do corretor, que é o dia a dia de uma pessoa, aqui está a imobiliária toda. O menu é longo de propósito — mas ele é organizado em blocos, e é isso que vale entender.",
+        "Diferente do painel do corretor, que é o dia a dia de uma pessoa, aqui está a imobiliária toda. O menu é longo de propósito, mas ele é organizado em blocos, e é isso que vale entender.",
     },
     {
       alvo: '[data-tour="ceo-grupo-inicio"]',
       titulo: "Visão geral: por onde começar todo dia",
       texto:
-        "O resumo da operação numa tela — o que entrou, o que fechou e o que precisa de atenção agora. Cada bloco leva para a tela detalhada.",
+        "O resumo da operação numa tela: o que entrou, o que fechou e o que precisa de atenção agora. Cada bloco leva para a tela detalhada.",
     },
     {
       alvo: '[data-tour="ceo-grupo-rede"]',
       titulo: "Rede: quem trabalha com você",
       texto:
-        "Associados e franquias, os corretores da casa e a curadoria — a fila de imóveis que precisa de aprovação antes de sair com o nome da imobiliária.",
+        "Associados e franquias, os corretores da casa e a curadoria (a fila de imóveis que precisa de aprovação antes de sair com o nome da imobiliária).",
     },
     {
       alvo: '[data-tour="ceo-grupo-operacao"]',
@@ -387,7 +387,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="ceo-grupo-financeiro"]',
       titulo: "Financeiro: o dinheiro, do repasse à garantia",
       texto:
-        "Caixa, cobranças e repasses, análise de crédito do inquilino, locação com garantia e os planos que a imobiliária assina. É o bloco que costuma viver fora do CRM — em planilha.",
+        "Caixa, cobranças e repasses, análise de crédito do inquilino, locação com garantia e os planos que a imobiliária assina. É o bloco que costuma viver fora do CRM, em planilha.",
     },
     {
       alvo: '[data-tour="ceo-grupo-crescimento"]',
@@ -405,7 +405,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="fab-guia"]',
       titulo: "E se a dúvida voltar",
       texto:
-        "Este botão abre o guia da tela em que você estiver — e dá para refazer este tour por ele quando quiser.",
+        "Este botão abre o guia da tela em que você estiver, e dá para refazer este tour por ele quando quiser.",
     },
   ],
 
@@ -415,7 +415,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="fq-menu"]',
       titulo: "Aqui é a sua unidade, não a rede inteira",
       texto:
-        "O painel do CEO enxerga a operação toda; este é o recorte de uma franquia. O menu não troca de tela — ele rola até cada bloco desta página.",
+        "O painel do CEO enxerga a operação toda; este é o recorte de uma franquia. O menu não troca de tela: ele rola até cada bloco desta página.",
     },
     {
       alvo: '[data-tour="fq-nav-visao"]',
@@ -433,7 +433,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="fq-nav-plano"]',
       titulo: "Plano & assentos",
       texto:
-        "Assento é a vaga de corretor que a unidade pode ocupar. Contratar mais gente passa por aqui — e o custo aparece na hora.",
+        "Assento é a vaga de corretor que a unidade pode ocupar. Contratar mais gente passa por aqui, e o custo aparece na hora.",
     },
     {
       alvo: '[data-tour="fq-nav-ranking"]',
@@ -445,7 +445,7 @@ export const TOURS: Record<string, PassoTour[]> = {
       alvo: '[data-tour="fab-guia"]',
       titulo: "E se a dúvida voltar",
       texto:
-        "Este botão abre o guia da tela — e dá para refazer este tour por ele quando quiser.",
+        "Este botão abre o guia da tela, e dá para refazer este tour por ele quando quiser.",
     },
   ],
 

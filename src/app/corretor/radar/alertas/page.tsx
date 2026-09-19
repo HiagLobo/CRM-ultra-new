@@ -25,25 +25,25 @@ const AL_FEED_INIT: any[] = [
   },
   {
     id: "f2", tipo: "queda", time: "há 2h",
-    title: "Cobertura em Moema baixou 8%", desc: "De R$ 1.300.000 para R$ 1.196.000 — dono ajustando para vender.",
+    title: "Cobertura em Moema baixou 8%", desc: "De R$ 1.300.000 para R$ 1.196.000: dono ajustando para vender.",
     imovel: { t: "Cobertura · Moema", price: "R$ 1.196.000", priceOld: "R$ 1.300.000", m2: 180, code: "47710", av: ["#4338CA", "#231038"] },
     actions: ["ver", "captar"],
   },
   {
     id: "f3", tipo: "dias", time: "há 5h",
-    title: "Casa em Pinheiros há 90 dias no mercado", desc: "Bem acima da média do bairro — dono provavelmente motivado.",
+    title: "Casa em Pinheiros há 90 dias no mercado", desc: "Bem acima da média do bairro: dono provavelmente motivado.",
     imovel: { t: "Casa · Pinheiros", price: "R$ 1.150.000", m2: 140, code: "50120", av: ["#3B7A57", "#1E4533"] },
     actions: ["captar", "ver"],
   },
   {
     id: "f4", tipo: "novo", time: "há 8h",
-    title: "3 novos apartamentos em Vila Mariana hoje", desc: "Dentro do seu filtro salvo — chegue antes da concorrência.",
+    title: "3 novos apartamentos em Vila Mariana hoje", desc: "Dentro do seu filtro salvo. Chegue antes da concorrência.",
     imovel: { t: "Vila Mariana · 3 anúncios", price: "a partir de R$ 640.000", m2: null, code: null, av: ["#2563A8", "#163A5C"], multi: true },
     actions: ["verlista"],
   },
   {
     id: "f5", tipo: "reanuncio", time: "ontem", cliente: "Carlos Eduardo", ini: "CE",
-    title: "Imóvel reanunciado bate com o Carlos", desc: "Voltou ao mercado após sair — pode estar mais negociável agora.",
+    title: "Imóvel reanunciado bate com o Carlos", desc: "Voltou ao mercado após sair: pode estar mais negociável agora.",
     imovel: { t: "Apto 3q · Boa Viagem", price: "R$ 890.000", m2: 92, code: "48655", av: ["#B5632F", "#7A3B16"] },
     actions: ["captar", "avisar", "ver"],
   },
@@ -264,7 +264,7 @@ function CreateAlertModal({ isMobile, initialType, onClose, onCreate, onToast }:
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: pal.g700, marginBottom: 6 }}>Cliente / demanda</div>
                   <Sel value={cliente} onChange={setCliente} options={AL_CLIENTES} placeholder="Escolha um cliente da sua carteira" />
                   <div style={{ display: "flex", gap: 8, marginTop: 10, background: "#FCEBDD", border: "1px solid #F2C9A8", borderRadius: 10, padding: "10px 12px", fontSize: 12, color: "#9A3A12", lineHeight: 1.45 }}>
-                    <Ic n="sun" s={15} c="#EA580C" style={{ flexShrink: 0, marginTop: 1 }} /><span>Cruzamos automaticamente com a busca registrada do cliente — você é avisado quando surgir algo que combina.</span>
+                    <Ic n="sun" s={15} c="#EA580C" style={{ flexShrink: 0, marginTop: 1 }} /><span>Cruzamos automaticamente com a busca registrada do cliente. Você é avisado quando surgir algo que combina.</span>
                   </div>
                 </div>
               ) : (
@@ -376,7 +376,7 @@ export default function AlertasPage() {
           <div style={{ textAlign: "center", padding: "60px 20px", color: pal.g500 }}>
             <div style={{ width: 64, height: 64, borderRadius: 18, background: pal.lilac2, display: "grid", placeItems: "center", margin: "0 auto 14px" }}><Ic n="bell-off" s={28} c={pal.primary} /></div>
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: pal.ink }}>Tudo em dia</div>
-            <div style={{ fontSize: 13.5, marginTop: 6 }}>Sem novidades agora — você será avisado quando algo surgir.</div>
+            <div style={{ fontSize: 13.5, marginTop: 6 }}>Sem novidades agora. Você será avisado quando algo surgir.</div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -402,7 +402,7 @@ export default function AlertasPage() {
   );
 
   return (
-    <CorretorChrome title="Radar" subtitle="Alertas proativos — a oportunidade chega até você." searchPlaceholder="Buscar alerta" radar="Alertas" radarRight={<RadarCredits />}>
+    <CorretorChrome title="Radar" subtitle="Alertas proativos: a oportunidade chega até você." searchPlaceholder="Buscar alerta" radar="Alertas" radarRight={<RadarCredits />}>
       {content}
       {creating && <CreateAlertModal isMobile={isMobile} initialType={creating.initialType} onClose={() => setCreating(null)} onCreate={onCreate} onToast={fire} />}
       <Toast toast={toast} />
