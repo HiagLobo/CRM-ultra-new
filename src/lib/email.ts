@@ -1,18 +1,27 @@
 /**
  * Porta de e-mail (fronteira de fornecedor — ADR U4).
  * ResendEmail (produção) + ConsoleEmail (fallback dev, sem chave Resend).
- * Marca via brand.* + palette (nunca cravada). PII (e-mail) mascarada em log.
+ * Conteúdo em `emailCodigo.ts` (código) e `emailAviso.ts` (aviso ao fundador),
+ * remetente em `remetente.ts`. PII (e-mail) mascarada em log.
  *
  * SERVER-ONLY. Importa env (validado no boot, fail-closed).
  */
 import { Resend } from "resend";
 import { env, emailModoDev } from "./env";
-import { palette } from "./palette";
+import { montarEmailCodigo, type EmailCodigo } from "./emailCodigo";
+import { montarEmailAviso } from "./emailAviso";
+import { interpretarRemetente, montarRemetente, MENSAGEM_REMETENTE_INVALIDO, type Remetente } from "./remetente";
+import { ErroConfiguracao, ErroEnvioEmail } from "./erros";
 import type { BrandConfig } from "../config/brand";
 
 export interface ProvedorEmail {
   /** Envia o código de verificação para o e-mail informado. */
   enviarCodigo(para: string, codigo: string, brand: BrandConfig): Promise<void>;
+  /**
+   * Avisa o fundador (`para` = AVISO_LEADS_EMAIL) que um lead confirmou o e-mail.
+   * Não recebe dado do lead — o aviso é sem PII por construção (O7·S1).
+   */
+  enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void>;
 }
 
 /** Mascara o e-mail para uso seguro em log (não vaza o endereço completo). */
@@ -23,50 +32,45 @@ export function mascararEmail(email: string): string {
   return `${visivel}${"*".repeat(Math.max(1, usuario.length - visivel.length))}@${dominio}`;
 }
 
-function montarEmailCodigo(codigo: string, brand: BrandConfig): {
-  assunto: string;
-  html: string;
-  texto: string;
-} {
-  const assunto = `${brand.nomeCurto}: seu código de acesso`;
-  const texto =
-    `Seu código de acesso ao demo do ${brand.nome} é ${codigo}. ` +
-    `Validade: 10 minutos. Se você não solicitou, ignore este e-mail — ` +
-    `nunca pediremos seu código por telefone ou mensagem.`;
-  const html = `<div style="font-family:system-ui,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1C1A22">
-    <h2 style="color:${palette.primary};margin:0 0 8px">${brand.nome}</h2>
-    <p>Seu código de acesso ao demo é:</p>
-    <p style="font-size:32px;font-weight:700;letter-spacing:6px;color:${palette.primary};margin:16px 0">${codigo}</p>
-    <p style="color:#807C8A;font-size:14px">Validade: 10 minutos.</p>
-    <p style="color:#807C8A;font-size:13px">Se você não solicitou, ignore este e-mail. Nunca pediremos seu código por telefone ou mensagem.</p>
-  </div>`;
-  return { assunto, html, texto };
-}
-
 export class ConsoleEmail implements ProvedorEmail {
   async enviarCodigo(para: string, _codigo: string, _brand: BrandConfig): Promise<void> {
     // dev: só registra que "enviou" (e-mail mascarado). O código chega ao dev
     // pela resposta da rota (codigoDev), nunca pelo log.
     console.log(`[email:dev] código de acesso enviado para ${mascararEmail(para)} (modo desenvolvimento)`);
   }
+  async enviarAvisoNovoLead(_para: string, _brand: BrandConfig): Promise<void> {
+    // dev: nem o destinatário vai ao log — só o fato
+    console.log("[email:dev] aviso de lead novo confirmado (modo desenvolvimento) — veja o /admin");
+  }
 }
 
 export class ResendEmail implements ProvedorEmail {
   private readonly resend: Resend;
-  constructor(apiKey: string, private readonly remetente: string) {
+  constructor(apiKey: string, private readonly remetente: Remetente) {
     this.resend = new Resend(apiKey);
   }
   async enviarCodigo(para: string, codigo: string, brand: BrandConfig): Promise<void> {
-    const { assunto, html, texto } = montarEmailCodigo(codigo, brand);
+    // a resposta do corretor vai para o contato comercial, não para o remetente técnico
+    return this.enviar(para, montarEmailCodigo(codigo, brand), brand, brand.contato.email);
+  }
+
+  async enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void> {
+    return this.enviar(para, montarEmailAviso(brand), brand);
+  }
+
+  private async enviar(para: string, conteudo: EmailCodigo, brand: BrandConfig, responderPara?: string): Promise<void> {
     const { error } = await this.resend.emails.send({
-      from: this.remetente,
+      // sempre com nome de exibição ("<nome da marca> <acesso@…>"), nunca um endereço solto
+      from: montarRemetente(this.remetente, brand.nomeCurto),
+      ...(responderPara ? { replyTo: responderPara } : {}),
       to: para,
-      subject: assunto,
-      html,
-      text: texto,
+      subject: conteudo.assunto,
+      html: conteudo.html,
+      text: conteudo.texto,
     });
-    // erro sem PII (só o nome do erro do provedor); não engole — propaga.
-    if (error) throw new Error(`falha no envio de e-mail (${error.name})`);
+    // só o código do erro do Resend (ex.: daily_quota_exceeded), que vira a causa
+    // `email:<código>` no log; a mensagem pode citar o destinatário. Não engole — propaga.
+    if (error) throw new ErroEnvioEmail(error.name);
   }
 }
 
@@ -85,19 +89,28 @@ export function provedorEmail(): ProvedorEmail {
   return cache;
 }
 
-/** Seleciona o provedor: sem chave Resend → ConsoleEmail (dev); com chave → ResendEmail. */
+/**
+ * Seleciona o provedor: sem chave Resend → ConsoleEmail (dev); com chave → ResendEmail.
+ *
+ * Fail-closed: em produção o fallback de dev está desligado, então a ausência da
+ * chave lança `ErroConfiguracao` com o nome da variável — nunca cai num provedor
+ * meia-boca que "funciona" devolvendo o código na resposta. Quem chama trata:
+ * o pedido de acesso grava o lead sem código e loga `config:RESEND_API_KEY`
+ * (O7·S1 — o site fica no ar, o contato não se perde).
+ */
 export function criarProvedorEmail(): ProvedorEmail {
   if (emailModoDev) return new ConsoleEmail();
-  // fail-closed: em produção o fallback de dev está desligado, então a ausência
-  // da chave tem de parar o boot com mensagem clara — nunca cair num provedor
-  // meia-boca que "funciona" devolvendo o código na resposta.
   if (!env.RESEND_API_KEY) {
-    throw new Error(
+    throw new ErroConfiguracao(
+      "RESEND_API_KEY",
       "RESEND_API_KEY é obrigatória em produção (sem ela o código de verificação não sai por e-mail)",
     );
   }
   if (!env.EMAIL_FROM) {
-    throw new Error("EMAIL_FROM é obrigatório quando RESEND_API_KEY está definida");
+    throw new ErroConfiguracao("EMAIL_FROM", "EMAIL_FROM é obrigatório quando RESEND_API_KEY está definida");
   }
-  return new ResendEmail(env.RESEND_API_KEY, env.EMAIL_FROM);
+  // o env já validou o formato no boot; aqui só se chega sem validação em teste
+  const remetente = interpretarRemetente(env.EMAIL_FROM);
+  if (!remetente) throw new ErroConfiguracao("EMAIL_FROM", `EMAIL_FROM inválido: ${MENSAGEM_REMETENTE_INVALIDO}`);
+  return new ResendEmail(env.RESEND_API_KEY, remetente);
 }

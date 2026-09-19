@@ -4,11 +4,15 @@
  * Cada motivo de falha da O1 vira um texto e um caminho de saída: código errado
  * → tentar de novo; expirado ou tentativas esgotadas → reenviar; rate-limit →
  * esperar. Reenviar tem espera própria para não gastar o limite de 3/30min à toa.
+ * Reenvio sem e-mail (O7·S1): o contato já está salvo; a tela diz que o código
+ * novo não saiu e que um anterior ainda no prazo continua valendo.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
+import { EXPIRACAO_CODIGO_MIN } from "@/features/lead/schema";
 import { verificarCodigo, solicitarAcesso, type DadosSolicitacao } from "./api";
-import { Campo, Aviso, BotaoSubmit } from "./ui";
+import { Campo, Aviso, AvisoSemCodigo, BotaoSubmit } from "./ui";
+import { WidgetTurnstile, SITE_KEY_TURNSTILE, MENSAGEM_AGUARDE_TURNSTILE } from "./AntiRobo";
 import { liberar } from "@/lib/demoAccess";
 
 /** Espera entre reenvios (o limite real é do servidor: 3 envios / 30 min). */
@@ -32,6 +36,9 @@ export default function StepCodigo({
   const [precisaNovoCodigo, setPrecisaNovoCodigo] = React.useState(false);
   const [carregando, setCarregando] = React.useState(false);
   const [espera, setEspera] = React.useState(ESPERA_REENVIO_S);
+  const [semCodigo, setSemCodigo] = React.useState<string | null>(null);
+  const [tokenTurnstile, setTokenTurnstile] = React.useState<string | null>(null);
+  const [versaoTurnstile, setVersaoTurnstile] = React.useState(0);
 
   React.useEffect(() => {
     if (espera <= 0) return;
@@ -70,9 +77,19 @@ export default function StepCodigo({
     if (carregando || espera > 0) return;
     setErro(null);
     setOk(null);
+    setSemCodigo(null);
+    if (SITE_KEY_TURNSTILE && !tokenTurnstile) {
+      setErro(MENSAGEM_AGUARDE_TURNSTILE);
+      return;
+    }
     setCarregando(true);
-    const r = await solicitarAcesso(dados);
+    const r = await solicitarAcesso(dados, { turnstileToken: tokenTurnstile ?? undefined });
     setCarregando(false);
+    if (SITE_KEY_TURNSTILE) {
+      // token de uso único: o próximo reenvio precisa de outro
+      setTokenTurnstile(null);
+      setVersaoTurnstile((v) => v + 1);
+    }
 
     if (r.status === "enviado") {
       setCodigo("");
@@ -80,6 +97,11 @@ export default function StepCodigo({
       setPrecisaNovoCodigo(false);
       setEspera(ESPERA_REENVIO_S);
       setOk("Código novo enviado. Confira seu e-mail.");
+      return;
+    }
+    if (r.status === "recebido_sem_codigo") {
+      setSemCodigo(`${r.mensagem} Se o código anterior ainda estiver no prazo, ele continua valendo.`);
+      setEspera(ESPERA_REENVIO_S);
       return;
     }
     setErro(r.mensagem);
@@ -90,7 +112,7 @@ export default function StepCodigo({
     <form onSubmit={conferir} noValidate style={{ display: "grid", gap: 16 }}>
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: 0 }}>
         Enviamos um código de 6 dígitos para <strong style={{ color: p.ink }}>{dados.email}</strong>.
-        Ele vale por 10 minutos.
+        Ele vale por {EXPIRACAO_CODIGO_MIN} minutos. Não chegou? Confira o spam e a aba Promoções.
       </p>
 
       {codigoDev && (
@@ -100,6 +122,7 @@ export default function StepCodigo({
         </Aviso>
       )}
       {ok && <Aviso tipo="sucesso">{ok}</Aviso>}
+      {semCodigo && <AvisoSemCodigo mensagem={semCodigo} />}
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
 
       <Campo
@@ -118,6 +141,10 @@ export default function StepCodigo({
       <BotaoSubmit carregando={carregando} disabled={precisaNovoCodigo}>
         Verificar e entrar
       </BotaoSubmit>
+
+      {SITE_KEY_TURNSTILE && (
+        <WidgetTurnstile key={versaoTurnstile} siteKey={SITE_KEY_TURNSTILE} aoMudarToken={setTokenTurnstile} />
+      )}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "space-between", fontSize: 13.5 }}>
         <button

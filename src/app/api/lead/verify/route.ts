@@ -2,17 +2,24 @@
  * POST /api/lead/verify — confere o código e libera o acesso ao demo.
  * Rota fina: valida (Zod), delega ao domínio e, no sucesso, emite o token de
  * demo em cookie httpOnly. Sem PII em log/response.
+ *
+ * Na PRIMEIRA verificação de um lead, avisa o fundador (`AVISO_LEADS_EMAIL`,
+ * opcional) com um e-mail sem PII. O aviso nunca derruba a verificação.
+ *
+ * O 500 loga a causa segura (O7·S2) — ver RUNBOOK §6.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { env } from "@/lib/env";
 import { ipDaRequisicao } from "@/lib/req";
+import { brand } from "@/config/brand";
 import { leadStore } from "@/lib/criarLeadStore";
+import { provedorEmail } from "@/lib/email";
 import { rateLimiter } from "@/lib/criarRateLimiter";
+import { causaDoErro } from "@/lib/erros";
 import { assinarTokenDemo, COOKIE_TOKEN_DEMO, VALIDADE_TOKEN_DIAS } from "@/lib/token";
-import { VerifyInputSchema, verificarCodigo, type MotivoFalha } from "@/features/lead";
+import { VerifyInputSchema, avisarLeadNovo, verificarCodigo, type MotivoFalha } from "@/features/lead";
 
 export const runtime = "nodejs"; // store/crypto exigem runtime Node (não Edge)
-
 
 /** Motivo do domínio → status HTTP + texto para o usuário (a UI da O2 lê o `erro`). */
 const RESPOSTA_FALHA: Record<MotivoFalha, { status: number; mensagem: string }> = {
@@ -60,6 +67,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, erro: resultado.motivo, mensagem }, { status });
     }
 
+    // aviso ao fundador: só na 1ª verificação, sem PII, com prazo — e nunca lança.
+    // Esperado aqui (await): na Vercel, trabalho depois da resposta pode morrer.
+    await avisarLeadNovo(
+      {
+        para: env.AVISO_LEADS_EMAIL,
+        email: provedorEmail,
+        limiter: rateLimiter(),
+        limiteEnviosDia: env.LIMITE_ENVIOS_DIA,
+        brand,
+      },
+      resultado,
+    );
+
     const resposta = NextResponse.json({ ok: true });
     resposta.cookies.set(
       COOKIE_TOKEN_DEMO,
@@ -74,11 +94,10 @@ export async function POST(req: NextRequest) {
     );
     return resposta;
   } catch (err) {
-    // erro do store: não vaza caminho/conteúdo/PII — loga só o tipo do erro.
-    console.error(
-      "[/api/lead/verify] erro ao processar:",
-      err instanceof Error ? err.name : "desconhecido",
-    );
+    // banco/config/bug: só a categoria (config:VAR, db:SQLSTATE, rede:errno) — nunca a
+    // mensagem, que traz os valores da linha (e-mail, telefone) ou o host do banco.
+    const causa = causaDoErro(err);
+    console.error("[/api/lead/verify] erro ao processar:", causa);
     return NextResponse.json(
       { ok: false, erro: "falha_interna", mensagem: "falha ao processar verificação" },
       { status: 500 },

@@ -67,6 +67,9 @@ entraria no demo com o e-mail de qualquer outra. Correção em três partes:
   A porta já isolava a escolha — trocar de novo é escrever outro adaptador.
 - **(S2) Sem `DATABASE_URL` em produção, o boot para.** Subir na Vercel com o store de arquivo
   perderia todo lead na primeira reciclagem da lambda, **em silêncio** — o pior tipo de falha.
+  **Corrigido na O7·S2:** a trava nunca foi no boot — o pool é criado sob demanda, então ela dispara
+  na **primeira requisição** que precisa do banco (500 + log `config:DATABASE_URL`). A decisão
+  (recusar o disco efêmero) continua a mesma; o que mudou foi a descrição e a causa no log.
 - **(S2) `email UNIQUE` no banco** torna o upsert atômico de verdade (o de arquivo era
   last-write-wins entre processos) e o erro `23505` vira a **mesma** mensagem do `FileLeadStore`,
   para o domínio tratar a corrida igual nos dois adaptadores.
@@ -86,19 +89,30 @@ publicados da raiz, inclusive procurando e-mail de pessoa real.
 ## Checklist de publicação (depende do fundador)
 Passo a passo detalhado na **seção 3 do `waves/RUNBOOK.md`**. Resumo do que só você pode fazer:
 
-- [ ] **Banco:** criar o Postgres (Neon/Supabase) e rodar `migrations/001-leads.sql` uma vez.
-      Usar a connection string **pooled**.
-- [ ] **E-mail:** adicionar o domínio no Resend, publicar SPF/DKIM no DNS, esperar verificar, gerar a
-      API key. **Sem isso o Resend só entrega no e-mail dono da conta** — nenhum corretor recebe código.
-- [ ] **Deploy:** importar o repo na Vercel e configurar `APP_SECRET`, `ADMIN_PASSWORD`,
-      `DATABASE_URL`, `RESEND_API_KEY`, `EMAIL_FROM`.
-- [ ] **Smoke em produção** (5 passos da seção 3.4 do runbook) — é o que fecha os critérios 1 e 2 da onda.
+> Atualizado na O7·S2 para o setup real (Vercel Pro `gru1` + Neon São Paulo + Resend
+> `mail.crmultra.com.br` + domínio `crmultra.com.br`).
+
+- [ ] **Banco:** criar o Postgres no Neon (São Paulo) e rodar as **três** migrações uma vez, na
+      ordem — `001-leads.sql`, `002-auditoria.sql`, `003-rate-limit.sql` — no SQL Editor. Usar a
+      connection string **pooled** com `sslmode=verify-full`. Sem a 003, todo pedido de acesso e
+      login do admin dá erro; sem a 002, a auditoria LGPD não grava, em silêncio.
+- [ ] **Domínio:** `crmultra.com.br` adicionado na Vercel e, no registro.br, servidores DNS
+      `ns1.vercel-dns.com` / `ns2.vercel-dns.com`.
+- [ ] **E-mail:** `mail.crmultra.com.br` no Resend (São Paulo), registros na aba DNS da Vercel, status
+      Verified, chave "Sending access". **Sem verificar, o Resend só entrega no e-mail dono da conta**
+      — nenhum corretor recebe código.
+- [ ] **Deploy:** Vercel **Pro**, funções em `gru1`, variáveis `APP_SECRET`, `ADMIN_PASSWORD`,
+      `DATABASE_URL`, `RESEND_API_KEY`, `EMAIL_FROM` **só em Production**, sem `NODE_ENV`, e
+      **Redeploy** depois de configurar.
+- [ ] **Smoke em produção** (5 passos da seção 3.8 do runbook) + excluir o lead de teste — é o que
+      fecha os critérios 1 e 2 da onda.
 - [ ] **Política de Privacidade** publicada (o consentimento já cita ela).
 - [ ] **Contato cravado** no rodapé do portal trocado por `brand.contato` ou removido.
 
 ## Riscos
 - Deploy sem resolver D1 = **perder leads** (FileLeadStore não sobrevive à Vercel). Bloqueia a S2.
-  → **(S2) resolvido no código:** adaptador Postgres pronto + boot que para sem a URL.
+  → **(S2) resolvido no código:** adaptador Postgres pronto + trava sem a URL (na 1ª requisição,
+  com log `config:DATABASE_URL` — O7·S2).
 - Deploy sem D2 (domínio no Resend) = e-mail não chega a terceiros → ninguém verifica → ninguém entra.
 - As 3 pendências 🚨 herdadas seguem abertas e dependem do fundador: **Política de Privacidade**
   (o formulário já grava referência a ela), **contato cravado** no rodapé do portal e **gate

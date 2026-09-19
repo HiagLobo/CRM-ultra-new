@@ -37,79 +37,218 @@ Comandos:
 
 ## 2. As variáveis (o que é cada uma)
 
-Detalhe completo em `.env.example`. Resumo do que **quebra** se faltar:
+Detalhe de cada uma em `.env.example`. **Quando** o app confere cada variável importa, porque muda
+o sintoma:
 
-| Variável | Sem ela |
-|----------|---------|
-| `APP_SECRET` | o app não sobe (nada de token de demo nem sessão de admin) |
-| `ADMIN_PASSWORD` | o app não sobe |
-| `DATABASE_URL` | **em produção o boot para**; em dev, usa `data/leads.json` |
-| `RESEND_API_KEY` | **em produção o boot para**; em dev, o código aparece na tela |
-| `EMAIL_FROM` | o envio falha se houver `RESEND_API_KEY` |
+- **No build.** O `next build` carrega `src/lib/env.ts`, que valida as variáveis. Faltou ou está
+  inválida → o **deploy falha** com `[env] Configuração de ambiente inválida`, listando qual. Nada
+  vai ao ar.
+- **Na primeira requisição que precisa dela.** O deploy passa e o site abre, mas a primeira ação
+  que usa a variável falha, e o log diz qual foi (`config:<VARIÁVEL>`, seção 6). É o caso de
+  `DATABASE_URL`, `RESEND_API_KEY` e `EMAIL_FROM` ausentes.
+
+| Variável | Conferida | Sem ela (ou errada) |
+|----------|-----------|---------------------|
+| `APP_SECRET` | build | o deploy falha (16+ caracteres) |
+| `ADMIN_PASSWORD` | build | o deploy falha (8+ caracteres) |
+| `DATABASE_URL` | 1ª requisição | em produção **nenhum lead é gravado**: o site abre, mas pedir acesso e entrar no `/admin` dão erro, e o log diz `config:DATABASE_URL`. Em dev, usa `data/leads.json` |
+| `RESEND_API_KEY` | 1ª requisição | em produção o site **fica no ar**, mas nenhum código sai: todo lead é gravado sem código (a pessoa vê "Recebemos seus dados") e o log diz `config:RESEND_API_KEY`. Em dev, o código aparece na tela |
+| `EMAIL_FROM` | build (formato) · 1ª requisição (ausência) | formato inválido: o deploy falha. Ausente: igual à linha de cima, log `config:EMAIL_FROM` |
+| `LIMITE_ENVIOS_DIA` | build | opcional. Padrão 90 e-mails em 24h (códigos + avisos), abaixo dos 100/dia do Resend Free. Valor que não é número inteiro: o deploy falha |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | build | opcionais. Sem as duas, o formulário roda só com o campo-isca. **Uma sem a outra: o deploy falha** |
+| `AVISO_LEADS_EMAIL` | build (formato) | opcional. Sem ela, você não recebe o e-mail "novo lead confirmado" |
+| `DATABASE_POOL_MAX` | 1ª requisição | opcional. Não defina: o padrão (3 conexões por instância) é o certo para serverless |
+
+**`NODE_ENV` não é variável sua.** A Vercel define sozinha. Criar `NODE_ENV` no painel quebra o
+deploy: com `production` na instalação, as ferramentas de build (TypeScript) não são instaladas. Com
+outro valor, o app passa a se comportar como em desenvolvimento, no ar.
 
 O contato público (e-mail, telefone, CNPJ, razão social) **não** é variável de ambiente: sai de
 `src/config/brand.ts`, que é a fonte única. Há teste garantindo que esses dados não apareçam
 hardcoded em nenhum outro arquivo.
 
-As duas travas de produção são propositais: sem banco os leads se perdem em silêncio, e sem Resend
-a API devolveria o código de verificação para quem pedisse.
+As duas travas de produção são propositais. Sem banco, a Vercel gravaria os leads em disco
+temporário, e eles sumiriam na primeira reciclagem, em silêncio. A trava troca essa perda silenciosa
+por um erro visível no log, na primeira requisição (não no boot). Sem Resend, a API devolveria o
+código de verificação para quem pedisse. Essa trava **não derruba o cadastro**: o código nunca vai
+na resposta, mas o contato é gravado e aparece no `/admin`. Confira o log depois do primeiro deploy
+(seção 6) para não passar dias sem enviar código a ninguém.
 
 ---
 
-## 3. Publicar (Vercel + Postgres)
+## 3. Publicar (Vercel + Neon + Resend, domínio crmultra.com.br)
 
-**3.1. Banco.** Crie um Postgres no [Neon](https://neon.tech) ou [Supabase](https://supabase.com) e
-rode as **três** migrações, uma vez:
+O setup escolhido:
 
-```bash
-psql "$DATABASE_URL" -f migrations/001-leads.sql
-psql "$DATABASE_URL" -f migrations/002-auditoria.sql
-psql "$DATABASE_URL" -f migrations/003-rate-limit.sql
-```
+- **Vercel**, plano Pro, com as funções em São Paulo (`gru1`);
+- **Neon** (Postgres) em São Paulo;
+- **Resend** enviando de `mail.crmultra.com.br`, em São Paulo;
+- domínio **crmultra.com.br**, registrado no registro.br, com o DNS entregue à Vercel.
 
-(ou cole o conteúdo dos arquivos no SQL Editor do painel). São idempotentes.
-Use a connection string **pooled** do provedor — em serverless cada instância abre o próprio pool.
+Tudo fica no Brasil: cada lead demora menos e os dados pessoais não saem do país à toa.
 
-**3.2. E-mail.** No [Resend](https://resend.com): adicione o domínio, publique os registros SPF/DKIM
-no DNS e espere verificar. Sem domínio verificado o Resend **só entrega no e-mail dono da conta** —
-ou seja, nenhum corretor recebe o código. Depois gere a API key e defina `EMAIL_FROM` no domínio
-verificado (ex.: `acesso@crmultra.com.br`).
+Faça **na ordem**, porque cada passo usa algo do anterior. Separe cerca de 1 hora (a maior parte é
+esperar o DNS). Guarde os valores que for gerando num gerenciador de senhas. Nunca os coloque em
+arquivo do repositório (ele é público) nem em chat.
 
-**3.3. Deploy.** Importe o repositório na Vercel (framework Next.js, detectado sozinho).
+### 3.1. Vercel: plano e projeto
 
-> ⚠️ **Configure as variáveis ANTES do primeiro deploy.** Sem `APP_SECRET` e `ADMIN_PASSWORD`, o
-> **build falha** — não é erro em runtime, é na hora de compilar: as rotas importam `env.ts`, que
-> valida no boot, e o `next build` avalia esses módulos. O erro que aparece no log da Vercel é
-> `[env] Configuração de ambiente inválida`, listando o que falta.
+1. O projeto precisa estar num time **Pro** (Vercel → seu time → **Settings → Billing**). O Hobby
+   (grátis) é só para uso pessoal **não comercial**. Captar lead de um produto à venda é uso
+   comercial, e a Vercel pode pausar o projeto. Além disso, no Hobby o log dura só 1 hora.
+2. **Add New… → Project** → escolha o repositório no GitHub (autorize o GitHub se a Vercel pedir).
+   O framework é detectado sozinho (**Next.js**). Não mexa em Build/Output. Clique em **Deploy**.
+3. **Esse primeiro deploy vai falhar** com `[env] Configuração de ambiente inválida`. É o esperado:
+   as variáveis entram no passo 3.6, e só em Production. O projeto já fica criado.
+4. **Região das funções:** projeto → **Settings → Functions → Function Region** → **São Paulo,
+   Brazil (gru1)** → **Save**. Vale a partir do próximo deploy (passo 3.7). Sem isso as funções
+   rodam nos EUA (`iad1`): cada lead faria mais de dez idas e voltas entre os EUA e o banco em São
+   Paulo, o que põe 1 a 2 s a mais no formulário.
 
-As cinco de produção, todas em **Production** (e também em Preview, se quiser que os previews
-funcionem):
+### 3.2. Domínio: registro.br → Vercel
 
-| Variável | Onde nasce |
-|----------|------------|
-| `APP_SECRET` | você gera: `openssl rand -base64 32` |
-| `ADMIN_PASSWORD` | você escolhe — senha forte de verdade |
-| `DATABASE_URL` | Neon → **Connection string** → a versão **Pooled** |
-| `RESEND_API_KEY` | Resend → API Keys |
-| `EMAIL_FROM` | um endereço no domínio verificado no Resend |
+1. Vercel → projeto → **Settings → Domains** → **Add** → `crmultra.com.br`. Aceite a sugestão de
+   adicionar também `www.crmultra.com.br`, redirecionando para `crmultra.com.br`.
+2. A Vercel mostra "Invalid Configuration" e as formas de apontar o domínio. Escolha **Nameservers**
+   (Vercel DNS). Ela indica `ns1.vercel-dns.com` e `ns2.vercel-dns.com`.
+3. [registro.br](https://registro.br) → entre na conta → clique em **crmultra.com.br** → na parte de
+   DNS, **Alterar servidores DNS** → Servidor 1: `ns1.vercel-dns.com` · Servidor 2:
+   `ns2.vercel-dns.com` → **Salvar alterações**.
+4. Espere a Vercel mostrar **Valid Configuration** no domínio. Leva de minutos a algumas horas (raramente
+   até 48 h). O certificado HTTPS sai sozinho em seguida.
 
-**Neon, passo a passo:** crie o projeto (região mais perto do Brasil), copie a *connection string*
-**pooled** — a que tem `-pooler` no host — e cole em `DATABASE_URL`. A string já vem com
-`sslmode=require`, que é o que o app espera. Depois rode as três migrações da seção 3.1 pelo **SQL
-Editor** do Neon, colando o conteúdo de cada arquivo.
+> **A ordem importa.** Adicione o domínio na Vercel (passo 1) **antes** de trocar os servidores no
+> registro.br: é isso que faz os servidores da Vercel responderem por `crmultra.com.br`. Se o
+> registro.br acusar erro nos servidores logo depois de salvar, espere: ele testa de novo sozinho.
+>
+> **Daqui em diante, os registros DNS do domínio ficam na Vercel** (aba DNS, passo 3.3), não no
+> registro.br. Se um dia houver e-mail em `@crmultra.com.br` (Google Workspace, por exemplo), os
+> registros MX dele também vão lá.
 
-**Por que a pooled:** cada função serverless da Vercel abre o próprio pool. Com a string direta, um
-pico de tráfego estoura o limite de conexões do Postgres; a pooled resolve isso no lado do Neon.
+### 3.3. E-mail: Resend com `mail.crmultra.com.br`
 
-**3.4. Smoke em produção** (faça sempre, na ordem):
+1. [resend.com](https://resend.com) → **Domains → Add Domain** → Name: `mail.crmultra.com.br` →
+   Region: **São Paulo (sa-east-1)** → **Add**. A região não muda depois. O subdomínio separa a
+   reputação de envio do CRM do resto do domínio.
+2. O Resend lista os registros DNS a publicar. Normalmente são um **MX** e um **TXT** em `send.mail`
+   e um **TXT** de DKIM em `resend._domainkey.mail`.
+3. Vercel → aba **Domains** do painel do time (não a do projeto) → `crmultra.com.br` → **DNS
+   Records**. Para **cada** registro do Resend, clique em **Add Record** e copie o mesmo **Type**,
+   **Name**, **Value** e, no MX, **Priority**. O Name na Vercel é relativo a `crmultra.com.br`: se o
+   Resend mostrar o nome completo (`send.mail.crmultra.com.br`), digite só `send.mail`.
+4. De volta ao Resend → **Verify DNS Records** → espere o status **Verified** (costuma levar
+   minutos). **Sem Verified, o Resend só entrega no e-mail dono da conta.** Nenhum corretor recebe o
+   código.
+5. **API Keys → Create API Key** → Name: `crm-ultra-producao` → Permission: **Sending access** →
+   Domain: `mail.crmultra.com.br` → **Add**. A chave começa com `re_` e aparece **uma vez só**: leve
+   direto para `RESEND_API_KEY` no passo 3.6. Com "Sending access", a chave só envia, e só por esse
+   domínio. Se vazar, não lê nem apaga nada da conta.
+6. O remetente é `EMAIL_FROM = CRM Ultra <acesso@mail.crmultra.com.br>`. A caixa `acesso@` não
+   precisa existir: as respostas do corretor vão para o e-mail de contato da marca
+   (`brand.contato.email`, como reply-to). O endereço tem de terminar **exatamente** em
+   `@mail.crmultra.com.br`. Com outro domínio, o Resend recusa o envio (log `email:validation_error`).
 
-1. Abrir `/` — a landing carrega.
-2. "Acessar CRM" → preencher com um e-mail **seu** → o e-mail chega de verdade.
-3. Digitar o código → cai na escolha dos 3 painéis → abrir um.
-4. Entrar em `/admin/login` com a `ADMIN_PASSWORD` → o lead aparece na lista.
-5. Marcar "Contatado" → exportar CSV → conferir o arquivo.
+### 3.4. Banco: Neon em São Paulo
 
-Se qualquer passo falhar, veja a seção 6.
+1. [console.neon.tech](https://console.neon.tech) → **New Project** → Name: `crm-ultra` → Region:
+   **AWS São Paulo (sa-east-1)** → **Create**. A região não muda depois.
+2. No painel do projeto, **Connect** → Branch: o principal (`production` ou `main`) · Database:
+   `neondb` → ligue **Connection pooling** → copie a *connection string*. O host tem **`-pooler`**,
+   e ela termina em `?sslmode=require&channel_binding=require`.
+3. **Troque `sslmode=require` por `sslmode=verify-full`.** Fica assim (valores ilustrativos):
+
+   ```text
+   postgresql://neondb_owner:SENHA@ep-xxxx-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=verify-full&channel_binding=require
+   ```
+
+   O `verify-full` confere o certificado **e** o nome do servidor. Com `require`, cada instância nova
+   escreve um "SECURITY WARNING" do driver no log, e a próxima versão dele deixaria de conferir o
+   certificado. O `channel_binding` pode ficar (o app ignora).
+
+   **Por que a pooled:** cada função da Vercel abre o próprio pool. Com a string direta, um pico de
+   acessos estoura o limite de conexões do Postgres (log `db:53300`).
+4. **As 3 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
+   `migrations/001-leads.sql` no GitHub, copie **tudo**, cole e clique em **Run**. Repita com
+   `002-auditoria.sql` e `003-rate-limit.sql`, nessa ordem. São idempotentes: rodar de novo não
+   estraga nada.
+5. Confira no mesmo SQL Editor:
+
+   ```sql
+   SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY 1;
+   ```
+
+   Têm de voltar **`auditoria`, `leads` e `rate_limit`**. Se faltar a `rate_limit` (migração 003),
+   todo pedido de acesso e todo login do admin dão erro (log `db:42P01`). Se faltar a `auditoria`
+   (002), o sistema funciona, mas a trilha de auditoria da LGPD **não grava**, em silêncio.
+
+### 3.5. (Opcional) Turnstile e aviso de lead novo
+
+- **Anti-robô Turnstile** (grátis): Cloudflare → **Turnstile → Add widget** → Hostnames:
+  `crmultra.com.br` e `www.crmultra.com.br` → modo **Managed** → copie a **Site Key** e a **Secret
+  Key**. As duas entram juntas no passo 3.6 (uma sem a outra faz o deploy falhar). Sem Turnstile, o
+  campo-isca continua barrando robô simples.
+- **Aviso de lead novo:** escolha o e-mail onde quer saber que entrou lead (`AVISO_LEADS_EMAIL`). O
+  aviso não traz dado do lead, só o link do `/admin`.
+
+### 3.6. Variáveis, só em Production
+
+Vercel → projeto → **Settings → Environment Variables**. Para cada linha, preencha **Key** e
+**Value** e, em **Environments**, marque **só Production** (desmarque Preview e Development). Se a
+Vercel oferecer a opção **Sensitive**, ligue nas secretas.
+
+| Key | Value |
+|-----|-------|
+| `APP_SECRET` | gere com `openssl rand -base64 32` (ou 32+ caracteres aleatórios do gerenciador de senhas). Secreta |
+| `ADMIN_PASSWORD` | senha forte de verdade, só sua (16+ caracteres). Secreta |
+| `DATABASE_URL` | a string pooled do passo 3.4, com `sslmode=verify-full`. Secreta |
+| `RESEND_API_KEY` | a chave "Sending access" do passo 3.3. Secreta |
+| `EMAIL_FROM` | `CRM Ultra <acesso@mail.crmultra.com.br>` |
+| `LIMITE_ENVIOS_DIA` | opcional. No Resend Free, não crie (padrão 90). No plano pago, o limite diário do plano |
+| `AVISO_LEADS_EMAIL` | opcional (passo 3.5) |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | opcionais, as duas juntas (passo 3.5). A secret é secreta; a site key é pública e entra no build |
+
+**Não crie `NODE_ENV`** (seção 2).
+
+**Por que só Production.** Os deploys de Preview (um por branch ou pull request) rodam código que
+ainda não foi revisado. Com as variáveis de produção, eles gravariam na base real de leads e
+mandariam e-mail de verdade. Sem elas, o build do Preview falha de propósito: nenhum preview roda
+com dado real. Se um dia quiser um preview funcionando, crie um **branch do Neon** só para ele e
+variáveis **próprias** no escopo Preview (outro `APP_SECRET`, outra senha). Nunca use as de produção.
+
+### 3.7. Redeploy, toda vez que mexer em variável
+
+Variável nova ou alterada **só vale num deploy novo**. Vercel → projeto → **Deployments** → o deploy
+mais recente → menu **⋯** → **Redeploy** → confirme. Espere o status **Ready**. (Se o botão não
+aparecer, qualquer commit novo na branch `main` também dispara um deploy com as variáveis atuais.)
+
+Isso vale para sempre: trocou chave, senha, `DATABASE_URL`, limite ou Turnstile → **Redeploy**. Sem
+isso, o site no ar continua usando o valor antigo.
+
+### 3.8. Smoke em produção (faça sempre, na ordem)
+
+1. Abrir `https://crmultra.com.br`. A landing carrega, com o cadeado no navegador.
+2. **Acessar CRM** → preencher com um e-mail **seu** (telefone e CRECI seus ou de teste). O e-mail
+   com o código chega de `CRM Ultra <acesso@mail.crmultra.com.br>` (olhe também o spam). Se a
+   tela disser "Recebemos seus dados. O e-mail com o código não saiu agora", o e-mail **não** saiu:
+   veja o log (seção 6).
+3. Digitar o código → cai na escolha dos 3 painéis → abrir um. Com `AVISO_LEADS_EMAIL`, chega também
+   o aviso "novo lead confirmado".
+4. Entrar em `https://crmultra.com.br/admin/login` com a `ADMIN_PASSWORD`. O seu lead aparece na
+   lista, como verificado.
+5. Marcar **Contatado** → **Exportar CSV** → abrir no Excel (colunas separadas, datas legíveis).
+   Depois, no Neon → SQL Editor, confira a auditoria:
+
+   ```sql
+   SELECT acao, em FROM auditoria ORDER BY em DESC LIMIT 5;
+   ```
+
+   Têm de aparecer `lead.export` e `lead.status`.
+
+**Terminado o smoke, exclua o lead de teste:** `/admin` → **Excluir** na linha dele → confirme. Ele
+sai da lista e dos números do funil. A auditoria guarda só `lead.exclusao` com o id (motivo:
+pedido do titular, que no caso é você).
+
+Se algum passo falhar, veja a seção 6.
 
 ---
 
@@ -125,11 +264,43 @@ faz ele não insistir; para rever, o botão **Guia** tem "Refazer o tour desta t
 recusa rodar se encontrar `NODE_ENV=production` ou `DATABASE_URL` — semear a base real falsearia os
 números do seu funil.
 
+**Lead que chegou sem código.** Se o e-mail com o código não sai (Resend fora do ar ou travado por
+mais de 8 s, domínio não verificado, cota do dia, `RESEND_API_KEY`/`EMAIL_FROM` faltando) ou o teto
+diário (`LIMITE_ENVIOS_DIA`) estourou, o lead é **gravado mesmo assim**, com status "novo", e a pessoa vê "Recebemos seus dados. O e-mail com o código não saiu
+agora — tente reenviar em alguns minutos ou fale com a gente", com um botão de WhatsApp. No
+`/admin` ele aparece como qualquer lead novo: é só ligar ou chamar no WhatsApp. O motivo fica no
+log (seção 6).
+
+**Aviso de lead novo.** Com `AVISO_LEADS_EMAIL` definida, cada lead que confirma o e-mail pela
+**primeira** vez gera um aviso "novo lead confirmado" com o link do `/admin` — sem e-mail, telefone
+ou CRECI do lead no corpo. Pedir código de novo e reverificar não avisa outra vez. Se o aviso falhar,
+a verificação do corretor segue normal e o log registra `[aviso-lead]`.
+
+**Anti-robô.** O formulário tem um campo-isca invisível (robô preenche, gente não vê): quem
+preenche recebe um "sucesso" falso e nada é gravado nem enviado. Com as duas chaves do Turnstile
+no env, entra também o desafio da Cloudflare — quase sempre invisível; só aparece quando a
+Cloudflare desconfia.
+
 **Follow-up:** "Contatado" e "Descartar" mudam o status e ficam registrados na auditoria.
 "Descartar" **preserva** o histórico — use para parar o follow-up.
 
 **Exportar:** botão "Exportar CSV". Abre em Excel/Sheets. O arquivo tem PII: trate como documento
 confidencial (não mande por grupo de WhatsApp, não suba em drive público).
+
+**Backup.** Duas rotinas, e as duas valem sempre:
+
+- **Toda semana:** `/admin` → **Exportar CSV** → guarde o arquivo num lugar privado (pasta pessoal
+  protegida, nunca drive público nem grupo de WhatsApp, porque tem dado pessoal). É a cópia que
+  sobrevive a qualquer problema no banco.
+- **Antes de qualquer SQL manual que altere ou apague** (`UPDATE`, `DELETE`, `ALTER`, migração nova):
+  Neon → **Branches → Create branch** a partir do branch principal, com a data no nome (ex.:
+  `antes-2026-10-01`). O branch é uma cópia do banco naquele instante. Se der errado, os dados de
+  antes estão nele: dá para conferir, copiar de volta ou restaurar o branch principal pelo
+  **Restore** do Neon. Quando tiver certeza de que está tudo certo, apague o branch de backup (o
+  plano Free limita o número de branches).
+
+O Neon Free guarda histórico para restauração por poucas horas. Se a base crescer, avalie um plano
+com janela maior.
 
 ---
 
@@ -154,24 +325,95 @@ Em **produção** vai para a tabela `auditoria` do Postgres; em **dev**, para `d
 
 ## 6. Quando der problema
 
+### Onde olhar
+
+- **Log do app:** Vercel → projeto → **Logs**. Filtre pelo nível **Error**/**Warning** ou busque
+  pela rota (ex.: `[/api/lead]`). No plano Pro o log fica cerca de **1 dia**: olhe no mesmo dia e,
+  se precisar guardar, copie a linha.
+- **Resend:** aba **Emails** (cada envio: entregue, devolvido, marcado como spam) e aba **Logs**
+  (cada chamada ao Resend, com o erro de cada recusa).
+- **Neon:** **Monitoring** (conexões e uso) e o armazenamento do projeto (no plano Free, 0,5 GB;
+  cheio, nada mais é gravado).
+
+Nas primeiras semanas, abra o log e o `/admin` uma vez por dia.
+
+### Causa no log → o que fazer
+
+As linhas de erro do cadastro e do banco terminam numa **causa**: uma categoria curta, sem dado
+pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
+
+```text
+[/api/lead] erro ao processar: config:DATABASE_URL
+[/api/lead] código não enviado; lead gravado sem código: email:daily_quota_exceeded
+[/api/lead/verify] erro ao processar: db:42P01
+[aviso-lead] aviso de lead novo não saiu: email:PrazoEsgotado
+[db] conexão ociosa caiu (o pool abre outra): db:57P01
+```
+
+| Causa | O que quebrou | O que fazer |
+|-------|---------------|-------------|
+| `config:DATABASE_URL` | produção sem a variável do banco: **nenhum lead é gravado** | criar `DATABASE_URL` em Production (3.6) → **Redeploy** (3.7) |
+| `config:RESEND_API_KEY` · `config:EMAIL_FROM` | produção sem a variável do Resend: os leads entram **sem código** | criar a variável (3.6) → **Redeploy**. Os leads desse meio estão no `/admin`: fale com eles |
+| `teto_diario` | o dia bateu o `LIMITE_ENVIOS_DIA` (a proteção da cota do Resend) | o lead está no `/admin`: fale com ele. Volta sozinho em 24 h. No plano pago do Resend, suba o limite → Redeploy |
+| `email:daily_quota_exceeded` · `email:monthly_quota_exceeded` | acabou a cota do Resend (Free: 100 por dia, 3.000 por mês) | os leads estão no `/admin`. Espere virar o dia/mês ou mude de plano no Resend (e suba o `LIMITE_ENVIOS_DIA`) |
+| `email:rate_limit_exceeded` | envios demais por segundo | passageiro. Se repetir, pode ser robô no formulário: ligue o Turnstile (3.5) |
+| `email:validation_error` · `email:invalid_from_address` | domínio não verificado, ou `EMAIL_FROM` fora de `@mail.crmultra.com.br` | Resend → Domains: `mail.crmultra.com.br` está **Verified**? O `EMAIL_FROM` termina exatamente nele? Corrigiu a variável → Redeploy |
+| `email:missing_api_key` · `email:invalid_api_key` · `email:invalid_api_Key` · `email:restricted_api_key` | chave errada, revogada ou sem permissão para esse domínio | criar uma chave nova "Sending access" para `mail.crmultra.com.br` (3.3) → trocar `RESEND_API_KEY` → Redeploy |
+| `email:PrazoEsgotado` | o Resend não respondeu em 8 s | quase sempre passageiro. Se repetir, veja o status do Resend (resend-status.com) |
+| `email:application_error` · `email:internal_server_error` | falha do lado do Resend, ou da rede até ele | idem: status do Resend. O lead está no `/admin` |
+| `db:42P01` | uma tabela não existe: migração não rodada | rodar as 3 migrações (3.4, passos 4 e 5) |
+| `db:28P01` · `db:28000` | usuário ou senha do banco errados (ou a senha foi trocada no Neon) | copiar de novo a string pooled (3.4) → `DATABASE_URL` → Redeploy |
+| `db:3D000` | o banco do fim da string não existe | copiar de novo a string do Neon, sem editar o nome do banco |
+| `db:53300` | acabaram as conexões | usar a string **pooled** (host com `-pooler`) → Redeploy |
+| `db:53100` | banco cheio (Free: 0,5 GB) | Neon → armazenamento do projeto; mudar de plano |
+| `db:57P01` · `db:57P03` · `db:08006` · `db:ConexaoEncerrada` | o banco reiniciou ou derrubou a conexão (o Neon suspende o banco parado e o acorda na próxima consulta) | uma vez só, nada a fazer: o app reconecta sozinho. Muitas seguidas: veja o status do Neon |
+| `db:PrazoConexao` | o banco não respondeu em 10 s | status do Neon. Confira também se o host da `DATABASE_URL` é o do seu projeto |
+| `db:XX000` | erro interno do Neon, por exemplo projeto suspenso ou cota de processamento do plano Free esgotada | Neon → painel do projeto: há aviso? Resolva lá (ou mude de plano) |
+| `db:<outro código>` | o Postgres recusou por outro motivo | procure o código em postgresql.org/docs/current/errcodes-appendix.html |
+| `rede:ENOTFOUND` · `rede:EAI_AGAIN` | o host do banco não existe (string errada ou cortada), ou o DNS falhou | copiar de novo a string pooled inteira → Redeploy |
+| `rede:ECONNREFUSED` · `rede:ETIMEDOUT` · `rede:ECONNRESET` | o app não alcançou o banco | status do Neon. Se persistir, confira a string |
+| `tls:<código>` | o certificado do banco não confere (ex.: host trocado por um IP, ou um servidor que não é o do Neon) | usar o host exatamente como o Neon mostra |
+| `erro:<Nome>` | erro inesperado no código (bug) | anote a hora e a linha do log e abra uma tarefa |
+
+> As rotas do painel (`[/api/admin/...]`) ainda usam um formato próprio, quase igual: o `db:<código>`
+> do banco é o mesmo da tabela, mas a falha de rede aparece como `Error:ENOTFOUND` (e não
+> `rede:ENOTFOUND`) e um bug aparece só com o nome do erro (ex.: `TypeError`). O que fazer é o mesmo.
+
+### Sintoma → causa
+
 | Sintoma | Causa provável | O que fazer |
 |---------|----------------|-------------|
-| **Build falha na Vercel** com `[env] Configuração de ambiente inválida` | as variáveis não foram configuradas antes do deploy | configurar `APP_SECRET` e `ADMIN_PASSWORD` em Settings → Environment Variables e refazer o deploy |
-| App não sobe, erro `[env]` | falta `APP_SECRET`/`ADMIN_PASSWORD` | conferir as env vars do host |
-| App não sobe: "DATABASE_URL é obrigatória" | produção sem banco | criar o Postgres e configurar |
-| App não sobe: "RESEND_API_KEY é obrigatória" | produção sem Resend | configurar a key (a trava é proposital) |
-| E-mail não chega | domínio não verificado no Resend | verificar o domínio (SPF/DKIM); antes disso só chega no e-mail da conta |
+| **Deploy falha na Vercel** com `[env] Configuração de ambiente inválida` | variável conferida no build faltando ou inválida (a mensagem lista qual) | corrigir em Settings → Environment Variables (Production) → Redeploy |
+| Deploy falha com `EMAIL_FROM: use "endereço" ou "Nome <endereço>"` | `EMAIL_FROM` fora dos dois formatos (ex.: só o nome, sem `<…>`) | corrigir para `CRM Ultra <acesso@mail.crmultra.com.br>` → Redeploy |
+| Deploy falha dizendo que falta o TypeScript (`do not have the required package(s) installed`) | alguém criou `NODE_ENV` nas variáveis | apagar `NODE_ENV` → Redeploy |
+| Deploy de **Preview** (branch ou PR) falha com `[env]` | esperado: as variáveis são só de Production (3.6) | nada. Ou configure um Preview com banco e variáveis próprios |
+| Trocou uma variável e nada mudou | falta o Redeploy | 3.7 |
+| Domínio não abre, ou "Invalid Configuration" na Vercel | DNS ainda propagando, ou servidores errados no registro.br | conferir `ns1.vercel-dns.com` e `ns2.vercel-dns.com` no registro.br e esperar |
+| Site abre, mas **pedir acesso dá "algo falhou do nosso lado"** e o `/admin` não entra | log `config:DATABASE_URL`, `db:*` ou `rede:*` | tabela "Causa no log" acima |
+| **Todo** corretor vê "Recebemos seus dados…" | log `config:RESEND_API_KEY`, `config:EMAIL_FROM` ou `email:*` | tabela "Causa no log" acima |
+| E-mail não chega e não há erro no log | caiu no spam, ou o endereço devolveu | Resend → Emails: veja o status do envio. Se "Delivered", peça para a pessoa olhar o spam |
 | "Código expirado" | passou de 10 min | pedir novo código (botão reenviar) |
 | "Tentativas esgotadas" | 5 erros no mesmo código | pedir novo código |
-| "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail/IP | esperar a janela |
+| "Muitas solicitações" (429) | 3 envios em 30 min pelo mesmo e-mail, ou 10 pela mesma rede (IP) | esperar a janela |
+| Corretor vê "Recebemos seus dados. O e-mail com o código não saiu agora" | log `[/api/lead] código não enviado; lead gravado sem código: <causa>` | o lead está no `/admin`: fale com ele. A causa diz o resto (tabela acima) |
+| Tela pede "verificação de segurança" / 403 no `/api/lead` | Turnstile recusou o token (robô, ou widget expirado); log `token emitido fora do domínio: <host>` = o widget rodou fora de `brand.dominio`/subdomínio/`.vercel.app` | a pessoa refaz a verificação; se for com todo mundo, confira se a site key é do mesmo widget da secret e se o site está sendo aberto pelo domínio |
+| 503 no `/api/lead` + log `[turnstile]` | Cloudflare fora do ar, ou `TURNSTILE_SECRET_KEY` errada (log diz `config:TURNSTILE_SECRET_KEY`) | conferir a chave; se a Cloudflare estiver fora, tirar as duas chaves do Turnstile e fazer Redeploy desliga o desafio |
+| Não chega o aviso de lead novo | `AVISO_LEADS_EMAIL` vazia, teto diário atingido ou envio recusado (log `[aviso-lead]` com a causa) | conferir a variável e a causa; os leads continuam no `/admin` |
 | Login do admin em 429 | 5 tentativas em 5 min | esperar 5 min |
+| Login do admin dá erro de servidor | log `[/api/admin/login]` com a causa; o mais comum é `db:42P01` (falta a migração 003) | tabela "Causa no log" acima |
 | `/admin` volta para o login | sessão de 12h expirou | logar de novo |
 | Painel do demo rebate para a landing | sem cookie de acesso válido (expira em 7 dias) | pedir acesso e verificar o e-mail |
-| Painel de leads vazio em produção | `DATABASE_URL` errada ou migração não rodada | conferir a URL e rodar as migrações de `migrations/` |
+| Painel de leads vazio em produção | `DATABASE_URL` aponta para outro banco ou branch, ou a migração não rodou | conferir a string (3.4) e o log |
 
 **Rotacionar segredos.** Trocar `APP_SECRET` derruba **todos** os acessos ao demo e sessões de admin
 (é o efeito desejado se vazar). Trocar `ADMIN_PASSWORD` só afeta logins novos — as sessões abertas
-seguem válidas até 12h; para cortar na hora, troque também o `APP_SECRET`.
+seguem válidas até 12h; para cortar na hora, troque também o `APP_SECRET`. **Nos dois casos, só vale
+depois do Redeploy** (3.7).
+
+**Se algum segredo vazar:** troque o que vazou, e na dúvida todos: `APP_SECRET`, `ADMIN_PASSWORD`,
+a senha do banco (Neon → Roles → reset, e depois a nova `DATABASE_URL`) e a chave do Resend (apague
+a antiga em API Keys e crie outra). Faça o Redeploy e confira a auditoria. Vazamento de dado pessoal
+pode exigir comunicação à ANPD e aos titulares em prazo curto: fale com o advogado no mesmo dia.
 
 ---
 
@@ -201,7 +443,7 @@ Estas **não** são opinião de estilo — são coisas que faltam para a operaç
 | CSRF | **ok** — `SameSite=Lax` não envia cookie em requisição de outro site |
 | Cookies | **ok** — `httpOnly` + `SameSite` + `Secure` em produção |
 | Segredo no git | **ok** — só chaves vazias no `.env.example` |
-| Vazamento em erro | **ok** — resposta genérica, log só com o tipo do erro |
+| Vazamento em erro | **ok** — resposta genérica, log só com a causa (categoria sem PII, seção 6) |
 | Payload de 10 MB | **ok** — 400 em 0,06s, servidor de pé |
 | Rotas de admin sem sessão | **ok** — 401 |
 | Cabeçalhos de segurança | **corrigido** — HSTS, frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy |
@@ -229,14 +471,17 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/features/lead/` | domínio: schema Zod, criação, verificação, casos de uso do admin |
 | `src/lib/leadStore.ts` | **porta** de persistência + adaptador de arquivo (dev) |
 | `src/lib/leadStorePostgres.ts` | adaptador de produção |
-| `src/lib/db.ts` | pool do Postgres, compartilhado por todos os stores |
+| `src/lib/db.ts` | pool do Postgres, compartilhado por todos os stores (com ouvinte para conexão que cai) |
 | `src/lib/ratelimit*.ts` | limite de uso (Postgres em prod, memória em dev) |
 | `src/lib/auditoria.ts` | registro das ações do admin (banco em prod, arquivo em dev) |
 | `src/lib/criarLeadStore.ts` | escolhe o adaptador por ambiente |
 | `src/lib/email.ts` | porta de e-mail + Resend + fallback de dev |
+| `src/lib/erros.ts` | a causa segura do log (`config:`, `email:`, `db:`, `rede:`) — seção 6 |
+| `src/lib/turnstile.ts` · `prazo.ts` | anti-robô da Cloudflare · prazo das chamadas a fornecedor |
 | `src/lib/token.ts` / `adminAuth.ts` | HMAC do token de demo e da sessão de admin |
 | `src/components/landing/` · `acesso/` | landing e fluxo de acesso |
 | `src/app/admin/` | painel de leads |
+| `migrations/` | as 3 migrações do Postgres (seção 3.4) |
 | `waves/` | o plano por ondas e o estado de cada uma |
 
 Trocar de banco = escrever um adaptador novo com a mesma interface `LeadStore` e ensinar o
