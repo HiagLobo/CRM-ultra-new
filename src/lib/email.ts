@@ -1,13 +1,14 @@
 /**
  * Porta de e-mail (fronteira de fornecedor — ADR U4).
  * ResendEmail (produção) + ConsoleEmail (fallback dev, sem chave Resend).
- * Marca via brand.* + palette (nunca cravada). PII (e-mail) mascarada em log.
+ * Conteúdo em `emailCodigo.ts`, remetente em `remetente.ts`. PII (e-mail) mascarada em log.
  *
  * SERVER-ONLY. Importa env (validado no boot, fail-closed).
  */
 import { Resend } from "resend";
 import { env, emailModoDev } from "./env";
-import { palette } from "./palette";
+import { montarEmailCodigo } from "./emailCodigo";
+import { interpretarRemetente, montarRemetente, MENSAGEM_REMETENTE_INVALIDO, type Remetente } from "./remetente";
 import type { BrandConfig } from "../config/brand";
 
 export interface ProvedorEmail {
@@ -23,26 +24,6 @@ export function mascararEmail(email: string): string {
   return `${visivel}${"*".repeat(Math.max(1, usuario.length - visivel.length))}@${dominio}`;
 }
 
-function montarEmailCodigo(codigo: string, brand: BrandConfig): {
-  assunto: string;
-  html: string;
-  texto: string;
-} {
-  const assunto = `${brand.nomeCurto}: seu código de acesso`;
-  const texto =
-    `Seu código de acesso ao demo do ${brand.nome} é ${codigo}. ` +
-    `Validade: 10 minutos. Se você não solicitou, ignore este e-mail — ` +
-    `nunca pediremos seu código por telefone ou mensagem.`;
-  const html = `<div style="font-family:system-ui,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1C1A22">
-    <h2 style="color:${palette.primary};margin:0 0 8px">${brand.nome}</h2>
-    <p>Seu código de acesso ao demo é:</p>
-    <p style="font-size:32px;font-weight:700;letter-spacing:6px;color:${palette.primary};margin:16px 0">${codigo}</p>
-    <p style="color:#807C8A;font-size:14px">Validade: 10 minutos.</p>
-    <p style="color:#807C8A;font-size:13px">Se você não solicitou, ignore este e-mail. Nunca pediremos seu código por telefone ou mensagem.</p>
-  </div>`;
-  return { assunto, html, texto };
-}
-
 export class ConsoleEmail implements ProvedorEmail {
   async enviarCodigo(para: string, _codigo: string, _brand: BrandConfig): Promise<void> {
     // dev: só registra que "enviou" (e-mail mascarado). O código chega ao dev
@@ -53,13 +34,16 @@ export class ConsoleEmail implements ProvedorEmail {
 
 export class ResendEmail implements ProvedorEmail {
   private readonly resend: Resend;
-  constructor(apiKey: string, private readonly remetente: string) {
+  constructor(apiKey: string, private readonly remetente: Remetente) {
     this.resend = new Resend(apiKey);
   }
   async enviarCodigo(para: string, codigo: string, brand: BrandConfig): Promise<void> {
     const { assunto, html, texto } = montarEmailCodigo(codigo, brand);
     const { error } = await this.resend.emails.send({
-      from: this.remetente,
+      // sempre com nome de exibição ("<nome da marca> <acesso@…>"), nunca um endereço solto
+      from: montarRemetente(this.remetente, brand.nomeCurto),
+      // a resposta do corretor vai para o contato comercial, não para o remetente técnico
+      ...(brand.contato.email ? { replyTo: brand.contato.email } : {}),
       to: para,
       subject: assunto,
       html,
@@ -99,5 +83,8 @@ export function criarProvedorEmail(): ProvedorEmail {
   if (!env.EMAIL_FROM) {
     throw new Error("EMAIL_FROM é obrigatório quando RESEND_API_KEY está definida");
   }
-  return new ResendEmail(env.RESEND_API_KEY, env.EMAIL_FROM);
+  // o env já validou o formato no boot; aqui só se chega sem validação em teste
+  const remetente = interpretarRemetente(env.EMAIL_FROM);
+  if (!remetente) throw new Error(`EMAIL_FROM inválido: ${MENSAGEM_REMETENTE_INVALIDO}`);
+  return new ResendEmail(env.RESEND_API_KEY, remetente);
 }

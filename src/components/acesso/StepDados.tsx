@@ -2,13 +2,15 @@
 /**
  * Passo 1 — dados do corretor + consentimento (LGPD).
  * Valida no client com o MESMO Zod da rota (`LeadInputSchema`), então o que
- * passa aqui passa lá: telefone vira E.164 e o e-mail vem em minúsculas.
+ * passa aqui passa lá: telefone vira E.164, o e-mail vem em minúsculas e o
+ * CRECI chega na forma canônica ("CRECI-PE 12.345-F" → "PE 12345-F").
  * O texto do consentimento é o mesmo que o servidor carimba no registro.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { LeadInputSchema, TEXTO_CONSENTIMENTO } from "@/features/lead/schema";
+import { EXEMPLO_CRECI } from "@/features/lead/creci";
 import { solicitarAcesso, type DadosSolicitacao } from "./api";
 import { Campo, Aviso, BotaoSubmit, mascararTelefone } from "./ui";
 
@@ -94,7 +96,7 @@ export default function StepDados({
       <Campo
         id="acesso-creci"
         label="CRECI"
-        placeholder="SP 12345"
+        placeholder={EXEMPLO_CRECI}
         valor={creci}
         aoMudar={setCreci}
         erro={erro("creci")}

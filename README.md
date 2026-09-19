@@ -67,7 +67,8 @@ adaptador — o domínio não muda.
 
 ## Segurança e LGPD (o que está garantido)
 
-- Todo input externo passa por **Zod** antes de qualquer lógica; telefone normalizado para E.164.
+- Todo input externo passa por **Zod** antes de qualquer lógica; telefone normalizado para E.164 e
+  CRECI para a forma canônica (`PE 12345-F`), aceitando o jeito que o corretor digita.
 - Código de verificação guardado **só como hash** (HMAC-SHA256), com expiração de 10 min, máximo de
   5 tentativas e uso único. Comparação em tempo constante.
 - **Rate-limit** no envio do código (3/30 min por e-mail e IP) e no login do admin (5/5 min por IP).

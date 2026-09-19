@@ -4,9 +4,23 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 
+/**
+ * Tira o DDI 55 de um número colado ou autopreenchido ("+55 81 99999-8888"),
+ * que antes era cortado em 11 dígitos e virava um número embaralhado.
+ * 13 dígitos só chegam colados. Com 12, pode ser DDI + fixo ("+55 81 3333-4444")
+ * ou um dígito a mais digitado num celular de DDD 55 ("(55) 9…"): nesse caso —
+ * sem "+" e com o 9 do celular logo após o DDD — quem sobra é o dígito extra.
+ */
+function semDDI(valor: string, d: string): string {
+  if (!d.startsWith("55")) return d;
+  if (d.length === 13) return d.slice(2);
+  if (d.length === 12 && (valor.includes("+") || d[2] !== "9")) return d.slice(2);
+  return d;
+}
+
 /** Máscara de telefone BR conforme se digita: (11) 90000-0000 */
 export function mascararTelefone(valor: string): string {
-  const d = valor.replace(/\D/g, "").slice(0, 11);
+  const d = semDDI(valor, valor.replace(/\D/g, "")).slice(0, 11);
   if (d.length <= 2) return d;
   if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;

@@ -1,6 +1,7 @@
 /** API pública do slice de captação de leads. */
 export { LeadInputSchema, VerifyInputSchema, normalizarTelefoneBR } from "./schema";
 export type { LeadInput, VerifyInput } from "./schema";
+export { normalizarCreci, EXEMPLO_CRECI } from "./creci";
 export {
   criarOuAtualizarLead,
   gerarCodigo,

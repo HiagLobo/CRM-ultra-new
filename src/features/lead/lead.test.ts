@@ -130,4 +130,12 @@ describe("criarOuAtualizarLead (upsert + consentimento + código)", () => {
     expect(lead.codigo.expiraEm).toBe("2026-06-17T12:10:00.000Z");
     expect(lead.codigo.tentativas).toBe(0);
   });
+
+  it("grava o CRECI na forma normalizada (O7·S3)", async () => {
+    const { store } = novaStore();
+    const input = LeadInputSchema.parse(inputValido({ creci: "CRECI-PE 12.345-F" }));
+    await criarOuAtualizarLead(store, input, { ip: "1.2.3.4", secret: SECRET });
+    const lido = await store.buscarPorEmail("corretor@exemplo.com");
+    expect(lido?.creci).toBe("PE 12345-F");
+  });
 });

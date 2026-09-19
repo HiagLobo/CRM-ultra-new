@@ -28,6 +28,19 @@ describe("parseEnv (env fail-closed)", () => {
     expect(env.RESEND_API_KEY).toBeUndefined();
     expect(env.EMAIL_FROM).toBeUndefined();
   });
+
+  // O7·S3: "Nome <endereço>" derrubava o build (o env valida no import)
+  it("EMAIL_FROM aceita só o endereço ou Nome <endereço>", () => {
+    const so = parseEnv({ ...base, EMAIL_FROM: "acesso@mail.exemplo.com.br" });
+    expect(so.EMAIL_FROM).toBe("acesso@mail.exemplo.com.br");
+    const comNome = parseEnv({ ...base, EMAIL_FROM: "Marca Teste <acesso@mail.exemplo.com.br>" });
+    expect(comNome.EMAIL_FROM).toBe("Marca Teste <acesso@mail.exemplo.com.br>");
+  });
+
+  it("EMAIL_FROM fora do formato é recusado com o exemplo do formato certo", () => {
+    expect(() => parseEnv({ ...base, EMAIL_FROM: "Marca Teste" })).toThrow(/EMAIL_FROM: use "endereço" ou "Nome <endereço>"/);
+    expect(() => parseEnv({ ...base, EMAIL_FROM: "Marca\nBcc: x@exemplo.com <a@exemplo.com>" })).toThrow(/EMAIL_FROM/);
+  });
 });
 
 /**

@@ -4,9 +4,7 @@
  * Server/cliente: schema puro, sem segredos.
  */
 import { z } from "zod";
-
-/** CRECI — formato leve: UF opcional (0–2 letras) + 3–6 dígitos + sufixo opcional. */
-const CRECI_REGEX = /^[A-Za-z]{0,2}\s?\d{3,6}(-?\w)?$/;
+import { MENSAGEM_CRECI_INVALIDO, normalizarCreci } from "./creci";
 
 /**
  * Texto da política carimbado no consentimento (LGPD).
@@ -16,6 +14,13 @@ const CRECI_REGEX = /^[A-Za-z]{0,2}\s?\d{3,6}(-?\w)?$/;
 export const TEXTO_CONSENTIMENTO =
   "Autorizo o contato comercial e o tratamento dos meus dados (e-mail, telefone e CRECI) " +
   "para liberar o acesso ao demo do CRM Ultra, conforme a Política de Privacidade.";
+
+/**
+ * Validade do código de verificação, em minutos. Mora aqui (client-safe) pelo
+ * mesmo motivo do texto acima: o domínio, o e-mail e a tela do código leem o
+ * MESMO número — nada de "10 minutos" cravado em três lugares.
+ */
+export const EXPIRACAO_CODIGO_MIN = 10;
 
 /**
  * Normaliza um telefone brasileiro para E.164 (+55DDDNÚMERO).
@@ -52,7 +57,18 @@ export const LeadInputSchema = z.object({
     }
     return e164;
   }),
-  creci: z.string().trim().regex(CRECI_REGEX, "CRECI inválido"),
+  // normaliza antes de validar ("CRECI-PE 12.345-F" → "PE 12345-F") e guarda o normalizado
+  creci: z
+    .string()
+    .max(60, MENSAGEM_CRECI_INVALIDO)
+    .transform((valor, ctx) => {
+      const creci = normalizarCreci(valor);
+      if (!creci) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: MENSAGEM_CRECI_INVALIDO });
+        return z.NEVER;
+      }
+      return creci;
+    }),
   consentimento: z.literal(true, {
     errorMap: () => ({ message: "consentimento é obrigatório" }),
   }),

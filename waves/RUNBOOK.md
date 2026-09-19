@@ -72,8 +72,11 @@ Use a connection string **pooled** do provedor — em serverless cada instância
 
 **3.2. E-mail.** No [Resend](https://resend.com): adicione o domínio, publique os registros SPF/DKIM
 no DNS e espere verificar. Sem domínio verificado o Resend **só entrega no e-mail dono da conta** —
-ou seja, nenhum corretor recebe o código. Depois gere a API key e defina `EMAIL_FROM` no domínio
-verificado (ex.: `acesso@crmultra.com.br`).
+ou seja, nenhum corretor recebe o código. Depois gere a API key e defina `EMAIL_FROM` com um
+endereço **exatamente** no domínio verificado — no setup escolhido, o subdomínio `mail.crmultra.com.br`
+(ex.: `acesso@mail.crmultra.com.br`). Aceita também `CRM Ultra <acesso@mail.crmultra.com.br>`;
+sem nome, o e-mail sai como "{nome curto da marca} <endereço>". As respostas do corretor vão para
+`brand.contato.email` (reply-to), e o rodapé do e-mail traz o site e a empresa responsável.
 
 **3.3. Deploy.** Importe o repositório na Vercel (framework Next.js, detectado sozinho).
 
@@ -91,7 +94,7 @@ funcionem):
 | `ADMIN_PASSWORD` | você escolhe — senha forte de verdade |
 | `DATABASE_URL` | Neon → **Connection string** → a versão **Pooled** |
 | `RESEND_API_KEY` | Resend → API Keys |
-| `EMAIL_FROM` | um endereço no domínio verificado no Resend |
+| `EMAIL_FROM` | um endereço no domínio verificado no Resend (`endereço` ou `Nome <endereço>`) |
 
 **Neon, passo a passo:** crie o projeto (região mais perto do Brasil), copie a *connection string*
 **pooled** — a que tem `-pooler` no host — e cole em `DATABASE_URL`. A string já vem com
@@ -158,6 +161,7 @@ Em **produção** vai para a tabela `auditoria` do Postgres; em **dev**, para `d
 |---------|----------------|-------------|
 | **Build falha na Vercel** com `[env] Configuração de ambiente inválida` | as variáveis não foram configuradas antes do deploy | configurar `APP_SECRET` e `ADMIN_PASSWORD` em Settings → Environment Variables e refazer o deploy |
 | App não sobe, erro `[env]` | falta `APP_SECRET`/`ADMIN_PASSWORD` | conferir as env vars do host |
+| Build falha com `EMAIL_FROM: use "endereço" ou "Nome <endereço>"` | `EMAIL_FROM` fora dos dois formatos (ex.: só o nome, sem `<…>`) | corrigir para `acesso@…` ou `Nome <acesso@…>` e refazer o deploy |
 | App não sobe: "DATABASE_URL é obrigatória" | produção sem banco | criar o Postgres e configurar |
 | App não sobe: "RESEND_API_KEY é obrigatória" | produção sem Resend | configurar a key (a trava é proposital) |
 | E-mail não chega | domínio não verificado no Resend | verificar o domínio (SPF/DKIM); antes disso só chega no e-mail da conta |

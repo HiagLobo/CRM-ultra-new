@@ -9,7 +9,7 @@
 import { createHmac, randomInt, randomUUID } from "crypto";
 import type { LeadStore } from "../../lib/leadStore";
 import type { LeadInput } from "./schema";
-import { TEXTO_CONSENTIMENTO } from "./schema";
+import { EXPIRACAO_CODIGO_MIN, TEXTO_CONSENTIMENTO } from "./schema";
 
 export type StatusLead = "novo" | "verificado" | "contatado" | "descartado";
 
@@ -47,8 +47,8 @@ export interface Lead {
  */
 export { TEXTO_CONSENTIMENTO };
 
-/** Validade do código de verificação, em minutos. */
-export const EXPIRACAO_CODIGO_MIN = 10;
+/** Validade do código, em minutos — definida no `schema.ts` (a tela do código também lê). */
+export { EXPIRACAO_CODIGO_MIN };
 /** Máximo de tentativas de verificação por código (anti-força bruta). */
 export const MAX_TENTATIVAS = 5;
 

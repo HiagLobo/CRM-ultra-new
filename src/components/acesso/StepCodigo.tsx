@@ -7,6 +7,7 @@
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
+import { EXPIRACAO_CODIGO_MIN } from "@/features/lead/schema";
 import { verificarCodigo, solicitarAcesso, type DadosSolicitacao } from "./api";
 import { Campo, Aviso, BotaoSubmit } from "./ui";
 import { liberar } from "@/lib/demoAccess";
@@ -90,7 +91,7 @@ export default function StepCodigo({
     <form onSubmit={conferir} noValidate style={{ display: "grid", gap: 16 }}>
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: 0 }}>
         Enviamos um código de 6 dígitos para <strong style={{ color: p.ink }}>{dados.email}</strong>.
-        Ele vale por 10 minutos.
+        Ele vale por {EXPIRACAO_CODIGO_MIN} minutos. Não chegou? Confira o spam e a aba Promoções.
       </p>
 
       {codigoDev && (

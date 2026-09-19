@@ -8,6 +8,7 @@
  * Em testes, defina SKIP_ENV_VALIDATION=1 e use `parseEnv(raw)` com entradas explícitas.
  */
 import { z } from "zod";
+import { interpretarRemetente, MENSAGEM_REMETENTE_INVALIDO } from "./remetente";
 
 /** Campo opcional que trata string vazia de `.env` (ex.: `RESEND_API_KEY=`) como não definida. */
 const opcional = <T extends z.ZodTypeAny>(schema: T) =>
@@ -18,7 +19,14 @@ export const envSchema = z.object({
 
   // E-mail (Resend). Opcional: sem chave, liga o fallback de desenvolvimento (ConsoleEmail).
   RESEND_API_KEY: opcional(z.string().min(1).optional()),
-  EMAIL_FROM: opcional(z.string().email().optional()),
+  // "endereço" ou "Nome <endereço>" — o nome de exibição não derruba mais o build (O7·S3)
+  EMAIL_FROM: opcional(
+    z
+      .string()
+      .trim()
+      .refine((v) => interpretarRemetente(v) !== null, MENSAGEM_REMETENTE_INVALIDO)
+      .optional(),
+  ),
 
   // Segredo para assinar tokens (HMAC) — obrigatório. Gere um valor longo e aleatório.
   APP_SECRET: z.string().min(16, "defina um valor com 16+ caracteres aleatórios"),
