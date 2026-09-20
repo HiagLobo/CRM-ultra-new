@@ -73,6 +73,19 @@ export const COMENTARIO_MAX = 400;
 /** Quantos comentários a vitrine pública mostra, no máximo. */
 export const COMENTARIOS_NA_VITRINE = 12;
 
+const ESTRELA_CHEIA = "★";
+const ESTRELA_VAZIA = "☆";
+
+/**
+ * `★★★★☆` — o mesmo desenho no painel e no aviso por e-mail, legível em
+ * qualquer lugar (inclusive num cliente de e-mail que ignora estilo).
+ * Client-safe: a tela usa esta mesma função.
+ */
+export function estrelasEmTexto(estrelas: number, maximo = ESTRELAS_MAX): string {
+  const cheias = Math.max(0, Math.min(maximo, Math.round(estrelas)));
+  return ESTRELA_CHEIA.repeat(cheias) + ESTRELA_VAZIA.repeat(maximo - cheias);
+}
+
 // O texto do consentimento (o que a tela mostra e o banco guarda) mora em
 // `consentimento.ts` — fonte única das três frases, dividida com a trilha da
 // tela para as palavras nunca divergirem. Este módulo fica só com os tipos.

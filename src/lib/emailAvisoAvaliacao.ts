@@ -10,7 +10,11 @@
 import { palette } from "./palette";
 import type { EmailCodigo } from "./emailCodigo";
 import { escaparHtml, urlDoAdmin } from "./emailAviso";
+import { estrelasEmTexto } from "../features/avaliacao/avaliacao";
 import type { BrandConfig } from "../config/brand";
+
+/** O desenho das estrelas mora no domínio (o painel usa o mesmo); re-exportado por conveniência. */
+export { estrelasEmTexto };
 
 /** O que o aviso carrega. Note que não há campo nenhum de pessoa — nem opcional. */
 export interface AvisoAvaliacao {
@@ -18,15 +22,6 @@ export interface AvisoAvaliacao {
   estrelas: number;
   /** `true` quando o filtro automático segurou o texto para conferência. */
   pendente: boolean;
-}
-
-const ESTRELA_CHEIA = "★";
-const ESTRELA_VAZIA = "☆";
-
-/** `★★★★☆` — o mesmo desenho do painel, legível em qualquer cliente de e-mail. */
-export function estrelasEmTexto(estrelas: number, maximo = 5): string {
-  const cheias = Math.max(0, Math.min(maximo, Math.round(estrelas)));
-  return ESTRELA_CHEIA.repeat(cheias) + ESTRELA_VAZIA.repeat(maximo - cheias);
 }
 
 export function montarEmailAvisoAvaliacao(brand: BrandConfig, aviso: AvisoAvaliacao): EmailCodigo {

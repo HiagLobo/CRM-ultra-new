@@ -9,6 +9,7 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { dataHoraRecife, diaBR, telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
+import type { AvaliacaoAdmin } from "@/features/avaliacao";
 import { ROTULO_CANAL, type ProximaAcao, type StatusLead } from "@/features/lead/funil";
 import type { ConferenciaCreci } from "@/features/lead/creci";
 import SeletorEtapa from "./SeletorEtapa";
@@ -17,6 +18,7 @@ import BlocoNotas from "./BlocoNotas";
 import BlocoCreci from "./BlocoCreci";
 import Dados from "./Dados";
 import { dataHoraCurta, textoRepetido, type Repetido } from "./selosLead";
+import { ROTULO_SITUACAO, avaliacaoNaFicha } from "./rotulosAvaliacao";
 import { identificacaoLead, linkEmailLead, linkWhatsappLead } from "./contatoLead";
 import { acao, botaoContorno, caixaErro, tituloSecao } from "./estilos";
 import type { ResultadoAcao } from "./useLeadsAdmin";
@@ -28,6 +30,7 @@ export default function GavetaLead({
   agora,
   ocupado,
   repetido,
+  avaliacao,
   escAtivo,
   aviso,
   aoFechar,
@@ -42,6 +45,8 @@ export default function GavetaLead({
   ocupado: boolean;
   /** O que este lead divide com outros da lista (o selo "repetido"; no celular, só aqui dá para ler o motivo). */
   repetido?: Repetido;
+  /** A avaliação que esta pessoa deu ao demo (O10), quando houver. */
+  avaliacao?: AvaliacaoAdmin;
   /** Desligado enquanto um diálogo está aberto por cima (o Esc é dele). */
   escAtivo: boolean;
   aviso: string | null;
@@ -182,6 +187,10 @@ export default function GavetaLead({
                 ["Entrou em", dataHoraRecife(lead.criadoEm)],
                 ["E-mail confirmado", lead.verificadoEm ? dataHoraRecife(lead.verificadoEm) : "não"],
                 ["Último acesso ao demo", lead.ultimoAcessoEm ? dataHoraCurta(lead.ultimoAcessoEm) : "—"],
+                // a nota que a pessoa deu, com a situação do texto no site (O10·S3)
+                ...(avaliacao
+                  ? ([["Avaliou o demo", `${avaliacaoNaFicha(avaliacao)} · ${ROTULO_SITUACAO[avaliacao.status]}`]] as const)
+                  : []),
               ]}
             />
           </section>

@@ -1,10 +1,13 @@
 "use client";
 /**
- * Painel de leads: cards do funil, abas por etapa (com "Hoje"), busca, lista,
- * gaveta do lead e "+ Novo lead". O estado e as chamadas à API moram em
- * `useLeadsAdmin`; as regras (Hoje, abas, formulários) em funções puras; aqui
- * fica a composição. Estados de carregando, erro, lista vazia e aba vazia —
- * nada de tela em branco.
+ * Painel do fundador, em duas seções: **Leads** (cards do funil, abas por
+ * etapa, busca, lista e gaveta) e **Avaliações** (O10·S3). O estado e as
+ * chamadas à API moram em `useLeadsAdmin` e `useAvaliacoesAdmin`; as regras
+ * (Hoje, abas, formulários) em funções puras; aqui fica a composição. Estados
+ * de carregando, erro, lista vazia e aba vazia — nada de tela em branco.
+ *
+ * A gaveta do lead fica fora das seções, de propósito: clicar em quem avaliou
+ * abre a ficha por cima da lista de avaliações, sem perder o lugar.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
@@ -20,7 +23,11 @@ import ModalEtapa from "./ModalEtapa";
 import ModalNovoLead from "./ModalNovoLead";
 import ConfirmarExclusao from "./ConfirmarExclusao";
 import Aviso, { FaixaErro, LinkAviso } from "./Aviso";
+import SeletorSecao, { type Secao } from "./SeletorSecao";
+import PainelAvaliacoes from "./PainelAvaliacoes";
 import { useLeadsAdmin, type ResultadoAcao } from "./useLeadsAdmin";
+import { useAvaliacoesAdmin } from "./useAvaliacoesAdmin";
+import { contarPorAba as contarAvaliacoes, porLead } from "./listaAvaliacoes";
 import { useAgora } from "./useAgora";
 import { pedeDetalhe, type EtapaComDetalhe } from "./etapas";
 import { abaInicial, contarPorAba, filtrarPorAba, textoContagem, type Aba } from "./filtroLeads";
@@ -30,7 +37,9 @@ const AVISO_OBSERVACAO = "Lead cadastrado, mas a observação não foi salva. Es
 
 export default function PainelLeads() {
   const painel = useLeadsAdmin();
+  const avaliacoes = useAvaliacoesAdmin();
   const agora = useAgora();
+  const [secao, setSecao] = React.useState<Secao>("leads");
   const [busca, setBusca] = React.useState("");
   const [aba, setAba] = React.useState<Aba | null>(null);
   const [abertoId, setAbertoId] = React.useState<string | null>(null);
@@ -49,6 +58,8 @@ export default function PainelLeads() {
   );
   const aberto = abertoId ? (painel.leads.find((l) => l.id === abertoId) ?? null) : null;
   const repetidos = React.useMemo(() => repetidosDaLista(painel.leads), [painel.leads]);
+  const avaliacaoPorLead = React.useMemo(() => porLead(avaliacoes.avaliacoes), [avaliacoes.avaliacoes]);
+  const paraConferir = React.useMemo(() => contarAvaliacoes(avaliacoes.avaliacoes).pendente, [avaliacoes.avaliacoes]);
 
   // a aba de abertura é decidida uma vez, com a lista carregada — depois, só o fundador troca
   React.useEffect(() => {
@@ -105,6 +116,12 @@ export default function PainelLeads() {
       />
 
       <main className="ds-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 32px 40px" }}>
+        <SeletorSecao ativa={secao} paraConferir={paraConferir} aoEscolher={setSecao} />
+
+        {secao === "avaliacoes" ? (
+          <PainelAvaliacoes painel={avaliacoes} aoAbrirLead={abrirLead} />
+        ) : (
+        <div id="secao-leads" role="tabpanel">
         {painel.erro && <FaixaErro mensagem={painel.erro} aoRecarregar={() => void painel.carregar()} />}
 
         <CardsTopo leads={painel.leads} carregado={painel.carregado} agora={agora} aoAbrirAba={setAba} />
@@ -141,6 +158,8 @@ export default function PainelLeads() {
             </div>
           </>
         )}
+        </div>
+        )}
       </main>
 
       {aberto && (
@@ -150,6 +169,7 @@ export default function PainelLeads() {
           agora={agora}
           ocupado={painel.ocupados.has(aberto.id)}
           repetido={repetidos.get(aberto.id)}
+          avaliacao={avaliacaoPorLead.get(aberto.id)}
           escAtivo={!pedidoEtapa && !confirmando && !novoAberto}
           aviso={avisoGaveta}
           aoFechar={fecharGaveta}

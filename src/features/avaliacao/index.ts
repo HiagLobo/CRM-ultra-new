@@ -6,6 +6,7 @@ export {
   ESTRELAS_MAX,
   COMENTARIO_MAX,
   COMENTARIOS_NA_VITRINE,
+  estrelasEmTexto,
   normalizarIdentificacao,
   normalizarStatusAvaliacao,
   resumo,
