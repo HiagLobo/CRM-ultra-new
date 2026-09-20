@@ -19,6 +19,17 @@ export type PapelDepoimento = "Corretor" | "Corretora" | "Imobiliária";
 /** O que a pessoa fez com o produto. Só a demonstração, enquanto não houver cliente pagante. */
 export type ContextoDepoimento = "testou a demonstração";
 
+/**
+ * Nota que a pessoa DEU, com o registro de quando e onde. Estrela sem isto é
+ * nota inventada (propaganda enganosa, CDC art. 37) e o teste reprova.
+ */
+export interface AvaliacaoDepoimento {
+  /** De 1 a 5, inteira, exatamente como a pessoa respondeu. */
+  estrelas: 1 | 2 | 3 | 4 | 5;
+  em: string;
+  canal: "WhatsApp" | "e-mail" | "presencial";
+}
+
 export interface Depoimento {
   /** Identificador curto e estável (usado como chave da lista). */
   id: string;
@@ -32,9 +43,17 @@ export interface Depoimento {
   contexto: ContextoDepoimento;
   /** Prova de que pode ser publicado. Sem isto, o teste reprova. */
   autorizacao: { em: string; canal: "WhatsApp" | "e-mail" | "presencial" };
+  /** A nota, quando a pessoa deu uma. Quem não deu não mostra estrela. */
+  avaliacao?: AvaliacaoDepoimento;
 }
 
 const AUTORIZADO_EM_19_09 = { em: "2026-09-19", canal: "WhatsApp" } as const;
+
+/** Nota dada no mesmo dia, respondendo "de 1 a 5, que nota você dá?" no WhatsApp. */
+const notaEm19_09 = (estrelas: AvaliacaoDepoimento["estrelas"]): AvaliacaoDepoimento => ({
+  estrelas,
+  ...AUTORIZADO_EM_19_09,
+});
 
 export const DEPOIMENTOS: readonly Depoimento[] = [
   {
@@ -46,6 +65,7 @@ export const DEPOIMENTOS: readonly Depoimento[] = [
     local: "Recife",
     contexto: "testou a demonstração",
     autorizacao: AUTORIZADO_EM_19_09,
+    avaliacao: notaEm19_09(5),
   },
   {
     id: "daniela-sao-paulo",
@@ -56,6 +76,7 @@ export const DEPOIMENTOS: readonly Depoimento[] = [
     local: "São Paulo",
     contexto: "testou a demonstração",
     autorizacao: AUTORIZADO_EM_19_09,
+    avaliacao: notaEm19_09(5),
   },
   {
     id: "jorge-goias",
@@ -65,8 +86,25 @@ export const DEPOIMENTOS: readonly Depoimento[] = [
     local: "Goiás",
     contexto: "testou a demonstração",
     autorizacao: AUTORIZADO_EM_19_09,
+    avaliacao: notaEm19_09(4),
   },
 ];
+
+/**
+ * Média das notas dadas, calculada na hora (nunca um número escrito à mão) e
+ * arredondada em uma casa. `null` enquanto ninguém tiver avaliado.
+ */
+export function mediaDasNotas(lista: readonly Depoimento[] = DEPOIMENTOS): { media: number; quantas: number } | null {
+  const notas = lista.map((d) => d.avaliacao?.estrelas).filter((n): n is NonNullable<typeof n> => n !== undefined);
+  if (notas.length === 0) return null;
+  const soma = notas.reduce((t, n) => t + n, 0);
+  return { media: Math.round((soma / notas.length) * 10) / 10, quantas: notas.length };
+}
+
+/** "4,7 de 5" com a vírgula decimal do português. */
+export function notaEmTexto(media: number): string {
+  return `${media.toFixed(1).replace(".", ",")} de 5`;
+}
 
 /** Como a assinatura aparece na tela: "Rodrigo, corretor em Recife". */
 export function assinatura(d: Depoimento): string {

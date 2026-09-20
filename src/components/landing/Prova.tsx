@@ -9,7 +9,7 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
-import { DEPOIMENTOS, assinatura } from "@/content/depoimentos";
+import { DEPOIMENTOS, assinatura, mediaDasNotas, notaEmTexto } from "@/content/depoimentos";
 import { Secao, Eyebrow, Titulo, Sub, AvisoIlustrativo } from "./ui";
 
 const GARANTIAS: { icone: string; titulo: string; texto: string }[] = [
@@ -33,7 +33,22 @@ const GARANTIAS: { icone: string; titulo: string; texto: string }[] = [
   },
 ];
 
+/** Estrelas cheias até a nota, vazias no resto. Só aparece com nota de gente. */
+function Estrelas({ nota, rotulo }: { nota: number; rotulo: string }) {
+  return (
+    <span role="img" aria-label={rotulo} style={{ display: "inline-flex", gap: 2, fontSize: 16, lineHeight: 1 }}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <span key={n} aria-hidden="true" style={{ color: n <= nota ? p.gold : p.g300 }}>
+          ★
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export default function Prova() {
+  const nota = mediaDasNotas();
+
   return (
     <Secao>
       <div style={{ maxWidth: 720, marginBottom: 40 }}>
@@ -77,9 +92,18 @@ export default function Prova() {
           >
             Quem testou a demonstração
           </h3>
-          <p style={{ fontSize: 14, color: p.g500, margin: "6px 0 20px" }}>
+          <p style={{ fontSize: 14, color: p.g500, margin: "6px 0 16px" }}>
             Corretores que pediram acesso e navegaram pelos painéis. Publicado com autorização de cada um.
           </p>
+          {nota && (
+            <p style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 20px", fontSize: 14, color: p.g700 }}>
+              <Estrelas nota={nota.media} rotulo={`média de ${notaEmTexto(nota.media)} estrelas`} />
+              <span>
+                <strong style={{ color: p.ink }}>{notaEmTexto(nota.media)}</strong>, {nota.quantas}{" "}
+                {nota.quantas === 1 ? "avaliação" : "avaliações"} de quem testou
+              </span>
+            </p>
+          )}
           <div className="ds-cards" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 22 }}>
             {DEPOIMENTOS.map((d) => (
               <figure
@@ -95,12 +119,16 @@ export default function Prova() {
                   gap: 14,
                 }}
               >
-                <span
-                  aria-hidden="true"
-                  style={{ fontFamily: "var(--font-display)", fontSize: 38, lineHeight: 0.6, color: p.lilac2, height: 22 }}
-                >
-                  &ldquo;
-                </span>
+                {d.avaliacao ? (
+                  <Estrelas nota={d.avaliacao.estrelas} rotulo={`${d.avaliacao.estrelas} de 5 estrelas`} />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    style={{ fontFamily: "var(--font-display)", fontSize: 38, lineHeight: 0.6, color: p.lilac2, height: 22 }}
+                  >
+                    &ldquo;
+                  </span>
+                )}
                 <blockquote style={{ margin: 0, fontSize: 15.5, lineHeight: 1.65, color: p.ink }}>
                   &ldquo;{d.texto}&rdquo;
                 </blockquote>
