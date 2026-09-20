@@ -25,4 +25,5 @@ contagem do site subir com a nota dele. Decisões do fundador em 2026-09-19 (ver
    revisão sem bloqueadores; conferência no navegador (desktop e 390 px).
 
 ## Pendências fora de escopo
-_(preencher na execução)_
+Ver `10-avaliacoes/ESTADO.md`: rodar a 006 no Neon antes do deploy, áreas novas fora da
+guarda das 300 linhas, conferir o cache de borda do `GET /api/avaliacoes` na Vercel.

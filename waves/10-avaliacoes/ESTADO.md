@@ -3,9 +3,24 @@
 ## Status das subs
 | Sub | Trilha | Status | Commits | Revisão cética |
 |-----|--------|--------|---------|----------------|
-| S1 — Modelo e API | A | ⬜ | — | |
-| S3 — Painel | A | ⬜ | — | |
-| S2 — Convite no demo e vitrine | B | ✅ | `onda-10/sub-S2` + correções | 🚨 reprovado → corrigido |
+| S1 — Modelo e API | A | ✅ | `1dc62ba` + `78baa15` | **reprovada** (5 altos: recusado voltava ao ar no reenvio, cota de e-mail drenável, filtro de link contornável, docblocks invertidos, RUNBOOK sem a 006) → corrigida |
+| S3 — Painel | A | ✅ | `cb0426b` + `57e1084` | **reprovada** (2 travessões e o foco perdido ao publicar) → corrigida, com mais 12 achados menores |
+| S2 — Convite no demo e vitrine | B | ✅ | `92a28b6`... `c51ec55` | **reprovada** (travessão, modal por baixo do Guia, "Agora não" desfeito) → corrigida |
+| Integração | — | ✅ | merges + `consentimento` numa fonte só | tela e servidor param de repetir as três frases |
+
+## Verificação (2026-09-19/20)
+- `tsc` limpo · **1012 testes** (102 arquivos) · `next build` verde · nenhum arquivo > 250 linhas em `src`.
+- Smoke da API ponta a ponta (dev, store em arquivo) — **17/17**: sem cookie do demo 401 · avaliação
+  limpa publica na hora e o resumo já soma o arquivo (3 → 4) · comentário com link disfarçado
+  (`golpe(ponto)online`) cai em `pendente`, some da vitrine e a nota continua contando · anônimo
+  publica sem nome e sem CRECI · vitrine sem e-mail e sem id de lead · painel lista e 401 sem sessão
+  · "tirar do site" derruba o texto e mantém a nota · **reenvio depois de recusado volta para
+  `pendente`, não republica**.
+- Navegador (desktop 1366 e celular 390), com um lead de verdade e o demo liberado: convite aparece
+  depois do tempo navegado, o modal cobre o botão do Guia (camada corrigida), estrelas pelo teclado
+  e pelo clique, consentimento visível nas três opções, envio → "Sua nota entrou: agora são 5
+  avaliações, média 4,8 de 5", landing com a contagem nova e painel com a seção Avaliações
+  ("Segurada pelo filtro automático" + Publicar / Tirar do site). 0 estouro lateral, 0 exceções JS.
 
 ## Decisões tomadas
 
@@ -53,7 +68,35 @@
 - **Aviso do 409** some quando a pessoa troca a identificação; setas do grupo de estrelas seguem
   o padrão WAI-ARIA (direita/baixo avançam); o grupo aponta o erro por `aria-errormessage`.
 
+### Integração e trilha A
+
+- **Consentimento numa fonte só**: `src/features/avaliacao/consentimento.ts` é o módulo canônico
+  (client-safe) e a tela (`components/avaliacao/identificacao.ts`) reexporta dele. O que a pessoa lê
+  é, byte a byte, o que fica gravado.
+- **Decisão do fundador vence o filtro**: reenviar o mesmo texto depois de "tirar do site" volta
+  para `pendente`, nunca direto ao ar.
+- **Cota de e-mail separada**: o aviso de avaliação tem teto próprio (10/dia) conferido junto com o
+  teto do app, para uma pessoa não derrubar o envio de código dos leads novos.
+- **Filtro normaliza antes de decidir**: invisíveis, pontos unicode, `(ponto)`, `[.]`, ` ponto `,
+  `@` espaçado, leet e cirílico; link virou regra genérica de domínio.
+- **`nome_creci` sem CRECI no cadastro** grava a escolha e o texto de "só o nome": o que foi aceito,
+  o que está gravado e o que vai ao site passam a dizer a mesma coisa.
+- **Tamanho não é regra do filtro**: o Zod recusa acima de 400 caracteres antes, com 400 na rota.
+- **Exclusão LGPD** apaga a avaliação junto com o lead nos dois adaptadores (o `DELETE` do admin
+  chama `removerDoLead` antes de excluir; falha ali vira causa no log e não trava a eliminação).
+
 ## Pendências fora de escopo
+
+- **Fundador — publicação**: rodar `migrations/006-avaliacoes.sql` no Neon **antes** do deploy
+  (RUNBOOK 3.11).
+- `src/lib/regressao.test.ts` (`AREAS_DAS_ONDAS`) ainda não vigia `src/components/avaliacao/`,
+  `src/components/guia/` nem `src/features/avaliacao/` na regra das 300 linhas.
+- Cache de borda do `GET /api/avaliacoes` (`s-maxage`) é o primeiro do repositório: conferir uma vez
+  na Vercel depois do deploy.
+- A edição sobrescreve o consentimento anterior: some o registro de sob qual texto o nome esteve
+  publicado antes de alguém trocar para anônimo.
+- Quem abre o formulário pelo cartão e fecha sem enviar pode ver o convite de novo ao trocar de tela
+  do demo (a memória é da tela, não da visita).
 
 - `src/lib/regressao.test.ts` lista as áreas onde a regra das 300 linhas é cobrada
   (`AREAS_DAS_ONDAS`) e **não inclui** `src/components/avaliacao/` nem `src/components/guia/`.
