@@ -4,7 +4,8 @@
  * primeiro — e a ordem é sempre da mais recente para a mais antiga.
  */
 import { describe, it, expect } from "vitest";
-import type { AvaliacaoAdmin, StatusAvaliacao } from "@/features/avaliacao";
+import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
+import type { StatusAvaliacao } from "@/features/avaliacao/avaliacao";
 import { ABAS_AVALIACAO, abaInicial, contarPorAba, filtrarPorAba, ordenar, porLead } from "./listaAvaliacoes";
 
 function linha(id: string, status: StatusAvaliacao, dia: string, leadId = `lead-${id}`): AvaliacaoAdmin {

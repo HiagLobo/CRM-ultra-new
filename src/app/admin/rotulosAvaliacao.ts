@@ -4,8 +4,10 @@
  * teste conferir texto por texto — rótulo errado aqui faz o fundador tirar do
  * ar a avaliação errada.
  */
-import { estrelasEmTexto, type Identificacao, type StatusAvaliacao } from "@/features/avaliacao";
-import { ROTULO_MOTIVO, type MotivoPendente } from "@/features/avaliacao";
+import { estrelasEmTexto } from "@/features/avaliacao/avaliacao";
+import type { Identificacao, StatusAvaliacao } from "@/features/avaliacao/avaliacao";
+import { ROTULO_MOTIVO, type MotivoPendente } from "@/features/avaliacao/filtroComentario";
+import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
 import { palette as p } from "@/lib/palette";
 import { dataHoraRecife } from "@/features/lead/admin";
 
@@ -35,6 +37,24 @@ export function motivoEmTexto(motivo: MotivoPendente | undefined): string | null
   return motivo ? `Segurada porque ${ROTULO_MOTIVO[motivo]}` : null;
 }
 
+/**
+ * Quando o motivo não vem (a regra que segurou o texto mudou depois, e o
+ * recálculo já não a reconhece), a avaliação não pode aparecer sem explicação
+ * nenhuma — o fundador ficaria sem saber por que ela está fora do ar.
+ */
+export const MOTIVO_GENERICO = "Segurada pelo filtro automático";
+
+/** A explicação que vai na linha, só para o que está `pendente`. */
+export function motivoDaPendente(a: Pick<AvaliacaoAdmin, "status" | "motivo">): string | null {
+  if (a.status !== "pendente") return null;
+  return motivoEmTexto(a.motivo) ?? MOTIVO_GENERICO;
+}
+
+/** Como a avaliação é assinada no painel: o nome, o e-mail, ou o aviso de que não há nem um nem outro. */
+export function quemAvaliou(autor: AvaliacaoAdmin["autor"]): string {
+  return autor.nome?.trim() || autor.email || "lead sem nome";
+}
+
 /** Trecho do comentário para a lista, com reticências quando corta. */
 export function trecho(texto: string | undefined, maximo = 160): string {
   const limpo = (texto ?? "").replace(/\s+/g, " ").trim();
@@ -53,10 +73,21 @@ export function diaDaAvaliacao(iso: string): string {
   return dataHoraRecife(iso).slice(0, 10);
 }
 
-/** A linha da ficha do lead: "★★★★★ em 19/09/2026". */
-export function avaliacaoNaFicha(avaliacao: { estrelas: number; criadoEm: string }): string {
-  return `${estrelasEmTexto(avaliacao.estrelas)} em ${diaDaAvaliacao(avaliacao.criadoEm)}`;
+/**
+ * A linha da ficha do lead: "★★★★★ em 19/09/2026 · Anônima · No site".
+ * A escolha de identificação entra porque é ela que responde a pergunta que o
+ * fundador faz olhando a ficha: o nome desta pessoa está no site ou não?
+ */
+export function avaliacaoNaFicha(avaliacao: Pick<AvaliacaoAdmin, "estrelas" | "criadoEm" | "identificacao" | "status">): string {
+  return [
+    `${estrelasEmTexto(avaliacao.estrelas)} em ${diaDaAvaliacao(avaliacao.criadoEm)}`,
+    ROTULO_IDENTIFICACAO[avaliacao.identificacao],
+    ROTULO_SITUACAO[avaliacao.status],
+  ].join(" · ");
 }
+
+/** O que a ficha mostra quando a lista de avaliações não carregou (nunca um silêncio). */
+export const FICHA_SEM_AVALIACOES = "não deu para carregar";
 
 /** "4,6 de 5 · 5 avaliações" — o mesmo número que a landing mostra. */
 export function resumoEmTexto(resumo: { media: number; quantas: number }): string {

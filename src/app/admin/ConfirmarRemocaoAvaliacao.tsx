@@ -6,7 +6,8 @@
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import { estrelasEmTexto, type AvaliacaoAdmin } from "@/features/avaliacao";
+import { estrelasEmTexto } from "@/features/avaliacao/avaliacao";
+import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
 import Dialogo from "./Dialogo";
 import { acao, caixaErro } from "./estilos";
 import { SEM_COMENTARIO, trecho } from "./rotulosAvaliacao";
@@ -28,7 +29,7 @@ export default function ConfirmarRemocaoAvaliacao({
     <Dialogo idTitulo="titulo-tirar-avaliacao" titulo="Tirar esta avaliação do site?" aoFechar={aoCancelar} ocupado={ocupado}>
       <p style={{ fontSize: 14.5, lineHeight: 1.6, color: p.g700, margin: "0 0 10px" }}>
         O comentário some da landing na hora. <strong style={{ color: p.ink }}>A nota continua contando</strong> na
-        média — o que sai do ar é o texto, não a avaliação que a pessoa deu.
+        média: o que sai do ar é o texto, não a avaliação que a pessoa deu.
       </p>
       <blockquote
         style={{
@@ -42,7 +43,9 @@ export default function ConfirmarRemocaoAvaliacao({
           overflowWrap: "anywhere",
         }}
       >
-        <span style={{ color: p.gold, letterSpacing: 1 }}>{estrelasEmTexto(avaliacao.estrelas)}</span>{" "}
+        <span role="img" aria-label={`${avaliacao.estrelas} de 5 estrelas`} style={{ color: p.gold, letterSpacing: 1 }}>
+          {estrelasEmTexto(avaliacao.estrelas)}
+        </span>{" "}
         {avaliacao.comentario ? trecho(avaliacao.comentario, 200) : SEM_COMENTARIO}
       </blockquote>
       <p style={{ fontSize: 13, color: p.g500, margin: "0 0 18px" }}>

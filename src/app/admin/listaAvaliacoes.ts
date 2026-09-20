@@ -3,7 +3,8 @@
  * lista já carregada (o volume desta fase cabe numa resposta), como as abas do
  * funil. Puro, para o teste cobrir as regras.
  */
-import type { AvaliacaoAdmin, StatusAvaliacao } from "@/features/avaliacao";
+import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
+import type { StatusAvaliacao } from "@/features/avaliacao/avaliacao";
 
 /** Uma aba por situação, mais "Todas". */
 export type AbaAvaliacao = "todas" | StatusAvaliacao;

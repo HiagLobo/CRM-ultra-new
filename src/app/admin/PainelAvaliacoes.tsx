@@ -2,15 +2,19 @@
 /**
  * Seção "Avaliações" do painel: o cartão com a média que o site mostra, as
  * abas por situação, a lista em cartões e as ações de cada uma. Estados de
- * carregando, erro e lista vazia — nada de tela em branco.
+ * carregando, erro, lista vazia e aba vazia — nada de tela em branco.
  *
  * O estado e as chamadas moram no `useAvaliacoesAdmin` (carregado lá em cima,
- * junto com os leads); aqui fica a composição.
+ * junto com os leads); aqui fica a composição. A aba de abertura é decidida
+ * UMA vez, quando a lista chega (revisão da O10·S3): recalcular a cada render
+ * fazia a aba pular sozinha depois de publicar ou tirar do ar. O erro de uma
+ * ação fica no cartão dela, não só na faixa do topo.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
-import type { AvaliacaoAdmin } from "@/features/avaliacao";
+import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
 import Aviso, { FaixaErro, LinkAviso } from "./Aviso";
+import FaixaAbas from "./FaixaAbas";
 import LinhaAvaliacao from "./LinhaAvaliacao";
 import ConfirmarRemocaoAvaliacao from "./ConfirmarRemocaoAvaliacao";
 import { ABAS_AVALIACAO, abaInicial, contarPorAba, filtrarPorAba, type AbaAvaliacao } from "./listaAvaliacoes";
@@ -27,25 +31,41 @@ export default function PainelAvaliacoes({
   const [aba, setAba] = React.useState<AbaAvaliacao | null>(null);
   const [confirmando, setConfirmando] = React.useState<AvaliacaoAdmin | null>(null);
   const [erroRemocao, setErroRemocao] = React.useState<string | null>(null);
+  const [errosPorId, setErrosPorId] = React.useState<Record<string, string>>({});
 
   const contagem = React.useMemo(() => contarPorAba(painel.avaliacoes), [painel.avaliacoes]);
-  const abaAtiva: AbaAvaliacao = aba ?? abaInicial(contagem);
+  const abaAtiva: AbaAvaliacao = aba ?? "todas";
   const visiveis = React.useMemo(() => filtrarPorAba(painel.avaliacoes, abaAtiva), [painel.avaliacoes, abaAtiva]);
 
+  // a aba de abertura é decidida uma vez, com a lista carregada (mesmo arranjo do
+  // funil): depois disso `aba` já não é nula, e só o fundador troca
+  React.useEffect(() => {
+    if (painel.carregado && aba === null) setAba(abaInicial(contagem));
+  }, [painel.carregado, aba, contagem]);
+
+  function guardarErro(id: string, erro: string | null) {
+    setErrosPorId((atuais) => {
+      const { [id]: _antigo, ...resto } = atuais;
+      return erro ? { ...resto, [id]: erro } : resto;
+    });
+  }
+
   async function publicar(a: AvaliacaoAdmin) {
+    guardarErro(a.id, null);
     const r = await painel.moderar(a.id, "publicado");
-    painel.mostrarErro(r.ok ? null : r.erro);
+    guardarErro(a.id, r.ok ? null : r.erro);
   }
 
   async function tirarDoSite(a: AvaliacaoAdmin) {
     setErroRemocao(null);
     const r = await painel.moderar(a.id, "recusado");
     if (!r.ok) return setErroRemocao(r.erro);
+    guardarErro(a.id, null);
     setConfirmando(null);
   }
 
   return (
-    <div id="secao-avaliacoes" role="tabpanel">
+    <div id="secao-avaliacoes" role="tabpanel" aria-labelledby="secao-aba-avaliacoes" tabIndex={0}>
       {painel.erro && <FaixaErro mensagem={painel.erro} aoRecarregar={() => void painel.carregar()} />}
 
       <div style={{ background: p.white, border: `1px solid ${p.g300}`, borderRadius: 14, padding: "16px 20px", marginBottom: 20 }}>
@@ -63,48 +83,21 @@ export default function PainelAvaliacoes({
         painel.carregando && <Aviso icone="loader">Carregando as avaliações…</Aviso>
       ) : painel.avaliacoes.length === 0 ? (
         <Aviso icone="star">
-          Nenhuma avaliação ainda. Quem está com o demo liberado recebe o convite depois de alguns minutos navegando —
-          as respostas aparecem aqui.
+          Nenhuma avaliação ainda. Quem está com o demo liberado recebe o convite depois de alguns minutos navegando,
+          e as respostas aparecem aqui.
         </Aviso>
       ) : (
         <>
-          <div role="tablist" aria-label="Situação das avaliações" style={{ display: "flex", gap: 6, overflowX: "auto", maxWidth: "100%", padding: "2px 2px 8px", marginBottom: 10 }}>
-            {ABAS_AVALIACAO.map((a) => {
-              const selecionada = a.valor === abaAtiva;
-              const alerta = a.valor === "pendente" && contagem.pendente > 0;
-              return (
-                <button
-                  key={a.valor}
-                  type="button"
-                  role="tab"
-                  aria-selected={selecionada}
-                  aria-controls="lista-avaliacoes"
-                  onClick={() => setAba(a.valor)}
-                  style={{
-                    flexShrink: 0,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    border: `1.5px solid ${selecionada ? p.primary : p.g300}`,
-                    background: selecionada ? p.lilac1 : p.white,
-                    color: selecionada ? p.dark : p.g700,
-                    borderRadius: 999,
-                    padding: "7px 13px",
-                    fontSize: 13.5,
-                    fontWeight: 600,
-                    fontFamily: "var(--font-body)",
-                    whiteSpace: "nowrap",
-                    cursor: "pointer",
-                  }}
-                >
-                  {a.rotulo}
-                  <span style={{ minWidth: 20, textAlign: "center", borderRadius: 999, padding: "1px 6px", fontSize: 12, fontWeight: 700, background: alerta ? p.warning : "transparent", color: alerta ? p.white : selecionada ? p.primary : p.g500 }}>
-                    {contagem[a.valor]}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <FaixaAbas
+            etiqueta="Situação das avaliações"
+            idPrefixo="aba-avaliacao"
+            controla="lista-avaliacoes"
+            ativa={abaAtiva}
+            opcoes={ABAS_AVALIACAO}
+            contagem={contagem}
+            alerta={{ valor: "pendente", fundo: p.warning, texto: p.ink }}
+            aoEscolher={setAba}
+          />
 
           <div id="lista-avaliacoes" style={{ display: "grid", gap: 12 }}>
             {visiveis.length > 0 ? (
@@ -113,6 +106,7 @@ export default function PainelAvaliacoes({
                   key={a.id}
                   avaliacao={a}
                   ocupado={painel.ocupados.has(a.id)}
+                  erro={errosPorId[a.id] ?? null}
                   aoAbrirLead={aoAbrirLead}
                   aoPublicar={() => void publicar(a)}
                   aoTirarDoSite={() => {

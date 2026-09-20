@@ -7,7 +7,10 @@
  * de carregando, erro, lista vazia e aba vazia — nada de tela em branco.
  *
  * A gaveta do lead fica fora das seções, de propósito: clicar em quem avaliou
- * abre a ficha por cima da lista de avaliações, sem perder o lugar.
+ * abre a ficha por cima da lista de avaliações, sem perder o lugar. Por isso a
+ * falha do carregamento dos leads é anunciada ACIMA do seletor de seção
+ * (revisão da O10·S3): com o aviso dentro da seção "Leads", clicar em quem
+ * avaliou não abria nada e não explicava nada.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
@@ -116,14 +119,20 @@ export default function PainelLeads() {
       />
 
       <main className="ds-pad" style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 32px 40px" }}>
-        <SeletorSecao ativa={secao} paraConferir={paraConferir} aoEscolher={setSecao} />
+        {/* fora das seções: a ficha do lead abre das duas, e a falha vale para as duas */}
+        {painel.erro && <FaixaErro mensagem={painel.erro} aoRecarregar={() => void painel.carregar()} />}
+
+        <SeletorSecao
+          ativa={secao}
+          paraConferir={paraConferir}
+          falhou={!avaliacoes.carregado && !!avaliacoes.erro}
+          aoEscolher={setSecao}
+        />
 
         {secao === "avaliacoes" ? (
           <PainelAvaliacoes painel={avaliacoes} aoAbrirLead={abrirLead} />
         ) : (
-        <div id="secao-leads" role="tabpanel">
-        {painel.erro && <FaixaErro mensagem={painel.erro} aoRecarregar={() => void painel.carregar()} />}
-
+        <div id="secao-leads" role="tabpanel" aria-labelledby="secao-aba-leads" tabIndex={0}>
         <CardsTopo leads={painel.leads} carregado={painel.carregado} agora={agora} aoAbrirAba={setAba} />
 
         {!painel.carregado ? (
@@ -138,7 +147,7 @@ export default function PainelLeads() {
           <>
             <AbasFunil ativa={abaAtiva} contagem={contagem} aoEscolher={setAba} />
             <BarraFiltros busca={busca} textoTotal={textoContagem(visiveis.length, painel.leads.length)} aoBuscar={setBusca} />
-            <div id="lista-leads" role="tabpanel">
+            <div id="lista-leads">
               {visiveis.length > 0 ? (
                 <TabelaLeads leads={visiveis} agora={agora} ocupados={painel.ocupados} repetidos={repetidos} aoAbrir={abrirLead} aoEscolherEtapa={(l, e) => void escolherNaLinha(l, e)} />
               ) : busca.trim() ? (
@@ -170,6 +179,7 @@ export default function PainelLeads() {
           ocupado={painel.ocupados.has(aberto.id)}
           repetido={repetidos.get(aberto.id)}
           avaliacao={avaliacaoPorLead.get(aberto.id)}
+          avaliacoesIndisponiveis={!avaliacoes.carregado && !avaliacoes.carregando}
           escAtivo={!pedidoEtapa && !confirmando && !novoAberto}
           aviso={avisoGaveta}
           aoFechar={fecharGaveta}

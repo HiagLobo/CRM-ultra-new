@@ -10,13 +10,13 @@
  */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import type { AvaliacaoAdmin, ResumoAvaliacoes, StatusModeravel } from "@/features/avaliacao";
+import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
+import type { ResumoAvaliacoes, StatusModeravel } from "@/features/avaliacao/avaliacao";
 import { comJson, pedirApi } from "./apiPainel";
 import { mensagemDeErro, respostaOk } from "./mensagensApi";
 import { liberarOcupado, marcarOcupado } from "./ocupados";
 import type { ResultadoAcao } from "./useLeadsAdmin";
 
-const ROTA = "/api/admin/avaliacoes";
 const SESSAO_ENCERRADA: { ok: false; erro: string } = { ok: false, erro: "Sessão encerrada. Entre de novo." };
 const SEM_AVALIACAO: ResumoAvaliacoes = { media: 0, quantas: 0 };
 
@@ -35,7 +35,7 @@ export function useAvaliacoesAdmin() {
     setCarregando(true);
     setErro(null);
     try {
-      const r = await pedirApi(ROTA, undefined, irParaLogin);
+      const r = await pedirApi("/api/admin/avaliacoes", undefined, irParaLogin);
       if (!r) return;
       const corpo = r.corpo as { avaliacoes?: unknown; resumo?: ResumoAvaliacoes } | null;
       if (!respostaOk(r) || !Array.isArray(corpo?.avaliacoes)) {
@@ -63,7 +63,7 @@ export function useAvaliacoesAdmin() {
     const oQue = status === "recusado" ? "tirar a avaliação do site" : "publicar a avaliação";
     setOcupados((atuais) => marcarOcupado(atuais, id));
     try {
-      const r = await pedirApi(ROTA, comJson("PATCH", { id, status }), irParaLogin);
+      const r = await pedirApi("/api/admin/avaliacoes", comJson("PATCH", { id, status }), irParaLogin);
       if (!r) return SESSAO_ENCERRADA;
       // 404 aqui é a avaliação, não o lead (a mensagem comum fala de lead)
       if (r.status === 404) return { ok: false, erro: "Essa avaliação não existe mais. Recarregue a lista." };

@@ -3,14 +3,18 @@
  * do ar. Situação trocada ou motivo errado aqui vira decisão errada lá.
  */
 import { describe, it, expect } from "vitest";
-import { STATUS_AVALIACAO, IDENTIFICACOES, ROTULO_MOTIVO, type MotivoPendente } from "@/features/avaliacao";
+import { STATUS_AVALIACAO, IDENTIFICACOES } from "@/features/avaliacao/avaliacao";
+import { ROTULO_MOTIVO, type MotivoPendente } from "@/features/avaliacao/filtroComentario";
 import {
   COR_SITUACAO,
+  MOTIVO_GENERICO,
   ROTULO_IDENTIFICACAO,
   ROTULO_SITUACAO,
   avaliacaoNaFicha,
   diaDaAvaliacao,
+  motivoDaPendente,
   motivoEmTexto,
+  quemAvaliou,
   resumoEmTexto,
   trecho,
 } from "./rotulosAvaliacao";
@@ -29,6 +33,21 @@ describe("rótulos de situação e identificação", () => {
     for (const escolha of IDENTIFICACOES) expect(ROTULO_IDENTIFICACAO[escolha]).toBeTruthy();
     expect(ROTULO_IDENTIFICACAO.anonimo).toBe("Anônima");
     expect(new Set(Object.values(ROTULO_IDENTIFICACAO)).size).toBe(IDENTIFICACOES.length);
+  });
+
+  it("pendente sem motivo reconhecido ganha a explicação genérica (regra do filtro pode ter mudado)", () => {
+    expect(motivoDaPendente({ status: "pendente", motivo: "link" })).toBe("Segurada porque tem link");
+    expect(motivoDaPendente({ status: "pendente", motivo: undefined })).toBe(MOTIVO_GENERICO);
+    // publicada e recusada não falam em motivo nenhum
+    expect(motivoDaPendente({ status: "publicado", motivo: undefined })).toBeNull();
+    expect(motivoDaPendente({ status: "recusado", motivo: "caps" })).toBeNull();
+  });
+
+  it("quem avaliou: o nome, o e-mail quando não há nome, e o aviso quando não há nenhum dos dois", () => {
+    expect(quemAvaliou({ nome: "Corretor Exemplo", email: "corretor@exemplo.com" })).toBe("Corretor Exemplo");
+    expect(quemAvaliou({ nome: "   ", email: "corretor@exemplo.com" })).toBe("corretor@exemplo.com");
+    expect(quemAvaliou({ email: "corretor@exemplo.com" })).toBe("corretor@exemplo.com");
+    expect(quemAvaliou({})).toBe("lead sem nome");
   });
 
   it("o motivo vira frase inteira; sem motivo, nada é mostrado", () => {
@@ -67,9 +86,15 @@ describe("datas e resumo", () => {
     expect(diaDaAvaliacao("2026-09-20T00:30:00.000Z")).toBe("19/09/2026");
   });
 
-  it("a linha da ficha do lead: estrelas + dia", () => {
-    expect(avaliacaoNaFicha({ estrelas: 5, criadoEm: "2026-09-19T15:00:00.000Z" })).toBe("★★★★★ em 19/09/2026");
-    expect(avaliacaoNaFicha({ estrelas: 4, criadoEm: "2026-09-19T15:00:00.000Z" })).toBe("★★★★☆ em 19/09/2026");
+  it("a linha da ficha do lead: estrelas, dia, escolha de identificação e situação", () => {
+    const base = { criadoEm: "2026-09-19T15:00:00.000Z" } as const;
+    expect(avaliacaoNaFicha({ ...base, estrelas: 5, identificacao: "nome_creci", status: "publicado" })).toBe(
+      "★★★★★ em 19/09/2026 · Nome e CRECI · No site",
+    );
+    // a escolha aparece para o fundador não concluir que o nome está no site
+    expect(avaliacaoNaFicha({ ...base, estrelas: 4, identificacao: "anonimo", status: "recusado" })).toBe(
+      "★★★★☆ em 19/09/2026 · Anônima · Fora do site",
+    );
   });
 
   it("o cartão do topo fala como o site: nota com vírgula e plural certo", () => {
