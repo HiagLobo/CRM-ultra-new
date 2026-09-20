@@ -106,6 +106,16 @@ export const orcamentoSchema = z.object({
     economiaAnual: dinheiro.optional(),
     /** Formato antigo (só o número): a conferência recusa, porque falta entrada e saldo. */
     implantacao: dinheiro.optional(),
+    /**
+     * As três parcelas do mensal, como a trilha A calcula:
+     * `assentos - desconto + extrasMensais = mensal`. A conferência usa isto;
+     * sem elas (registro antigo) ela cai na leitura sem desconto.
+     */
+    assentos: dinheiro.optional(),
+    desconto: dinheiro.optional(),
+    extrasMensais: dinheiro.optional(),
+    /** Cobrança única (pacote, migração de lote, turma extra): fora do mensal. */
+    extrasUnicos: dinheiro.optional(),
   }),
   implantacao: implantacao.optional(),
   anual: z.boolean().default(false),

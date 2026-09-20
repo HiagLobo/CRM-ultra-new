@@ -15,6 +15,38 @@ import type { Orcamento } from "./tiposOrcamento";
 const com = (mudanca: Partial<Orcamento>): Orcamento => ({ ...ORCAMENTO_EXEMPLO, ...mudanca });
 
 describe("conferir os totais", () => {
+  it("proposta com desconto fecha pela identidade da trilha A (achado da integração)", () => {
+    // as linhas de assento trazem o preço de TABELA e o desconto é linha
+    // própria: somar as linhas sem tirar o desconto recusava TODA proposta
+    // negociada, que é a maioria
+    const negociada = com({
+      assentos: [{ codigo: "pro", nivel: "Pro", quantidade: 5, precoUnitario: 179, total: 895 }],
+      extras: [
+        { item: "analise_credito", rotulo: "Análise de crédito", quantidade: 10, precoUnitario: 89, total: 890 },
+        { item: "radar_pacote_50", rotulo: "Pacote de 50 consultas", quantidade: 1, precoUnitario: 119, total: 119 },
+      ],
+      totais: {
+        ...ORCAMENTO_EXEMPLO.totais,
+        assentos: 895,
+        desconto: 89.5,
+        extrasMensais: 890,
+        extrasUnicos: 119,
+        mensal: 1695.5,
+        anual: 20346,
+      },
+    });
+    expect(conferirTotais(negociada)).toEqual([]);
+  });
+
+  it("recusa quando o mensal não fecha com a identidade", () => {
+    const torto = com({
+      assentos: [{ codigo: "pro", nivel: "Pro", quantidade: 5, precoUnitario: 179, total: 895 }],
+      extras: [],
+      totais: { ...ORCAMENTO_EXEMPLO.totais, assentos: 895, desconto: 89.5, extrasMensais: 0, mensal: 895 },
+    });
+    expect(conferirTotais(torto)).toContain("as linhas não somam o total mensal");
+  });
+
   it("o orçamento de exemplo fecha, nas linhas e nos blocos", () => {
     expect(conferirTotais(ORCAMENTO_EXEMPLO)).toEqual([]);
     expect(problemasDoOrcamento(ORCAMENTO_EXEMPLO)).toEqual([]);

@@ -20,8 +20,14 @@ const somar = (linhas: { total: number }[]) => linhas.reduce((s, l) => s + l.tot
  * Os números batem? Cada linha (quantidade x preço), a soma das linhas contra o
  * total mensal e a implantação (entrada + saldo, e isenção respeitada).
  *
- * A soma aceita duas leituras, porque a API pode cobrar extra fora da
- * mensalidade: só os assentos, ou assentos mais extras.
+ * A identidade do mensal é a que a trilha A calcula:
+ * `assentos - desconto + extras mensais = mensal`. As linhas de assento trazem
+ * o preço de TABELA e o desconto é linha própria, então somar as linhas sem
+ * tirar o desconto recusaria toda proposta negociada (foi o que aconteceu na
+ * primeira integração). Extra de cobrança única fica fora do mensal.
+ *
+ * Quando a API não manda os totais separados (registro antigo), cai na leitura
+ * antiga: só assentos, ou assentos mais extras.
  */
 export function conferirTotais(orcamento: Orcamento): string[] {
   const problemas: string[] = [];
@@ -38,9 +44,17 @@ export function conferirTotais(orcamento: Orcamento): string[] {
   }
 
   const assentos = somar(orcamento.assentos);
-  const comExtras = assentos + somar(orcamento.extras);
   const mensal = orcamento.totais.mensal;
-  if (!perto(assentos, mensal) && !perto(comExtras, mensal)) {
+  const desconto = orcamento.totais.desconto;
+  const extrasMensais = orcamento.totais.extrasMensais;
+  if (desconto !== undefined && extrasMensais !== undefined) {
+    if (!perto(assentos - desconto + extrasMensais, mensal)) {
+      problemas.push("as linhas não somam o total mensal");
+    }
+    if (!perto(assentos, orcamento.totais.assentos ?? assentos)) {
+      problemas.push("a soma dos assentos não bate com o total de assentos");
+    }
+  } else if (!perto(assentos, mensal) && !perto(assentos + somar(orcamento.extras), mensal)) {
     problemas.push("as linhas não somam o total mensal");
   }
 
