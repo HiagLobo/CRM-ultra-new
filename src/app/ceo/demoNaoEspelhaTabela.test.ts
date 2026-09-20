@@ -63,16 +63,20 @@ function valoresCalculados(texto: string): number[] {
 }
 
 /**
- * Números da tabela oficial. Do código (quando existir) entram só os que podem
- * ser preço: 50 para cima, ou com centavos. Mês, percentual e quantidade de
- * franquia ficam de fora, senão a guarda pegaria "12" e "25".
+ * Números da tabela oficial, sempre em REAIS.
+ *
+ * O código guarda dinheiro em centavos (17900 é R$ 179,00; 150 é R$ 1,50), e
+ * comparar cru fazia o custo de R$ 90/mês do demo bater com os 90 centavos de
+ * um extra da tabela. Convertemos para reais e olhamos só o que é preço de
+ * plano (R$ 50 para cima): centavo de extra colide com qualquer número solto do
+ * demo, e mês, percentual e franquia ficariam pegando "12" e "25".
  */
 function tabelaOficial(): number[] {
   const doPlano = valoresEmReais(ler(PLANO_DA_ONDA));
   if (!existsSync(path.join(RAIZ, TABELA_OFICIAL))) return doPlano;
-  const doCodigo = [...ler(TABELA_OFICIAL).matchAll(/\b(\d+(?:\.\d+)?)\b/g)]
-    .map((m) => parseFloat(m[1]!))
-    .filter((v) => v >= 50 || !Number.isInteger(v));
+  const doCodigo = [...ler(TABELA_OFICIAL).matchAll(/\b(\d{4,})\b/g)]
+    .map((m) => parseInt(m[1]!, 10) / 100)
+    .filter((v) => v >= 50);
   return [...doPlano, ...doCodigo];
 }
 

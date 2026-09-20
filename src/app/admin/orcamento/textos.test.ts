@@ -185,7 +185,11 @@ describe("o que a proposta nunca pode dizer", () => {
       ...ORCAMENTO_EXEMPLO.extras.map((e) => e.rotulo),
       ORCAMENTO_EXEMPLO.observacao ?? "",
     ];
-    const daTabela = existsSync(TABELA_OFICIAL) ? [readFileSync(TABELA_OFICIAL, "utf8")] : [];
+    // só o texto que vai ao papel: comentário de código não é impresso
+    // ("ancorar de novo dobraria a âncora" não é promessa ao cliente)
+    const semComentarios = (codigo: string) =>
+      codigo.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|\s)\/\/[^\n]*/g, " ");
+    const daTabela = existsSync(TABELA_OFICIAL) ? [semComentarios(readFileSync(TABELA_OFICIAL, "utf8"))] : [];
     return [
       ...ANEXO_NO_AR,
       ...ANEXO_NOTAS,
