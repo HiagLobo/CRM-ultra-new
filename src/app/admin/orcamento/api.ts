@@ -5,6 +5,7 @@
  *
  * Nunca lança: quem chama recebe um estado e desenha a tela certa.
  */
+import { problemasDoOrcamento } from "./conferencia";
 import { orcamentoSchema, type Orcamento } from "./tiposOrcamento";
 
 export type BuscaOrcamento =
@@ -17,6 +18,8 @@ export const SEM_CONEXAO = "Sem conexão: não deu para abrir o orçamento. Conf
 export const FALHA_SERVIDOR = "Não deu para abrir o orçamento: falha no servidor. Tente de novo em instantes.";
 export const FORMATO_ESTRANHO =
   "O orçamento veio num formato que esta tela não entende. Avise quem cuida do sistema antes de enviar a proposta.";
+export const NAO_FECHA =
+  "As contas deste orçamento não fecham (as linhas não batem com os totais). Refaça o orçamento no painel antes de enviar.";
 
 /** Rota do orçamento no admin (o id vai escapado na URL). */
 export function urlOrcamento(id: string): string {
@@ -46,5 +49,7 @@ export async function buscarOrcamento(id: string): Promise<BuscaOrcamento> {
   const bruto = (corpo as { orcamento?: unknown } | null)?.orcamento;
   const lido = orcamentoSchema.safeParse(bruto);
   if (!lido.success) return { estado: "erro", mensagem: FORMATO_ESTRANHO };
+  // conta que não fecha não vira papel: o documento inteiro fica de fora
+  if (problemasDoOrcamento(lido.data).length > 0) return { estado: "erro", mensagem: NAO_FECHA };
   return { estado: "ok", orcamento: lido.data };
 }

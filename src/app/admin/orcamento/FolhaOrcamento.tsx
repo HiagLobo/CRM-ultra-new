@@ -15,11 +15,12 @@ import { assentos as textoAssentos, dataBR, porcento, reais } from "./formato";
 import {
   ESCADA_EXPLICADA,
   IMPLANTACAO_EXPLICADA,
+  IMPLANTACAO_ISENTA,
   IMPLANTACAO_TITULO,
   linhaValidade,
   rotuloPublico,
 } from "./legais";
-import { ROTULO_NIVEL, type Orcamento } from "./tiposOrcamento";
+import type { Orcamento } from "./tiposOrcamento";
 
 const info: React.CSSProperties = { fontSize: 12.5, color: p.g700, lineHeight: 1.6 };
 
@@ -52,7 +53,8 @@ function Identificacao({ orcamento }: { orcamento: Orcamento }) {
 }
 
 function Cliente({ orcamento }: { orcamento: Orcamento }) {
-  const publico = rotuloPublico(orcamento.publico);
+  // a API manda o rótulo pronto; o de casa fica como reserva
+  const publico = orcamento.publicoRotulo ?? rotuloPublico(orcamento.publico);
   const unidades = orcamento.unidades ? `${orcamento.unidades} unidades ativas` : "";
   const linhaPublico = [publico, unidades].filter(Boolean).join(" · ");
   return (
@@ -93,9 +95,9 @@ function TabelaAssentos({ orcamento }: { orcamento: Orcamento }) {
         </thead>
         <tbody>
           {orcamento.assentos.map((item, i) => (
-            <tr key={`${item.nivel}-${i}`}>
+            <tr key={`${item.codigo}-${i}`}>
               <td style={{ ...celula, textAlign: "left" }}>
-                <strong>{ROTULO_NIVEL[item.nivel]}</strong>
+                <strong>{item.nivel}</strong>
                 {item.faixa && <div style={{ fontSize: 11.5, color: p.g500 }}>{item.faixa}</div>}
               </td>
               <td style={{ ...celula, textAlign: "right" }}>{item.quantidade}</td>
@@ -108,6 +110,33 @@ function TabelaAssentos({ orcamento }: { orcamento: Orcamento }) {
       <div style={{ ...info, marginTop: 8 }}>
         {textoAssentos(total)} na conta. A faixa de cada assento sai do total de assentos contratados.
       </div>
+    </Bloco>
+  );
+}
+
+/**
+ * Mensalidade e implantação com o mesmo peso no papel. A implantação aparece
+ * com os três números (total, entrada e saldo): é serviço entregue, pago em
+ * duas partes, e o cliente precisa ver o que vence na assinatura.
+ */
+function Investimento({ orcamento }: { orcamento: Orcamento }) {
+  const implantacao = orcamento.implantacao;
+  const cobrada = implantacao && implantacao.total > 0;
+  return (
+    <Bloco titulo="Investimento">
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Destaque rotulo="Mensalidade" valor={reais(orcamento.totais.mensal)} apoio="Cobrada por assento ativo." />
+        {cobrada ? (
+          <Destaque
+            rotulo={IMPLANTACAO_TITULO}
+            valor={reais(implantacao.total)}
+            apoio={`Entrada de ${reais(implantacao.entrada)} (${porcento(implantacao.entradaPct)}) na assinatura e saldo de ${reais(implantacao.saldo)} na conclusão.`}
+          />
+        ) : (
+          <Destaque rotulo={IMPLANTACAO_TITULO} valor="Isenta" apoio={IMPLANTACAO_ISENTA} />
+        )}
+      </div>
+      {cobrada && <p style={{ ...info, margin: "10px 0 0" }}>{IMPLANTACAO_EXPLICADA}</p>}
     </Bloco>
   );
 }
@@ -147,10 +176,14 @@ function Extras({ orcamento }: { orcamento: Orcamento }) {
 function Totais({ orcamento }: { orcamento: Orcamento }) {
   const { totais } = orcamento;
   const economia = totais.economiaAnual ?? 0;
+  const implantacao = orcamento.implantacao?.total ?? 0;
   return (
     <Bloco titulo="Totais">
       <LinhaTotal rotulo="Total mensal" valor={reais(totais.mensal)} forte />
-      <LinhaTotal rotulo="Total de 12 meses" valor={reais(totais.anual)} />
+      <LinhaTotal rotulo="Total de 12 meses de mensalidade" valor={reais(totais.anual)} />
+      {implantacao > 0 && (
+        <LinhaTotal rotulo="Primeiro ano, com a implantação" valor={reais(totais.anual + implantacao)} forte />
+      )}
       {orcamento.anual && economia > 0 && (
         <LinhaTotal rotulo="Economia no plano anual (2 meses)" valor={reais(economia)} />
       )}
@@ -170,16 +203,7 @@ export default function FolhaOrcamento({ orcamento }: { orcamento: Orcamento }) 
       <Identificacao orcamento={orcamento} />
       <Cliente orcamento={orcamento} />
       <TabelaAssentos orcamento={orcamento} />
-      <Bloco titulo="Investimento">
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Destaque rotulo="Mensalidade" valor={reais(orcamento.totais.mensal)} apoio="Cobrada por assento ativo." />
-          <Destaque
-            rotulo={IMPLANTACAO_TITULO}
-            valor={reais(orcamento.totais.implantacao)}
-            apoio={IMPLANTACAO_EXPLICADA}
-          />
-        </div>
-      </Bloco>
+      <Investimento orcamento={orcamento} />
       <Extras orcamento={orcamento} />
       <Totais orcamento={orcamento} />
       <CondicoesOrcamento orcamento={orcamento} />

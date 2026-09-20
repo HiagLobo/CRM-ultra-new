@@ -37,11 +37,13 @@ function PlHead({ title, sub, right }: any) {
    propósito (decisão F5 da O11): outra granularidade (unidade com assentos
    inclusos, corretor cobrado por trimestre), outros valores e nenhum nome de
    plano que colida com "Pro" e "Ultra". Guarda em `demoNaoEspelhaTabela.test.ts`.
+   Conferir também o preço POR ASSENTO (mensalidade dividida pelos assentos
+   inclusos): ele não pode cair em cima de uma faixa da escada real.
    ------------------------------------- */
 const PLANS: any[] = [
   { name: 'Associado', price: 'R$ 520', adesao: 'R$ 2.400', seats: 'até 4 assentos', credits: '40 créditos/mês', feat: 'CRM + Radar básico', units: 49, tone: pl.info, icon: 'handshake' },
-  { name: 'Franquia', price: 'R$ 2.150', adesao: 'R$ 24.000', seats: 'até 12 assentos', credits: '180 créditos/mês', feat: 'Território + leads prioritários', units: 28, tone: pl.primary, icon: 'store' },
-  { name: 'Franquia Premium', price: 'R$ 4.280', adesao: 'R$ 48.000', seats: 'até 35 assentos', credits: '500 créditos/mês', feat: 'Inteligência avançada + leads premium', units: 8, tone: pl.p3, highlight: true, icon: 'crown' },
+  { name: 'Franquia', price: 'R$ 2.150', adesao: 'R$ 24.000', seats: 'até 10 assentos', credits: '180 créditos/mês', feat: 'Território + leads prioritários', units: 28, tone: pl.primary, icon: 'store' },
+  { name: 'Franquia Premium', price: 'R$ 4.280', adesao: 'R$ 48.000', seats: 'até 20 assentos', credits: '500 créditos/mês', feat: 'Inteligência avançada + leads premium', units: 8, tone: pl.p3, highlight: true, icon: 'crown' },
 ];
 const CORRETOR_PLANS: any[] = [
   { name: 'Corretor', price: 'R$ 960', periodo: '/trimestre', noAdesao: true, seats: '1 corretor', credits: '20 créditos/mês', feat: 'CRM + funil + agenda + Radar básico + materiais', units: 28, unitLabel: 'corretores', tone: pl.info, icon: 'user' },
@@ -49,15 +51,15 @@ const CORRETOR_PLANS: any[] = [
 ];
 
 const SUBS: any[] = [
-  { id: 's1', member: `${demo.nomeCurto} Boa Viagem`, type: 'Franquia', plan: 'Franquia Premium', value: 'R$ 4.280/mês', extra: '', used: 33, inc: 35, status: 'Ativo', next: '05/07', since: '03/2024', uf: 'PE' },
+  { id: 's1', member: `${demo.nomeCurto} Boa Viagem`, type: 'Franquia', plan: 'Franquia Premium', value: 'R$ 4.280/mês', extra: '', used: 18, inc: 20, status: 'Ativo', next: '05/07', since: '03/2024', uf: 'PE' },
   {
     id: 's2', member: 'Imobiliária Costa', type: 'Associado', plan: 'Associado', value: 'R$ 520/mês', extra: '', used: 4, inc: 4, status: 'Em atraso', lateDays: 8, next: '28/06', since: '11/2024', uf: 'PE',
     resp: 'Marcos Costa', method: 'Boleto', adesaoPaid: 'R$ 2.400 · paga', creditsInc: 40, creditsUsed: 31, creditsPack: 0,
     payHist: [{ m: 'Jun', ok: false }, { m: 'Mai', ok: true }, { m: 'Abr', ok: true }, { m: 'Mar', ok: true }], invoice: 'R$ 520 · 8 dias em atraso',
   },
-  { id: 's3', member: `${demo.nomeCurto} Caruaru`, type: 'Franquia', plan: 'Franquia', value: 'R$ 2.150/mês', extra: '', used: 9, inc: 12, status: 'Ativo', next: '10/07', since: '01/2025', uf: 'PE' },
+  { id: 's3', member: `${demo.nomeCurto} Caruaru`, type: 'Franquia', plan: 'Franquia', value: 'R$ 2.150/mês', extra: '', used: 8, inc: 10, status: 'Ativo', next: '10/07', since: '01/2025', uf: 'PE' },
   { id: 's4', member: 'Pedro Nunes Imóveis', type: 'Associado', plan: 'Associado', value: 'R$ 520/mês', extra: '', used: 2, inc: 4, status: 'Ativo', next: '12/07', since: '05/2025', uf: 'PE' },
-  { id: 's5', member: `${demo.nomeCurto} Recife Centro`, type: 'Franquia', plan: 'Franquia', value: 'R$ 2.150/mês', extra: '+ assentos extras', used: 12, inc: 12, status: 'Ativo', next: '15/07', since: '08/2024', uf: 'PE' },
+  { id: 's5', member: `${demo.nomeCurto} Recife Centro`, type: 'Franquia', plan: 'Franquia', value: 'R$ 2.150/mês', extra: '+ assentos extras', used: 10, inc: 10, status: 'Ativo', next: '15/07', since: '08/2024', uf: 'PE' },
   { id: 's6', member: 'Lucas Ferreira', type: 'Corretor', plan: 'Corretor Elite', value: 'R$ 1.620/tri', extra: '', used: null, inc: null, status: 'Ativo', next: '09/07', since: '02/2025', uf: 'SP' },
   { id: 's7', member: 'Renata Alves', type: 'Corretor', plan: 'Corretor', value: 'R$ 960/tri', extra: '', used: null, inc: null, status: 'Ativo', next: '14/07', since: '06/2025', uf: 'SP' },
   { id: 's8', member: 'Bruno Tavares', type: 'Corretor', plan: 'Corretor', value: 'R$ 960/tri', extra: '', used: null, inc: null, status: 'Ativo', next: '25/07', since: '09/2024', uf: 'PE' },
@@ -70,7 +72,7 @@ function PlSummary() {
     { l: 'ARR (anualizada)', v: 'R$ 1,6 mi', ic: 'calendar-range' },
     { l: 'Assinaturas ativas', v: '125', note: '85 unidades · 40 corretores', ic: 'badge-check' },
     { l: 'Novas no mês', v: '7', ic: 'plus-circle' },
-    { l: 'Churn', v: '2,3%', sub: '2 canc.', ic: 'user-minus' },
+    { l: 'Churn', v: '2,0%', sub: '2 canc.', ic: 'user-minus' },
     { l: 'Ticket médio (ARPU)', v: 'R$ 1.083', ic: 'receipt' },
     { l: 'Inadimplência', v: '4,7%', ic: 'alert-circle' },
   ];
@@ -236,10 +238,10 @@ function PlGrowth() {
   const gw = (W - padL) / months.length;
   const y = (v: any) => padT + (1 - v / max) * (H - padB - padT);
   const moves = [
-    { l: 'Novo', v: '+R$ 16 mil', tone: pl.success, ic: 'plus' },
-    { l: 'Expansão (upgrades + add-ons)', v: '+R$ 7 mil', tone: pl.success, ic: 'trending-up' },
-    { l: 'Contração (downgrades)', v: '−R$ 3 mil', tone: pl.warning, ic: 'trending-down' },
-    { l: 'Churn', v: '−R$ 11 mil', tone: pl.error, ic: 'user-minus' },
+    { l: 'Novo', v: '+R$ 10 mil', tone: pl.success, ic: 'plus' },
+    { l: 'Expansão (upgrades + add-ons)', v: '+R$ 4 mil', tone: pl.success, ic: 'trending-up' },
+    { l: 'Contração (downgrades)', v: '−R$ 2,3 mil', tone: pl.warning, ic: 'trending-down' },
+    { l: 'Churn', v: '−R$ 2,7 mil', tone: pl.error, ic: 'user-minus' },
   ];
   return (
     <div style={{ ...plCard, padding: 22 }}>

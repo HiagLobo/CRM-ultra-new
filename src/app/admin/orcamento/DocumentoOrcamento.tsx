@@ -40,7 +40,7 @@ function Situacao({ busca }: { busca: BuscaOrcamento | null }) {
         whiteSpace: "nowrap",
       }}
     >
-      {ROTULO_SITUACAO[busca.orcamento.situacao]}
+      {busca.orcamento.situacaoRotulo ?? ROTULO_SITUACAO[busca.orcamento.situacao]}
     </span>
   );
 }
@@ -97,15 +97,17 @@ export default function DocumentoOrcamento({ id }: { id: string }) {
           <Ic n="arrow-left" s={16} c={p.g700} /> Voltar
         </Link>
         <Situacao busca={busca} />
-        <button
-          type="button"
-          onClick={() => window.print()}
-          disabled={busca?.estado !== "ok"}
-          aria-label="Baixar PDF do orçamento"
-          style={{ ...acao(p.primary, true), marginLeft: "auto", opacity: busca?.estado === "ok" ? 1 : 0.6 }}
-        >
-          <Ic n="download" s={16} c={p.white} /> Baixar PDF
-        </button>
+        {/* documento incompleto não tem botão: metade de uma proposta não vira PDF */}
+        {busca?.estado === "ok" && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            aria-label="Baixar PDF do orçamento"
+            style={{ ...acao(p.primary, true), marginLeft: "auto" }}
+          >
+            <Ic n="download" s={16} c={p.white} /> Baixar PDF
+          </button>
+        )}
       </header>
 
       <main style={{ padding: "22px 16px 0" }}>

@@ -14,13 +14,16 @@
  */
 import type { Franquia, Nivel, Orcamento } from "./tiposOrcamento";
 
-/** O que está incluso no nível contratado, em lista curta. Vazio esconde o bloco. */
+/**
+ * O que está incluso no nível contratado, em lista curta. Lista vazia não vira
+ * bloco vazio: a conferência (`problemasDoOrcamento`) recusa o documento antes.
+ */
 export function inclusosDoNivel(orcamento: Orcamento, nivel: Nivel): string[] {
-  const lista = orcamento.inclusos?.[nivel];
+  const lista = orcamento.inclusos[nivel];
   return Array.isArray(lista) ? lista.filter((linha) => linha.trim() !== "") : [];
 }
 
-/** Franquias de uso e o preço do excedente. Vazio esconde o bloco. */
+/** Franquias de uso e o preço do excedente (o schema já exige pelo menos uma). */
 export function franquiasDoOrcamento(orcamento: Orcamento): Franquia[] {
-  return orcamento.franquias ?? [];
+  return orcamento.franquias;
 }

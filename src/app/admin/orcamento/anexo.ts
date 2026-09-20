@@ -6,9 +6,12 @@
  * `ANEXO_REVISADO_EM`. Orçamento já emitido não muda (o papel dele foi impresso
  * com o anexo do dia).
  *
- * Regra de ouro do texto: descreve o que o sistema faz, nunca o resultado que o
- * cliente vai ter. Enquanto os painéis forem demonstração, o anexo diz isso com
- * todas as letras.
+ * Duas regras de ouro do texto:
+ * 1. descreve o que o sistema faz, nunca o resultado que o cliente vai ter;
+ * 2. em "no ar hoje" só entra o que o CLIENTE PAGANTE usa hoje. O painel de
+ *    leads do fundador, a landing do CRM Ultra e a moderação das avaliações são
+ *    do fornecedor, não do cliente: não contam como entrega (revisão de
+ *    2026-09-20). Lista curta aqui é sinal de honestidade, não de fraqueza.
  */
 
 export interface EntregaDatada {
@@ -22,13 +25,10 @@ export const ANEXO_REVISADO_EM = "2026-09-20";
 
 export const TITULO_ANEXO = "Anexo 1: o que está no ar hoje e o que entra em qual mês";
 
-/** Em operação nesta data. Só entra aqui o que o cliente pode usar hoje. */
+/** Em operação para o cliente nesta data. Nada aqui depende de entrega futura. */
 export const ANEXO_NO_AR: string[] = [
-  "Site público da imobiliária com a página de avaliações de quem usa o sistema.",
-  "Cadastro do corretor com verificação de e-mail por código e conferência de CRECI.",
-  "Painel de leads com etapas do funil, anotações, próxima ação do dia e exportação da carteira.",
-  "Moderação das avaliações: o que vai para o site passa pela imobiliária antes.",
-  "Demonstração navegável dos painéis do corretor, da imobiliária e da rede.",
+  "Demonstração navegável dos painéis do corretor, da imobiliária e da rede, com dados de exemplo, para a equipe conhecer o sistema antes do go live.",
+  "Acesso da equipe à demonstração com verificação de e-mail por código e conferência de CRECI.",
 ];
 
 /** Compromisso de data por item. Atrasou, vale a cláusula do mês sem cobrança. */
@@ -36,8 +36,10 @@ export const ANEXO_PROXIMAS: EntregaDatada[] = [
   {
     mes: "Novembro de 2026",
     itens: [
-      "Funil do corretor em operação: ficha do cliente, agenda e próxima ação no dia.",
+      "Painel do corretor em operação: funil por etapa, ficha do cliente, anotações, agenda e próxima ação do dia.",
+      "Painel da imobiliária: carteira da equipe, distribuição dos atendimentos e exportação em planilha.",
       "Migração da carteira a partir de planilha, acompanhada pela nossa equipe.",
+      "Exportação da carteira e exclusão dos dados de um titular pela própria tela (LGPD).",
     ],
   },
   {
@@ -59,14 +61,15 @@ export const ANEXO_PROXIMAS: EntregaDatada[] = [
     itens: [
       "Locação: contratos, reajustes e baixa automática de pagamento.",
       "Painel da rede com o fechamento mês a mês por unidade.",
+      "Site público da imobiliária com a página de avaliações dos seus clientes, com publicação direta e filtro automático de conteúdo impróprio.",
     ],
   },
 ];
 
-/** Cláusula do mês sem cobrança e o que ela não cobre. Sai logo abaixo da lista. */
+/** Cláusula do mês sem cobrança e como o item entregue passa a ser cobrado. */
 export const CLAUSULA_MES_GRATIS = [
   "Cada item deste anexo que passar do mês indicado vale um mês de mensalidade sem cobrança, por item atrasado, creditado na fatura seguinte.",
-  "Enquanto um item não entra, ele não é cobrado à parte: o que está neste anexo já está no preço desta proposta.",
+  "Enquanto um item não é entregue, ele não é cobrado. Entregue o item, valem a franquia de uso e o preço do excedente da tabela acima.",
 ];
 
 /** Avisos que impedem a demonstração de ser lida como produto pronto. */

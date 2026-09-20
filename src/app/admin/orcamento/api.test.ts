@@ -1,12 +1,13 @@
 /**
  * A busca do orçamento com o `fetch` trocado: achou, não existe, sessão caiu,
- * servidor falhou, rede fora e resposta em formato estranho. Nunca lança.
+ * servidor falhou, rede fora, formato estranho e conta que não fecha. Nunca
+ * lança, e nunca deixa passar proposta pela metade.
  *
  * Os dados são de empresa inventada, no domínio de exemplo (RFC 2606): nenhum
  * dado de pessoa real entra em teste.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { FALHA_SERVIDOR, FORMATO_ESTRANHO, SEM_CONEXAO, buscarOrcamento, urlOrcamento } from "./api";
+import { FALHA_SERVIDOR, FORMATO_ESTRANHO, NAO_FECHA, SEM_CONEXAO, buscarOrcamento, urlOrcamento } from "./api";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -14,24 +15,37 @@ afterEach(() => {
 
 const responder = (res: Response) => vi.stubGlobal("fetch", vi.fn(async () => res));
 
-/** Orçamento mínimo que a trilha A promete no DTO. */
-function orcamentoFalso() {
+/** Orçamento no contrato da trilha A: código e rótulo lado a lado, dinheiro em reais. */
+function orcamentoFalso(mudanca: Record<string, unknown> = {}) {
   return {
     id: "orc-1",
     numero: "ORC-2026-007",
     situacao: "enviado",
+    situacaoRotulo: "Enviado",
     criadoEm: "2026-09-20T12:00:00.000Z",
     validoAte: "2026-10-05",
     cliente: { nome: "Imobiliária de Exemplo", email: "contato@exemplo.example", telefone: "+5511900000000" },
     publico: "imobiliaria",
-    assentos: [{ nivel: "pro", faixa: "1o e 2o assento", quantidade: 2, precoUnitario: 179, total: 358 }],
-    extras: [{ item: "treinamento", rotulo: "Turma extra de treinamento", quantidade: 1, precoUnitario: 690, total: 690 }],
-    totais: { mensal: 358, anual: 4296, implantacao: 1790, economiaAnual: 716 },
+    publicoRotulo: "Imobiliária",
+    assentos: [
+      { codigo: "pro", nivel: "Pro", faixa: "1o e 2o assento", quantidade: 2, precoUnitario: 179, total: 358 },
+    ],
+    extras: [],
+    implantacao: { total: 1790, entrada: 895, saldo: 895, entradaPct: 50 },
+    totais: { mensal: 358, anual: 4296 },
     anual: false,
     descontoPct: 0,
     condicaoFundador: false,
+    inclusos: { pro: ["Funil, agenda e ficha do cliente por assento."] },
+    franquias: [{ rotulo: "Atendimentos de IA", incluso: "25 por assento/mês", excedente: "R$ 1,50 por atendimento" }],
+    ...mudanca,
   };
 }
+
+const buscarCom = async (mudanca: Record<string, unknown> = {}) => {
+  responder(Response.json({ ok: true, orcamento: orcamentoFalso(mudanca) }));
+  return buscarOrcamento("orc-1");
+};
 
 describe("buscar o orçamento do documento", () => {
   it("200 com o orçamento → estado ok, sem cache e com o id escapado na URL", async () => {
@@ -42,28 +56,26 @@ describe("buscar o orçamento do documento", () => {
     expect(r.estado).toBe("ok");
     if (r.estado !== "ok") return;
     expect(r.orcamento.numero).toBe("ORC-2026-007");
-    expect(r.orcamento.assentos[0]?.total).toBe(358);
-    expect(fetchFalso).toHaveBeenCalledWith("/api/admin/orcamentos/orc-1", expect.objectContaining({ cache: "no-store" }));
+    expect(r.orcamento.assentos[0]?.nivel).toBe("Pro");
+    expect(r.orcamento.implantacao?.entrada).toBe(895);
+    expect(fetchFalso).toHaveBeenCalledWith(
+      "/api/admin/orcamentos/orc-1",
+      expect.objectContaining({ cache: "no-store" }),
+    );
   });
 
-  it("o que a API ainda não manda entra com padrão (nada de tela quebrada)", async () => {
-    const enxuto = {
-      numero: "ORC-2026-001",
-      situacao: "rascunho",
-      criadoEm: "2026-09-20",
-      validoAte: "2026-10-05",
-      cliente: { nome: "Rede de Exemplo" },
-      totais: { mensal: 1000, anual: 12000 },
-    };
-    responder(Response.json({ ok: true, orcamento: enxuto }));
-
-    const r = await buscarOrcamento("orc-2");
+  it("o que é enfeite entra com padrão (extras, anual, desconto, fundador)", async () => {
+    const r = await buscarCom({
+      extras: undefined,
+      anual: undefined,
+      descontoPct: undefined,
+      condicaoFundador: undefined,
+    });
     expect(r.estado).toBe("ok");
     if (r.estado !== "ok") return;
-    expect(r.orcamento.assentos).toEqual([]);
     expect(r.orcamento.extras).toEqual([]);
-    expect(r.orcamento.totais.implantacao).toBe(0);
     expect(r.orcamento.anual).toBe(false);
+    expect(r.orcamento.descontoPct).toBe(0);
     expect(r.orcamento.condicaoFundador).toBe(false);
   });
 
@@ -87,11 +99,6 @@ describe("buscar o orçamento do documento", () => {
     expect(await buscarOrcamento("orc-1")).toEqual({ estado: "erro", mensagem: SEM_CONEXAO });
   });
 
-  it("corpo fora do contrato → formato estranho, e a folha não é desenhada", async () => {
-    responder(Response.json({ ok: true, orcamento: { numero: "ORC-1", situacao: "inventada" } }));
-    expect(await buscarOrcamento("orc-1")).toEqual({ estado: "erro", mensagem: FORMATO_ESTRANHO });
-  });
-
   it("resposta sem JSON (página de erro do provedor) → formato estranho", async () => {
     responder(new Response("<html>ops</html>", { status: 200 }));
     expect(await buscarOrcamento("orc-1")).toEqual({ estado: "erro", mensagem: FORMATO_ESTRANHO });
@@ -100,5 +107,44 @@ describe("buscar o orçamento do documento", () => {
   it("a rota é a do admin e o id vai escapado", () => {
     expect(urlOrcamento("abc-123")).toBe("/api/admin/orcamentos/abc-123");
     expect(urlOrcamento("../x?y")).toBe("/api/admin/orcamentos/..%2Fx%3Fy");
+  });
+});
+
+describe("o que impede a proposta de virar papel", () => {
+  const recusado = { estado: "erro", mensagem: FORMATO_ESTRANHO };
+  const naoFecha = { estado: "erro", mensagem: NAO_FECHA };
+
+  it("sem linha de assento (proposta com preço e sem item)", async () => {
+    expect(await buscarCom({ assentos: [] })).toEqual(recusado);
+  });
+
+  it("sem o que está incluso ou sem franquias (blocos obrigatórios do papel)", async () => {
+    expect(await buscarCom({ inclusos: undefined })).toEqual(recusado);
+    expect(await buscarCom({ franquias: [] })).toEqual(recusado);
+  });
+
+  it("situação inventada ou data que não existe no calendário", async () => {
+    expect(await buscarCom({ situacao: "inventada" })).toEqual(recusado);
+    expect(await buscarCom({ validoAte: "2026-02-31" })).toEqual(recusado);
+    expect(await buscarCom({ validoAte: "05/10/2026" })).toEqual(recusado);
+  });
+
+  it("nível contratado sem a lista do que inclui", async () => {
+    expect(await buscarCom({ inclusos: { ultra: ["Radar de oportunidades."] } })).toEqual(naoFecha);
+  });
+
+  it("linhas que não somam o total mensal", async () => {
+    expect(await buscarCom({ totais: { mensal: 999, anual: 11988 } })).toEqual(naoFecha);
+  });
+
+  it("implantação cobrada onde ela é isenta (anual e condição de fundador)", async () => {
+    expect(await buscarCom({ anual: true })).toEqual(naoFecha);
+    expect(await buscarCom({ condicaoFundador: true })).toEqual(naoFecha);
+  });
+
+  it("implantação só com o número, sem entrada e saldo (formato antigo)", async () => {
+    expect(
+      await buscarCom({ implantacao: undefined, totais: { mensal: 358, anual: 4296, implantacao: 1790 } }),
+    ).toEqual(naoFecha);
   });
 });

@@ -12,14 +12,17 @@ import { palette as p } from "@/lib/palette";
 export function Bloco({
   titulo,
   apoio,
+  quebravel,
   children,
 }: {
   titulo?: string;
   apoio?: string;
+  /** Seção comprida (o anexo): pode virar a página, e quem não parte são os pedaços dentro dela. */
+  quebravel?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="orc-bloco" style={{ marginTop: 22 }}>
+    <section className={quebravel ? undefined : "orc-bloco"} style={{ marginTop: 22 }}>
       {titulo && (
         <h2
           style={{

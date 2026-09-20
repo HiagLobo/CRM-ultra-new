@@ -23,7 +23,7 @@ import {
   textoLgpd,
 } from "./legais";
 import { franquiasDoOrcamento, inclusosDoNivel } from "./tabelaDaTrilhaA";
-import { ROTULO_NIVEL, niveisContratados, type Orcamento } from "./tiposOrcamento";
+import { niveisContratados, type Orcamento } from "./tiposOrcamento";
 
 const apoio: React.CSSProperties = { fontSize: 12.5, color: p.g700, lineHeight: 1.55, margin: "8px 0 0" };
 const subtitulo: React.CSSProperties = {
@@ -34,58 +34,58 @@ const subtitulo: React.CSSProperties = {
   fontFamily: "var(--font-display)",
 };
 
+/**
+ * O que está incluso e as franquias vêm da tabela oficial, copiados no
+ * orçamento na emissão. Sem eles o documento nem chega aqui: a conferência em
+ * `api.ts` recusa a proposta em vez de imprimir texto genérico no lugar.
+ */
 function Inclusos({ orcamento }: { orcamento: Orcamento }) {
-  const niveis = niveisContratados(orcamento).filter((n) => inclusosDoNivel(orcamento, n).length > 0);
   return (
     <Bloco titulo="O que está incluso">
-      {niveis.length === 0 ? (
-        <p style={{ ...apoio, marginTop: 0 }}>
-          A lista do que cada nível inclui acompanha esta proposta e vale na data de emissão.
-        </p>
-      ) : (
-        niveis.map((nivel) => (
-          <div key={nivel}>
-            <h3 style={subtitulo}>Nível {ROTULO_NIVEL[nivel]}</h3>
-            <Lista itens={inclusosDoNivel(orcamento, nivel)} />
-          </div>
-        ))
-      )}
+      {niveisContratados(orcamento).map((nivel) => (
+        <div key={nivel.codigo}>
+          <h3 style={subtitulo}>Nível {nivel.rotulo}</h3>
+          <Lista itens={inclusosDoNivel(orcamento, nivel.codigo)} />
+        </div>
+      ))}
     </Bloco>
   );
 }
 
 function Franquias({ orcamento }: { orcamento: Orcamento }) {
-  const franquias = franquiasDoOrcamento(orcamento);
   return (
     <Bloco titulo="Franquias de uso e excedente" apoio="O que já está na mensalidade e quanto custa o que passar disso.">
-      {franquias.length === 0 ? (
-        <p style={{ ...apoio, marginTop: 0 }}>
-          As franquias de uso e o preço do excedente seguem a tabela vigente na data desta proposta.
-        </p>
-      ) : (
-        <Lista
-          itens={franquias.map((f) =>
-            f.excedente ? `${f.rotulo}: ${f.incluso}. Excedente: ${f.excedente}.` : `${f.rotulo}: ${f.incluso}.`,
-          )}
-        />
-      )}
+      <Lista
+        itens={franquiasDoOrcamento(orcamento).map((f) =>
+          f.excedente ? `${f.rotulo}: ${f.incluso}. Excedente: ${f.excedente}.` : `${f.rotulo}: ${f.incluso}.`,
+        )}
+      />
     </Bloco>
   );
 }
 
+/**
+ * O anexo é a seção mais comprida do documento: ela pode virar a página, e
+ * quem não pode partir no meio é cada pedaço (o "no ar hoje", cada mês e as
+ * cláusulas). Por isso `quebravel`.
+ */
 function Anexo() {
   return (
-    <Bloco titulo={TITULO_ANEXO}>
-      <h3 style={{ ...subtitulo, marginTop: 0 }}>No ar hoje</h3>
-      <Lista itens={ANEXO_NO_AR} />
+    <Bloco titulo={TITULO_ANEXO} quebravel>
+      <div className="orc-bloco">
+        <h3 style={{ ...subtitulo, marginTop: 0 }}>No ar hoje</h3>
+        <Lista itens={ANEXO_NO_AR} />
+      </div>
       {ANEXO_PROXIMAS.map((entrega) => (
         <div key={entrega.mes} className="orc-bloco">
           <h3 style={subtitulo}>{entrega.mes}</h3>
           <Lista itens={entrega.itens} />
         </div>
       ))}
-      <p style={apoio}>{CLAUSULA_MES_GRATIS.join(" ")}</p>
-      <p style={{ ...apoio, color: p.g500 }}>{ANEXO_NOTAS.join(" ")}</p>
+      <div className="orc-bloco">
+        <p style={apoio}>{CLAUSULA_MES_GRATIS.join(" ")}</p>
+        <p style={{ ...apoio, color: p.g500 }}>{ANEXO_NOTAS.join(" ")}</p>
+      </div>
     </Bloco>
   );
 }

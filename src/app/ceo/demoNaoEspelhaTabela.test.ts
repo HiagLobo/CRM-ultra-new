@@ -18,6 +18,7 @@ import { existsSync, readFileSync } from "fs";
 import path from "path";
 
 const RAIZ = process.cwd();
+/** Tela nova do demo que mostra preço ENTRA AQUI, senão ela nasce fora da guarda. */
 const TELAS_DE_PRECO = ["src/app/ceo/planos/page.tsx", "src/app/ceo/custos/page.tsx"];
 const PLANO_DA_ONDA = "waves/11-orcamentos/00-PLANO.md";
 const TABELA_OFICIAL = "src/features/orcamento/tabela.ts";
@@ -37,9 +38,28 @@ function valoresEmReais(texto: string): number[] {
   return achados;
 }
 
-/** Custo unitário da tabela editável de `/ceo/custos` (`vu: 1.9`), que vira "R$ 1,90" na tela. */
-function custosUnitarios(texto: string): number[] {
-  return [...texto.matchAll(/\bvu:\s*(\d+(?:\.\d+)?)/g)].map((m) => parseFloat(m[1]!)).filter((v) => v > 0);
+/**
+ * Um preço chega à tela por vários caminhos, e a guarda precisa pegar todos,
+ * senão ela é fácil de furar sem querer:
+ *   money(179)      formatado na hora (é assim que `/ceo/custos` imprime)
+ *   `R$ ${189}`     interpolado
+ *   'R$ ' + 179     concatenado
+ *   vu: 1.9         custo unitário da tabela editável de `/ceo/custos`
+ */
+function valoresCalculados(texto: string): number[] {
+  const padroes = [
+    /\bmoney\(\s*(\d+(?:\.\d+)?)\s*\)/g,
+    /R\$\s*(?:\$\{\s*|['"`]\s*\+\s*)(\d+(?:\.\d+)?)/g,
+    /\bvu:\s*(\d+(?:\.\d+)?)/g,
+  ];
+  const achados: number[] = [];
+  for (const padrao of padroes) {
+    for (const m of texto.matchAll(padrao)) {
+      const valor = parseFloat(m[1]!);
+      if (valor > 0) achados.push(valor);
+    }
+  }
+  return achados;
 }
 
 /**
@@ -70,7 +90,7 @@ describe("o demo não espelha a tabela real", () => {
     let conferidos = 0;
     for (const tela of TELAS_DE_PRECO) {
       const texto = ler(tela);
-      const valores = [...valoresEmReais(texto), ...custosUnitarios(texto)];
+      const valores = [...valoresEmReais(texto), ...valoresCalculados(texto)];
       conferidos += valores.length;
       for (const valor of valores) {
         if (oficiais.has(valor)) colisoes.push(`${tela}: ${valor}`);
@@ -78,6 +98,11 @@ describe("o demo não espelha a tabela real", () => {
     }
     expect(conferidos, "as telas do demo deveriam ter vários valores").toBeGreaterThan(20);
     expect(colisoes).toEqual([]);
+  });
+
+  it("a guarda pega preço calculado, interpolado e concatenado", () => {
+    const disfarces = "money(179) + `R$ ${189}` + 'R$ ' + 95 e vu: 1.5";
+    expect(valoresCalculados(disfarces).sort((a, b) => a - b)).toEqual([1.5, 95, 179, 189]);
   });
 
   it("nenhum plano do demo se chama Pro ou Ultra", () => {

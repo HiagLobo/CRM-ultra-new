@@ -3,14 +3,20 @@
  * (`GET /api/admin/orcamentos/[id]`). A resposta é entrada externa como
  * qualquer outra: passa por Zod antes de virar documento.
  *
- * Tolerante de propósito. Obrigatório é só o que o papel não pode perder
- * (número, situação, datas, cliente e totais); o resto entra quando vier, para
- * a trilha A crescer o DTO sem quebrar a folha.
+ * Estrito no que o papel não pode errar. Falta de assentos, de franquias ou do
+ * que está incluso **recusa o documento** (a proposta sairia com preço e sem
+ * linha, ou com bloco obrigatório vazio). O que é enfeite (rótulo pronto,
+ * observação) continua opcional.
  *
- * Valores em REAIS (179 = R$ 179,00), como a tabela oficial da onda. Os preços
- * são os gravados no orçamento (o preço do dia), nunca recalculados aqui.
+ * A API manda código e rótulo lado a lado (`situacao`/`situacaoRotulo`,
+ * `publico`/`publicoRotulo`, `assentos[].codigo`/`assentos[].nivel`): o
+ * documento imprime o rótulo e decide pelo código.
+ *
+ * Valores em REAIS (179 = R$ 179,00), como a tabela oficial. São os preços
+ * gravados no orçamento (o preço do dia), nunca recalculados aqui.
  */
 import { z } from "zod";
+import { diaValido } from "@/features/lead/funil";
 
 export const NIVEIS = ["pro", "ultra"] as const;
 export type Nivel = (typeof NIVEIS)[number];
@@ -18,7 +24,7 @@ export type Nivel = (typeof NIVEIS)[number];
 export const SITUACOES = ["rascunho", "enviado", "aceito", "recusado"] as const;
 export type Situacao = (typeof SITUACOES)[number];
 
-/** Como cada situação aparece na barra do painel. */
+/** Como cada situação aparece na barra do painel, quando a API não manda rótulo. */
 export const ROTULO_SITUACAO: Record<Situacao, string> = {
   rascunho: "Rascunho",
   enviado: "Enviado",
@@ -26,16 +32,22 @@ export const ROTULO_SITUACAO: Record<Situacao, string> = {
   recusado: "Recusado",
 };
 
-/** Nome comercial de cada nível. "Ultra" nunca vira "completo": o produto ainda é demonstração. */
+/** Nome do nível, quando a API não manda rótulo. "Ultra" nunca vira "completo". */
 export const ROTULO_NIVEL: Record<Nivel, string> = { pro: "Pro", ultra: "Ultra" };
 
-const dinheiro = z.number().finite();
+const dinheiro = z.number().finite().nonnegative();
+/** `AAAA-MM-DD` que existe no calendário (31/02 não passa). */
+const dia = z.string().refine(diaValido, "data fora do formato AAAA-MM-DD");
+/** Dia ou instante ISO: o documento só usa os 10 primeiros caracteres. */
+const instante = z.string().refine((v) => diaValido(v.slice(0, 10)), "data fora do formato AAAA-MM-DD");
 
 const itemAssento = z.object({
-  nivel: z.enum(NIVEIS),
-  /** Faixa da escada ("1o e 2o assento"), quando a API mandar. */
+  codigo: z.enum(NIVEIS),
+  /** Rótulo pronto da API ("Pro", "Ultra"). */
+  nivel: z.string().min(1),
+  /** Faixa da escada ("1o e 2o assento"). */
   faixa: z.string().optional(),
-  quantidade: z.number().int().nonnegative(),
+  quantidade: z.number().int().positive(),
   precoUnitario: dinheiro,
   total: dinheiro,
 });
@@ -50,7 +62,7 @@ const itemExtra = z.object({
 });
 export type ItemExtra = z.infer<typeof itemExtra>;
 
-/** Franquia de uso e o preço do excedente, do jeito que a tabela oficial descreve. */
+/** Franquia de uso e o preço do excedente, como a tabela oficial descreve. */
 const franquia = z.object({
   rotulo: z.string().min(1),
   incluso: z.string().min(1),
@@ -58,46 +70,65 @@ const franquia = z.object({
 });
 export type Franquia = z.infer<typeof franquia>;
 
+/**
+ * Implantação: serviço entregue uma vez, pago em duas partes (entrada na
+ * assinatura e saldo na conclusão). Ausente = isenta nesta proposta.
+ */
+const implantacao = z.object({
+  total: dinheiro,
+  entrada: dinheiro,
+  saldo: dinheiro,
+  entradaPct: z.number().min(0).max(100),
+});
+export type Implantacao = z.infer<typeof implantacao>;
+
 export const orcamentoSchema = z.object({
   id: z.string().optional(),
   numero: z.string().min(1),
   situacao: z.enum(SITUACOES),
-  criadoEm: z.string().min(1),
-  validoAte: z.string().min(1),
+  situacaoRotulo: z.string().optional(),
+  criadoEm: instante,
+  validoAte: dia,
   cliente: z.object({
     nome: z.string().min(1),
     email: z.string().optional(),
     telefone: z.string().optional(),
   }),
   publico: z.string().optional(),
-  assentos: z.array(itemAssento).default([]),
+  publicoRotulo: z.string().optional(),
+  /** Proposta com preço e sem linha de assento não vira papel. */
+  assentos: z.array(itemAssento).min(1),
   extras: z.array(itemExtra).default([]),
   totais: z.object({
     mensal: dinheiro,
     anual: dinheiro,
-    implantacao: dinheiro.default(0),
-    /** Economia dos 2 meses no anual, quando a API já calcula. */
+    /** Economia dos 2 meses no anual. */
     economiaAnual: dinheiro.optional(),
+    /** Formato antigo (só o número): a conferência recusa, porque falta entrada e saldo. */
+    implantacao: dinheiro.optional(),
   }),
+  implantacao: implantacao.optional(),
   anual: z.boolean().default(false),
   descontoPct: z.number().default(0),
   condicaoFundador: z.boolean().default(false),
   unidades: z.number().int().nonnegative().optional(),
   observacao: z.string().optional(),
   /**
-   * O que está incluso em cada nível e as franquias de uso: nascem na
-   * `src/features/orcamento/tabela.ts` (trilha A) e chegam pelo orçamento, que
-   * grava o texto vigente na emissão. Ver `tabelaDaTrilhaA.ts`.
+   * Copiados da `src/features/orcamento/tabela.ts` na emissão, como o preço.
+   * Obrigatórios: sem eles a proposta sai sem dois blocos que o cliente lê.
    */
-  inclusos: z.record(z.array(z.string())).optional(),
-  franquias: z.array(franquia).optional(),
+  inclusos: z.record(z.array(z.string())),
+  franquias: z.array(franquia).min(1),
 });
 
 export type Orcamento = z.infer<typeof orcamentoSchema>;
 
-/** Níveis contratados, na ordem da tabela (Pro antes de Ultra), sem repetir. */
-export function niveisContratados(orcamento: Orcamento): Nivel[] {
-  return NIVEIS.filter((nivel) => orcamento.assentos.some((a) => a.nivel === nivel && a.quantidade > 0));
+/** Níveis contratados, na ordem da tabela, com o rótulo que a API mandou. */
+export function niveisContratados(orcamento: Orcamento): { codigo: Nivel; rotulo: string }[] {
+  return NIVEIS.filter((codigo) => orcamento.assentos.some((a) => a.codigo === codigo)).map((codigo) => ({
+    codigo,
+    rotulo: orcamento.assentos.find((a) => a.codigo === codigo)?.nivel ?? ROTULO_NIVEL[codigo],
+  }));
 }
 
 /** Total de assentos da conta: é ele que define a faixa da escada. */
