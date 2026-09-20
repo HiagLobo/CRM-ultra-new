@@ -21,12 +21,15 @@ export default function GuiaDrawer({
   painel,
   aoFechar,
   aoRefazerTour,
+  aoAvaliar,
   rodape,
 }: {
   painel: Painel;
   aoFechar: () => void;
   /** Só aparece nas telas que têm tour. */
   aoRefazerTour?: () => void;
+  /** O10·S2: reabre a avaliação — inclusive para quem dispensou com "Agora não". */
+  aoAvaliar?: () => void;
   /** Distância até a base da tela (CSS) — logo acima do botão Guia. */
   rodape: string;
 }) {
@@ -139,6 +142,31 @@ export default function GuiaDrawer({
             }}
           >
             <Ic n="repeat" s={15} c={p.primary} /> Refazer o tour desta tela
+          </button>
+        </div>
+      )}
+
+      {/* O10·S2: quem dispensou o convite ("Agora não") volta a avaliar por aqui */}
+      {aoAvaliar && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <button
+            type="button"
+            onClick={aoAvaliar}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              border: "none",
+              background: "none",
+              padding: 0,
+              color: p.primary,
+              fontFamily: "var(--font-body)",
+              fontSize: 13.5,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            <Ic n="star" s={15} c={p.primary} /> Avaliar o demo
           </button>
         </div>
       )}

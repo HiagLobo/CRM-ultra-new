@@ -4,12 +4,18 @@
  * na própria demonstração e mostra os depoimentos REAIS de quem testou o demo
  * (`src/content/depoimentos.ts`, um por autorização registrada). Sem nenhum
  * autorizado, o espaço fica reservado e marcado enquanto `brand.demoMode` estiver ligado.
+ *
+ * O10·S2: começa pelos três do arquivo e soma o que o `GET /api/avaliacoes`
+ * trouxer do banco (média, contagem e até 12 comentários). A chamada falhando,
+ * a seção fica exatamente como era — sem erro na tela.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
-import { DEPOIMENTOS, assinatura, mediaDasNotas, notaEmTexto } from "@/content/depoimentos";
+import { notaEmTexto } from "@/content/depoimentos";
+import { EstrelasNota } from "@/components/avaliacao/Estrelas";
+import { useVitrine } from "@/components/avaliacao/useVitrine";
 import { Secao, Eyebrow, Titulo, Sub, AvisoIlustrativo } from "./ui";
 
 const GARANTIAS: { icone: string; titulo: string; texto: string }[] = [
@@ -33,21 +39,9 @@ const GARANTIAS: { icone: string; titulo: string; texto: string }[] = [
   },
 ];
 
-/** Estrelas cheias até a nota, vazias no resto. Só aparece com nota de gente. */
-function Estrelas({ nota, rotulo }: { nota: number; rotulo: string }) {
-  return (
-    <span role="img" aria-label={rotulo} style={{ display: "inline-flex", gap: 2, fontSize: 16, lineHeight: 1 }}>
-      {[1, 2, 3, 4, 5].map((n) => (
-        <span key={n} aria-hidden="true" style={{ color: n <= nota ? p.gold : p.g300 }}>
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}
-
 export default function Prova() {
-  const nota = mediaDasNotas();
+  const vitrine = useVitrine();
+  const nota = vitrine.resumo;
 
   return (
     <Secao>
@@ -84,7 +78,7 @@ export default function Prova() {
         ))}
       </div>
 
-      {DEPOIMENTOS.length > 0 && (
+      {vitrine.cartoes.length > 0 && (
         <section aria-labelledby="titulo-depoimentos" style={{ marginTop: 44 }}>
           <h3
             id="titulo-depoimentos"
@@ -97,7 +91,7 @@ export default function Prova() {
           </p>
           {nota && (
             <p style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 20px", fontSize: 14, color: p.g700 }}>
-              <Estrelas nota={nota.media} rotulo={`média de ${notaEmTexto(nota.media)} estrelas`} />
+              <EstrelasNota nota={nota.media} rotulo={`média de ${notaEmTexto(nota.media)} estrelas`} />
               <span>
                 <strong style={{ color: p.ink }}>{notaEmTexto(nota.media)}</strong>, {nota.quantas}{" "}
                 {nota.quantas === 1 ? "avaliação" : "avaliações"} de quem testou
@@ -105,9 +99,9 @@ export default function Prova() {
             </p>
           )}
           <div className="ds-cards" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 22 }}>
-            {DEPOIMENTOS.map((d) => (
+            {vitrine.cartoes.map((c) => (
               <figure
-                key={d.id}
+                key={c.chave}
                 style={{
                   margin: 0,
                   background: p.white,
@@ -119,8 +113,8 @@ export default function Prova() {
                   gap: 14,
                 }}
               >
-                {d.avaliacao ? (
-                  <Estrelas nota={d.avaliacao.estrelas} rotulo={`${d.avaliacao.estrelas} de 5 estrelas`} />
+                {c.estrelas ? (
+                  <EstrelasNota nota={c.estrelas} rotulo={`${c.estrelas} de 5 estrelas`} />
                 ) : (
                   <span
                     aria-hidden="true"
@@ -130,16 +124,16 @@ export default function Prova() {
                   </span>
                 )}
                 <blockquote style={{ margin: 0, fontSize: 15.5, lineHeight: 1.65, color: p.ink }}>
-                  &ldquo;{d.texto}&rdquo;
+                  &ldquo;{c.texto}&rdquo;
                 </blockquote>
-                <figcaption style={{ marginTop: "auto", fontSize: 13.5, color: p.g500 }}>{assinatura(d)}</figcaption>
+                <figcaption style={{ marginTop: "auto", fontSize: 13.5, color: p.g500 }}>{c.assinatura}</figcaption>
               </figure>
             ))}
           </div>
         </section>
       )}
 
-      {brand.demoMode && DEPOIMENTOS.length === 0 && (
+      {brand.demoMode && vitrine.cartoes.length === 0 && (
         <div
           style={{
             marginTop: 34,

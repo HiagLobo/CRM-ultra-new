@@ -1,7 +1,8 @@
 "use client";
 /**
  * Ponto único de montagem da orientação do demo — os painéis chamam só isto.
- * Banner + boas-vindas (O3·S1), guia contextual (O3·S2) e tour guiado.
+ * Banner + boas-vindas (O3·S1), guia contextual (O3·S2), tour guiado e o
+ * convite para avaliar (O10·S2).
  *
  * A ordem importa: o tour só começa **depois** das boas-vindas fecharem. Abrir
  * os dois juntos poria um modal por cima do destaque do tour, e a pessoa não
@@ -20,6 +21,7 @@ import {
   guiaAberto,
   definirGuiaAberto,
 } from "@/lib/guiaState";
+import AvaliacaoNoDemo from "@/components/avaliacao/AvaliacaoNoDemo";
 import DemoBanner from "./DemoBanner";
 import WelcomeModal from "./WelcomeModal";
 import HelpFab from "./HelpFab";
@@ -47,6 +49,8 @@ export default function GuiaDemo({
   const [mostrarBanner, setMostrarBanner] = React.useState(false);
   const [modalAberto, setModalAberto] = React.useState(false);
   const [drawerAberto, setDrawerAberto] = React.useState(false);
+  // cada clique em "Avaliar o demo" (no Guia) soma 1 e abre o formulário
+  const [pedidoAvaliar, setPedidoAvaliar] = React.useState(0);
 
   // o tour só começa depois das boas-vindas fecharem: dois avisos ao mesmo tempo
   // poriam um modal por cima do destaque, e a pessoa não entenderia nenhum dos dois
@@ -91,6 +95,11 @@ export default function GuiaDemo({
           painel={painel}
           aoFechar={alternarDrawer}
           rodape={noRodape(folgaInferior + ACIMA_DO_BOTAO)}
+          aoAvaliar={() => {
+            setDrawerAberto(false);
+            definirGuiaAberto(false);
+            setPedidoAvaliar((n) => n + 1);
+          }}
           aoRefazerTour={
             tour.passos
               ? () => {
@@ -104,6 +113,13 @@ export default function GuiaDemo({
       )}
       <HelpFab aberto={drawerAberto} aoAlternar={alternarDrawer} rodape={noRodape(folgaInferior)} />
       {tour.aberto && tour.passos && <Tour passos={tour.passos} aoSair={tour.fechar} />}
+      {/* o convite ocupa a mesma faixa do guia (acima do botão), então some quando o guia,
+          as boas-vindas ou o tour estão na frente — nunca dois cartões empilhados */}
+      <AvaliacaoNoDemo
+        rodape={noRodape(folgaInferior + ACIMA_DO_BOTAO)}
+        pausado={drawerAberto || modalAberto || tour.aberto}
+        pedido={pedidoAvaliar}
+      />
     </>
   );
 }
