@@ -140,6 +140,19 @@
   11.900 + 990 por unidade, excedentes 1,50 · 4,90 · 2,90 · 0,90), para quem confere a folha não
   aprender número errado.
 
+## Verificação da onda (integração, 2026-09-20)
+- `tsc` limpo · **1233 testes** (121 arquivos) · `next build` verde.
+- Smoke da API ponta a ponta (dev, store em arquivo) — **15/15**: escada 3 Ultra + 5 Pro = R$ 1.522,00
+  · desconto de 60% recusado (efetivo R$ 58,00 contra piso de R$ 85,00) · **41,37% no anual recusado**
+  com o efetivo real de R$ 70,84 (o furo que a revisão achou) · 29,65% no anual passa · implantação de
+  R$ 1.790 em entrada de R$ 895 e saldo de R$ 895 · documento com `inclusos` e 4 franquias · soma
+  fechando · DTO sem dado sensível · 401 sem sessão · excluir o lead leva os orçamentos.
+- **Achado da integração**: toda proposta com desconto se recusava a imprimir (a conferencia somava
+  as linhas de assento sem tirar o desconto). Corrigido, com dois testes.
+- Documento: PDF gerado pela impressão do Chrome em **A4 de verdade (210 x 297 mm), 3 páginas**, com
+  a barra da tela sumindo no papel, blocos obrigatórios presentes e nenhuma palavra proibida.
+  Celular 390 px sem estouro lateral, 0 exceções JS.
+
 ## Pendências fora de escopo
 - `src/components/Icon.tsx` não tem ícone de lixeira nem de cópia (`trash-2`, `copy`). A lista de
   orçamentos usa `minus` e `layers`; trocar quando alguém puder acrescentá-los ao mapa de ícones.
