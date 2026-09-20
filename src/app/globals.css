@@ -561,3 +561,53 @@ a { color: inherit; }
     .ceo-hide-sm { display: none !important; }
     .ceo-divider { display: none !important; }
   }
+
+/* ============================================================
+   ORÇAMENTO EM A4 (O11·S3) · documento de /admin/orcamento/[id]
+   Na tela: folha centralizada, com sombra, legível a partir de 390 px.
+   No papel: só o documento. Sem barra, sem botão e sem fundo escuro, A4 com
+   15 mm de margem e bloco que não parte no meio da página.
+   ============================================================ */
+.orc-folha {
+  width: 100%;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 32px 30px 28px;
+  box-sizing: border-box;
+  border: 1px solid var(--gray-300);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-body);
+}
+.orc-bloco { break-inside: avoid; page-break-inside: avoid; }
+@media (max-width: 480px) {
+  .orc-folha { padding: 20px 16px; border-radius: 10px; }
+}
+
+@media print {
+  @page { size: A4; margin: 15mm; }
+  /* só a página do orçamento mexe no fundo: o resto do site imprime como sempre */
+  body:has(.orc-folha) { background: #FFFFFF !important; margin: 0 !important; padding: 0 !important; }
+  .orc-naoimprime { display: none !important; }
+  .orc-tela { background: #FFFFFF !important; min-height: 0 !important; padding: 0 !important; }
+  .orc-tela main { padding: 0 !important; }
+  .orc-folha {
+    max-width: none;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 10.5pt;
+  }
+  /* a tabela inteira NÃO leva break-inside: senão ela empurra a página e o
+     cabeçalho repetido perde a graça. Quem não parte é a linha e o bloco. */
+  .orc-folha tr { break-inside: avoid; page-break-inside: avoid; }
+  .orc-folha thead { display: table-header-group; }
+  .orc-folha h2,
+  .orc-folha h3 { break-after: avoid; page-break-after: avoid; }
+  /* cor exata só dentro da folha (fora dela isso faria a capa sair chapada de indigo) */
+  .orc-folha,
+  .orc-folha * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
