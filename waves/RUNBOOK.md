@@ -385,11 +385,75 @@ conferência do CRECI dá erro, com `db:42703` no log `[/api/admin/leads] PATCH`
 loga `[verify] último acesso não registrado: db:42703`. Rode a 005 (passos 2 e 3); não precisa de
 Redeploy.
 
+### 3.11. Migração 006 (avaliações) — rode a 006 ANTES de publicar a versão nova
+
+Para quem já está no ar com as migrações 001 a 005. (Banco novo: o passo 3.4 já inclui a 006.) A
+versão com a **avaliação por estrelas dentro do demo** grava numa tabela nova, `avaliacoes`, que só
+a `006-avaliacoes.sql` cria.
+
+**A ordem é: migrar primeiro, publicar depois** (como na 005). O motivo:
+
+- a 006 só **acrescenta** (uma tabela nova e dois índices): o código que está no ar nem sabe que ela
+  existe, então rodá-la antes não muda nada no site;
+- o código **novo** grava nela: sem a 006, o convite para avaliar aparece, a pessoa dá a nota e
+  recebe erro — o pior momento possível para falhar.
+
+Passo a passo:
+
+1. **Backup.** Neon → **Branches → Create branch** a partir do principal, com a data no nome (ex.:
+   `antes-006-2026-09-20`). Veja "Backup" na seção 4.
+2. Neon → **SQL Editor** (branch principal, database `neondb`) → abra `migrations/006-avaliacoes.sql`
+   no GitHub → copie **tudo** → cole → **Run**.
+3. Confira, no mesmo SQL Editor:
+
+   ```sql
+   SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'avaliacoes'
+    ORDER BY 1;
+   ```
+
+   Têm de voltar as **11** colunas (`atualizado_em`, `comentario`, `consentimento_em`,
+   `consentimento_ip`, `consentimento_texto`, `criado_em`, `estrelas`, `id`, `identificacao`,
+   `lead_id`, `status`). Não voltou nada? A 006 não rodou.
+
+   ```sql
+   SELECT indexname FROM pg_indexes
+    WHERE tablename = 'avaliacoes'
+    ORDER BY 1;
+   ```
+
+   Têm de voltar `avaliacoes_lead_idx` (o único, que garante **uma avaliação por corretor**),
+   `avaliacoes_status_criado_idx` e a chave primária.
+4. **Só então publique**: merge/push na `main` (deploy automático) e espere o deploy ficar **Ready**
+   na Vercel.
+5. Smoke: entre no demo com o seu e-mail, avalie com **4 estrelas** e um comentário comum. A landing
+   tem de mostrar a contagem subindo, e o `/admin` → **Avaliações** tem de listar a sua. Depois
+   **Tirar do site** e confira que o texto some da landing e a nota continua na média.
+
+**O que a 006 faz:** cria a tabela `avaliacoes` (nota de 1 a 5, comentário opcional, escolha de
+identificação, situação e o carimbo do consentimento), com `ON DELETE CASCADE` no lead — excluir um
+lead pelo `/admin` (LGPD) apaga a avaliação dele junto — e os dois índices. **Não apaga nada**, não
+toca na tabela `leads` e pode rodar de novo sem estrago.
+
+**Se publicar antes da 006** (ou esquecer): o site segue normal, mas quem tentar avaliar recebe erro,
+com `db:42P01` no log `[/api/avaliacao]`, e a landing mostra só as avaliações do arquivo (a vitrine
+loga `[/api/avaliacoes] GET: db:42P01`). Rode a 006 (passos 2 e 3); não precisa de Redeploy.
+
 ---
 
 ## 4. Operação do dia a dia
 
 **Ver os leads:** `/admin/login` → `/admin`. A sessão dura 12h.
+
+**Moderar as avaliações do demo.** Quem está com o demo liberado dá a nota e, se quiser, escreve um
+comentário. O comentário **publica direto**; o filtro automático segura no `pendente` só o que tem
+link, e-mail, telefone, texto gigante, muitas linhas em branco, quase tudo em maiúsculas ou
+palavrão — e o painel mostra o motivo em português ("tem link", "tem telefone"…). No `/admin`, aba
+**Avaliações**: **Publicar** põe no ar, **Tirar do site** remove o texto. A **nota continua contando
+na média** nos dois casos: o que sai do ar é o comentário, não a avaliação. Cada mudança fica na
+auditoria como `avaliacao.status` com o id e a situação de/para — nunca o texto nem quem escreveu.
+Se `AVISO_LEADS_EMAIL` estiver configurada, chega um e-mail a cada avaliação nova (ou quando ela
+muda de situação) com **só a nota, a situação e o link do painel**.
 
 **Tour guiado.** Na primeira visita de cada tela com tour (os 3 painéis, atendimento, radar e a busca
 do portal — 6 tours, 33 passos) a orientação aparece sozinha: destaque no elemento + balão explicando. Pular ou concluir

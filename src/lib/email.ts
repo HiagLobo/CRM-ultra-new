@@ -10,6 +10,7 @@ import { Resend } from "resend";
 import { env, emailModoDev } from "./env";
 import { montarEmailCodigo, type EmailCodigo } from "./emailCodigo";
 import { montarEmailAviso } from "./emailAviso";
+import { montarEmailAvisoAvaliacao, type AvisoAvaliacao } from "./emailAvisoAvaliacao";
 import { interpretarRemetente, montarRemetente, MENSAGEM_REMETENTE_INVALIDO, type Remetente } from "./remetente";
 import { ErroConfiguracao, ErroEnvioEmail } from "./erros";
 import type { BrandConfig } from "../config/brand";
@@ -22,6 +23,12 @@ export interface ProvedorEmail {
    * Não recebe dado do lead — o aviso é sem PII por construção (O7·S1).
    */
   enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void>;
+  /**
+   * Avisa o fundador (`para` = AVISO_LEADS_EMAIL) que entrou uma avaliação do
+   * demo (O10·S1). Recebe só a nota e a situação — nada de quem avaliou nem do
+   * texto: o aviso é sem PII por construção, como o de lead novo.
+   */
+  enviarAvisoAvaliacao(para: string, brand: BrandConfig, aviso: AvisoAvaliacao): Promise<void>;
 }
 
 /** Mascara o e-mail para uso seguro em log (não vaza o endereço completo). */
@@ -42,6 +49,10 @@ export class ConsoleEmail implements ProvedorEmail {
     // dev: nem o destinatário vai ao log — só o fato
     console.log("[email:dev] aviso de lead novo confirmado (modo desenvolvimento) — veja o /admin");
   }
+  async enviarAvisoAvaliacao(_para: string, _brand: BrandConfig, aviso: AvisoAvaliacao): Promise<void> {
+    // dev: a nota e a situação não são PII; quem avaliou e o texto não entram
+    console.log(`[email:dev] aviso de avaliação nova (${aviso.estrelas}/5, ${aviso.pendente ? "pendente" : "publicada"})`);
+  }
 }
 
 export class ResendEmail implements ProvedorEmail {
@@ -56,6 +67,10 @@ export class ResendEmail implements ProvedorEmail {
 
   async enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void> {
     return this.enviar(para, montarEmailAviso(brand), brand);
+  }
+
+  async enviarAvisoAvaliacao(para: string, brand: BrandConfig, aviso: AvisoAvaliacao): Promise<void> {
+    return this.enviar(para, montarEmailAvisoAvaliacao(brand, aviso), brand);
   }
 
   private async enviar(para: string, conteudo: EmailCodigo, brand: BrandConfig, responderPara?: string): Promise<void> {
