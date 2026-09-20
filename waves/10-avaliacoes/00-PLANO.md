@@ -32,9 +32,9 @@
 ## Contrato da API
 **`POST /api/avaliacao`** (exige cookie `crm_demo` válido) — body
 `{ estrelas: 1..5, comentario?: string(≤400), identificacao: "nome_creci" | "nome" | "anonimo" }`
-- `200 { ok: true, status: "publicado" | "pendente", resumo: { media: number, quantas: number } }`
+- `200 { ok: true, status: "publicado" | "pendente", resumo: { media: number, quantas: number } }` — o `resumo` **já vem somado com o arquivo**, igual ao GET: quem mostra usa o número como chega
 - `401 { ok: false, erro: "sem_acesso" }` (sem cookie ou cookie vencido)
-- `400 { ok: false, erro: "dados inválidos", campos }`
+- `400 { ok: false, erro: "dados_invalidos", mensagem: "dados inválidos", campos }` · `429 { ok: false, erro: "limitado", mensagem }` (código em snake, como o resto do projeto)
 - `409 { ok: false, erro: "sem_nome" }` — pediu `nome_creci`/`nome` e o lead não tem nome gravado
   (lead antigo, anterior à O9): a tela cai para anônimo e avisa.
 - `429` rate-limit (5 envios por lead a cada 30 min) · `500` como sempre.

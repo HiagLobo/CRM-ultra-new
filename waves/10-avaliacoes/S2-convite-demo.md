@@ -19,12 +19,13 @@ comentários novos aparecem junto com os três que já existem.
 4. **Depois de enviar**: agradecimento com a média e a contagem novas ("sua nota entrou: agora são
    N avaliações, média X"), e aviso quando o texto ficou para conferência (`pendente`).
 5. **Vitrine** (`Prova.tsx`): busca `GET /api/avaliacoes` no cliente, **começando pelos três do
-   arquivo** (sem tela vazia nem pulo de layout) e somando o que vier do banco: média, contagem e
-   até 12 comentários. Falha de rede: fica com os três do arquivo, sem erro na tela.
+   arquivo** (sem tela vazia nem pulo de layout). A média e a contagem da API **já vêm somadas com
+   o arquivo**: usar como chega, nunca somar de novo. Os comentários da API são só do banco e
+   entram depois dos do arquivo, com teto de 12 cartões no total. Falha de rede: fica com os três do arquivo, sem erro na tela.
 6. Celular 390 px: convite e formulário sem estouro lateral, sem cobrir a barra do demo.
 
 ## Pronto quando
 - [ ] Testes das funções puras: relógio (aba escondida não conta, 4 min dispara, dispensa e
-      resposta não repetem), montagem do corpo do POST, leitura de cada resposta da API, soma
-      arquivo + banco.
+      resposta não repetem), montagem do corpo do POST, leitura de cada resposta da API, e a garantia
+      de NÃO somar o arquivo de novo em cima do número do servidor.
 - [ ] `tsc` + testes verdes; conferência no navegador (desktop e 390 px) com o servidor da trilha A.
