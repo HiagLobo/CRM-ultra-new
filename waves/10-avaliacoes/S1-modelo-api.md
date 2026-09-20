@@ -16,9 +16,12 @@ hora, e nada vai ao ar sem a escolha de identificação da pessoa.
    schema Zod da entrada, `textoConsentimentoAvaliacao(identificacao)` (client-safe, a tela mostra
    o mesmo que fica gravado) e `resumo(avaliacoes, doArquivo)` puro (média com 1 casa e contagem).
 3. **Filtro automático** (`filtroComentario.ts`, puro, com teste): devolve `publicado` ou
-   `pendente` + motivo. Cai em `pendente` com link (`http`, `www.`, domínio), e-mail, telefone,
-   mais de 400 caracteres, 3 linhas em branco seguidas, CAPS em mais de 70% do texto, ou palavra da
-   lista de baixo calão (lista curta, em arquivo próprio, sem palavrão escrito no teste principal).
+   `pendente` + motivo. Cai em `pendente` com link (`http`, `www.`, QUALQUER domínio, inclusive
+   disfarçado como `golpe . com`, `golpe(ponto)com` ou `golpe。com`), e-mail, telefone, 3 linhas em
+   branco seguidas, CAPS em mais de 70% do texto, ou palavra da lista de baixo calão (lista curta,
+   em arquivo próprio, sem palavrão escrito no teste principal; pega grafia espaçada, cortada e com
+   dígito no lugar da letra). **Tamanho não é regra do filtro**: o Zod recusa acima de 400
+   caracteres antes, com 400 na rota — regra de tamanho aqui seria código morto.
 4. Store `AvaliacaoStore` (porta + arquivo em dev + Postgres): `salvar(lead, dados)` (upsert por
    `lead_id`), `doLead(leadId)`, `listarPublicadas(limite)`, `listarTodas()` (admin),
    `trocarStatus(id, status)`, `resumoContagem()`.
@@ -32,7 +35,7 @@ hora, e nada vai ao ar sem a escolha de identificação da pessoa.
 8. RUNBOOK: seção da migração 006 (rodar ANTES do deploy) + como moderar; README atualizado.
 
 ## Pronto quando
-- [ ] Testes: cada regra do filtro (link, e-mail, telefone, tamanho, CAPS, palavrão, texto normal);
+- [ ] Testes: cada regra do filtro (link e disfarces, e-mail, telefone, CAPS, palavrão, texto normal);
       upsert de uma avaliação por lead; `nome_creci` sem nome no lead → 409; sem cookie → 401;
       cookie de lead excluído → 401; rate limit; `GET /api/avaliacoes` não devolve nome de quem
       escolheu anônimo nem texto de `pendente`/`recusado`; média com o arquivo somado; auditoria

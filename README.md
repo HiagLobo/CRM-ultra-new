@@ -37,7 +37,7 @@ e o código de verificação aparece na própria tela.
 | `npm run seed` | 8 leads fictícios para o painel do admin (só dev) |
 
 **Operar, publicar e resolver problema: [`waves/RUNBOOK.md`](waves/RUNBOOK.md).** Produção: Vercel
-(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 5 migrações em `migrations/`) + Resend
+(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 6 migrações em `migrations/`) + Resend
 (`mail.crmultra.com.br`, São Paulo), domínio `crmultra.com.br` — passo a passo na seção 3.
 
 ---
@@ -52,8 +52,11 @@ src/
     corretor|ceo|franqueado/   os 3 painéis do demo (mock)
     admin/                painel de leads (guard no servidor)
     api/lead/             captura + verificação
-    api/admin/            sessão e leads (todas atrás de authz)
+    api/avaliacao/        avaliação do demo (exige o cookie do demo)
+    api/avaliacoes/       vitrine pública das avaliações (sem cookie)
+    api/admin/            sessão, leads e avaliações (todas atrás de authz)
   features/lead/          domínio: Zod, criação, verificação, funil e casos de uso do admin
+  features/avaliacao/     domínio: nota, filtro do comentário, vitrine e moderação
   lib/                    portas e adaptadores (store, e-mail, token, auditoria)
   components/
     landing/ acesso/      landing e fluxo de acesso
@@ -64,7 +67,7 @@ migrations/               SQL do Postgres de produção
 waves/                    o plano por ondas, o estado de cada uma e o runbook
 ```
 
-**Princípio que sustenta o resto:** o domínio fala com **portas** (`LeadStore`, `ProvedorEmail`),
+**Princípio que sustenta o resto:** o domínio fala com **portas** (`LeadStore`, `AvaliacaoStore`, `ProvedorEmail`),
 nunca com fornecedor. Trocar arquivo por Postgres, ou Resend por outro provedor, é escrever um
 adaptador — o domínio não muda.
 
@@ -121,6 +124,14 @@ aparecem no `/login` e no fim do fluxo: **Painel do Corretor**, **CEO com associ
 **CEO com franquias**. Todos os dados e pessoas do demo são **fictícios** — a rede que aparece
 nos painéis e no site de exemplo (`/demo`) é a "Rede Exemplo Imóveis" (`src/config/demo.ts`).
 As fotos têm licença Unsplash, com origem registrada em `public/assets/CREDITOS.md`.
+
+**Avaliação do demo.** Quem está com o demo liberado pode dar uma nota de 1 a 5 e escrever um
+comentário, escolhendo se aparece com **nome e CRECI**, **só o nome** ou **anônimo** — o texto do
+consentimento que a tela mostra é o mesmo que fica gravado. O comentário publica direto; um filtro
+automático segura para conferência o que tem link, contato, texto gigante ou palavrão, e o fundador
+decide no `/admin`. Tirar um comentário do site não apaga a nota: a média é a que as pessoas deram.
+As três avaliações anteriores ao formulário continuam em `src/content/depoimentos.ts`, com a
+autorização registrada, e entram na mesma média.
 
 ---
 

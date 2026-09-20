@@ -12,7 +12,7 @@ import { urlDoSite, type EmailCodigo } from "./emailCodigo";
 import type { BrandConfig } from "../config/brand";
 
 /** Escapa texto de config para dentro do HTML (a marca é config, mas config também erra). */
-function escaparHtml(texto: string): string {
+export function escaparHtml(texto: string): string {
   return texto
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

@@ -29,6 +29,42 @@ beforeEach(() => {
   enviar.mockResolvedValue({ data: { id: "x" }, error: null });
 });
 
+describe("ResendEmail — aviso de avaliação (O10)", () => {
+  it("envia pelo mesmo remetente, com estrelas e situação — e sem nada de quem avaliou", async () => {
+    await new ResendEmail("re_teste", { endereco: ENDERECO }).enviarAvisoAvaliacao(PARA, MARCA, {
+      estrelas: 4,
+      pendente: true,
+    });
+    expect(enviar).toHaveBeenCalledTimes(1);
+    const msg = enviar.mock.calls[0]![0];
+    expect(msg.from).toBe(`Marca Teste <${ENDERECO}>`);
+    expect(msg.to).toBe(PARA);
+    expect(msg).not.toHaveProperty("replyTo"); // aviso interno: ninguém responde
+    expect(msg.subject).toContain("4 de 5");
+    expect(`${msg.subject} ${msg.text} ${msg.html}`).toContain("/admin");
+    expect(msg.text).toContain("★★★★☆");
+  });
+
+  it("a situação muda o corpo, e a falha do Resend continua virando ErroEnvioEmail", async () => {
+    const provedor = new ResendEmail("re_teste", { endereco: ENDERECO });
+    await provedor.enviarAvisoAvaliacao(PARA, MARCA, { estrelas: 5, pendente: false });
+    expect(enviar.mock.calls[0]![0].text).toContain("já está publicado");
+
+    enviar.mockResolvedValue({ data: null, error: { name: "daily_quota_exceeded", message: `quota for ${PARA}` } });
+    const envio = provedor.enviarAvisoAvaliacao(PARA, MARCA, { estrelas: 5, pendente: false });
+    await expect(envio).rejects.toThrow("falha no envio de e-mail (daily_quota_exceeded)");
+  });
+
+  it("ConsoleEmail (dev) não põe o destinatário no log", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    await new ConsoleEmail().enviarAvisoAvaliacao(PARA, MARCA, { estrelas: 3, pendente: true });
+    const escrito = JSON.stringify(log.mock.calls);
+    expect(escrito).toContain("3/5");
+    expect(escrito).not.toContain(PARA);
+    log.mockRestore();
+  });
+});
+
 describe("ResendEmail — remetente e resposta", () => {
   it("EMAIL_FROM só com endereço → envia como \"{nomeCurto} <endereço>\"", async () => {
     await new ResendEmail("re_teste", { endereco: ENDERECO }).enviarCodigo(PARA, "123456", MARCA);

@@ -10,6 +10,7 @@ import { vi } from "vitest";
 import { FileLeadStore, type LeadStore } from "../../lib/leadStore";
 import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import type { ProvedorEmail } from "../../lib/email";
+import type { AvisoAvaliacao } from "../../lib/emailAvisoAvaliacao";
 import { brand, type BrandConfig } from "../../config/brand";
 import type { DepsSolicitarAcesso } from "./solicitarAcesso";
 import type { Lead } from "./lead";
@@ -23,6 +24,8 @@ export const SECRET_TESTE = "segredo-de-teste-1234567890";
 export class EmailFake implements ProvedorEmail {
   codigos: { para: string; codigo: string }[] = [];
   avisos: { para: string; marca: string }[] = [];
+  /** Avisos de avaliação (O10): só nota e situação, como a porta permite. */
+  avaliacoes: { para: string; estrelas: number; pendente: boolean }[] = [];
   falharCodigo?: Error;
   falharAviso?: Error;
 
@@ -34,6 +37,11 @@ export class EmailFake implements ProvedorEmail {
   async enviarAvisoNovoLead(para: string, brand: BrandConfig): Promise<void> {
     if (this.falharAviso) throw this.falharAviso;
     this.avisos.push({ para, marca: brand.nomeCurto });
+  }
+
+  async enviarAvisoAvaliacao(para: string, _brand: BrandConfig, aviso: AvisoAvaliacao): Promise<void> {
+    if (this.falharAviso) throw this.falharAviso;
+    this.avaliacoes.push({ para, estrelas: aviso.estrelas, pendente: aviso.pendente });
   }
 }
 
