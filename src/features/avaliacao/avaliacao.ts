@@ -104,9 +104,9 @@ type ComNota = { estrelas: number };
  * anônima, a `pendente` e a `recusado`: o que o fundador tira do ar é o texto,
  * nunca a nota que a pessoa deu.
  *
- * `doArquivo` existe para a landing somar as três avaliações que continuam em
- * `src/content/depoimentos.ts` (decisão F4). A API NÃO soma esse arquivo — ela
- * devolve só o que está no banco, e quem exibe soma as duas fontes.
+ * `doArquivo` são as três avaliações que continuam em
+ * `src/content/depoimentos.ts` (decisão F4). Quem soma é o SERVIDOR: a API já
+ * devolve banco + arquivo somados, e quem exibe usa o número como ele chega.
  */
 export function resumo(avaliacoes: ReadonlyArray<ComNota>, doArquivo: ReadonlyArray<ComNota> = []): ResumoAvaliacoes {
   const todas = [...avaliacoes, ...doArquivo];

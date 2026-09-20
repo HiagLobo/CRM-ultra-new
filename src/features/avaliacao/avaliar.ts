@@ -7,15 +7,18 @@
  *    cookie não vale mais: `sem_acesso`, que a rota devolve como 401;
  * 2. limite de 5 envios / 30 min POR LEAD (a chave é o id, nunca o e-mail);
  * 3. quem pediu para aparecer com nome precisa ter nome no cadastro (lead
- *    anterior à O9 não tem) → `sem_nome`, e a tela cai para anônimo;
+ *    anterior à O9 não tem) → `sem_nome`, e a tela cai para anônimo. Pediu
+ *    nome + CRECI e o cadastro não tem CRECI (lead cadastrado à mão): a escolha
+ *    cai para "só o nome", que é o consentimento que ela de fato vai aceitar;
  * 4. filtro automático do texto → `publicado` ou `pendente` (a NOTA entra na
- *    hora nos dois casos);
+ *    hora nos dois casos). Avaliação que o fundador TIROU do site não volta
+ *    sozinha: reenviar o mesmo texto entra como `pendente`;
  * 5. grava (upsert por lead) e devolve o resumo já com a avaliação nova dentro.
  */
 import type { LeadStore } from "../../lib/leadStore";
 import type { AvaliacaoStore, DadosAvaliacao } from "../../lib/avaliacaoStorePorta";
 import type { RateLimiter, RegraRate } from "../../lib/ratelimit";
-import type { Avaliacao, StatusAvaliacao } from "./avaliacao";
+import type { Avaliacao, Identificacao, StatusAvaliacao } from "./avaliacao";
 import { resumoDaContagem, type ResumoAvaliacoes } from "./avaliacao";
 import { textoConsentimentoAvaliacao } from "./consentimento";
 import { notasDoArquivo } from "./doArquivo";
@@ -66,16 +69,24 @@ export async function avaliar(
   // publicar nome sem o cadastro ter nome viraria "avaliação de ninguém"
   if (entrada.identificacao !== "anonimo" && !lead.nome?.trim()) return { status: "sem_nome" };
 
+  // sem CRECI no cadastro, "nome + CRECI" viraria um consentimento que promete
+  // publicar um CRECI que não existe: a escolha gravada é a que vai ao ar
+  const identificacao: Identificacao =
+    entrada.identificacao === "nome_creci" && !lead.creci.trim() ? "nome" : entrada.identificacao;
+
   const anterior = await deps.avaliacoes.doLead(lead.id);
   const filtro = filtrarComentario(entrada.comentario);
+  // a decisão do fundador vale mais que o filtro: o que ele tirou do site volta
+  // para a fila dele, nunca direto para a landing
+  const status: StatusAvaliacao = anterior?.status === "recusado" ? "pendente" : filtro.status;
 
   const dados: DadosAvaliacao = {
     estrelas: entrada.estrelas,
     ...(entrada.comentario ? { comentario: entrada.comentario } : {}),
-    identificacao: entrada.identificacao,
-    status: filtro.status,
+    identificacao,
+    status,
     consentimento: {
-      texto: textoConsentimentoAvaliacao(entrada.identificacao),
+      texto: textoConsentimentoAvaliacao(identificacao),
       em: agora.toISOString(),
       ip: ctx.ip,
     },

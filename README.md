@@ -37,7 +37,7 @@ e o código de verificação aparece na própria tela.
 | `npm run seed` | 8 leads fictícios para o painel do admin (só dev) |
 
 **Operar, publicar e resolver problema: [`waves/RUNBOOK.md`](waves/RUNBOOK.md).** Produção: Vercel
-(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 5 migrações em `migrations/`) + Resend
+(plano Pro, funções em `gru1`) + Neon Postgres (São Paulo, 6 migrações em `migrations/`) + Resend
 (`mail.crmultra.com.br`, São Paulo), domínio `crmultra.com.br` — passo a passo na seção 3.
 
 ---

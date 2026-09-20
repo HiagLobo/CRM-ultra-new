@@ -6,9 +6,9 @@
  * de quem escolheu `anônimo`, CRECI de quem não escolheu `nome + CRECI` e o
  * texto de avaliação `pendente` ou `recusado`.
  *
- * `media`/`quantas` são só do BANCO. As três avaliações que continuam em
- * `src/content/depoimentos.ts` (decisão F4) são somadas por quem exibe — a API
- * não importa aquele arquivo.
+ * `media`/`quantas` já vêm SOMADAS: banco + as três avaliações que continuam
+ * em `src/content/depoimentos.ts` (decisão F4). Quem exibe usa o número como
+ * ele chega e nunca soma o arquivo de novo.
  *
  * Cache de 60 s na borda: a landing é a página mais visitada, e a média não
  * precisa ser do segundo. `force-dynamic` porque a lista vem do banco, e não

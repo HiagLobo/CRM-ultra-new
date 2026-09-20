@@ -41,6 +41,30 @@ describe("FileAvaliacaoStore", () => {
     expect(await store.doLead("lead-2")).toBeNull();
   });
 
+  it("editar sem comentário apaga o texto anterior (nada fica herdado da versão velha)", async () => {
+    const store = banco.avaliacoes();
+    await store.salvar("lead-1", dados({ comentario: "Texto da primeira versão." }));
+    const { comentario: _sem, ...soNota } = dados({ estrelas: 3 });
+    const segunda = await store.salvar("lead-1", soNota);
+
+    expect(segunda).not.toHaveProperty("comentario");
+    expect(await store.doLead("lead-1")).not.toHaveProperty("comentario");
+    expect(await store.listarPublicadas(12)).toEqual([]);
+  });
+
+  it("removerDoLead apaga a avaliação daquele lead — o que o CASCADE da 006 faz no Postgres", async () => {
+    const store = banco.avaliacoes();
+    await store.salvar("lead-1", dados());
+    await store.salvar("lead-2", dados());
+
+    expect(await store.removerDoLead("lead-1")).toBe(true);
+    expect(await store.doLead("lead-1")).toBeNull();
+    expect((await store.listarTodas()).map((a) => a.leadId)).toEqual(["lead-2"]);
+    expect(await store.resumoContagem()).toEqual({ soma: 5, quantas: 1 });
+    // pedir duas vezes não é erro (a exclusão do titular é idempotente)
+    expect(await store.removerDoLead("lead-1")).toBe(false);
+  });
+
   it("listarPublicadas: só as publicadas COM texto, da mais recente para a mais antiga, no limite", async () => {
     const store = banco.avaliacoes();
     await store.salvar("lead-1", dados({ em: "2026-09-19T10:00:00.000Z" }));

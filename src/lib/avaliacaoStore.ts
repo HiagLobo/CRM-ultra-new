@@ -23,7 +23,12 @@ const CAMINHO_PADRAO = path.join(process.cwd(), "data", "avaliacoes.json");
 /** Da mais recente para a mais antiga (`criadoEm` ISO ordena como texto). */
 const maisNovaPrimeiro = (a: Avaliacao, b: Avaliacao) => b.criadoEm.localeCompare(a.criadoEm);
 
-/** Campos que a edição sobrescreve; `id` e `criadoEm` ficam (é a mesma avaliação). */
+/**
+ * A avaliação inteira, montada só do que veio: a edição NUNCA herda campo da
+ * versão anterior. Herdar o `comentario` republicava, sem o filtro ver, o texto
+ * que o fundador tinha acabado de segurar.
+ * Só `id`, `leadId` e `criadoEm` atravessam (é a mesma avaliação, editada).
+ */
 function comDados(base: Pick<Avaliacao, "id" | "leadId" | "criadoEm">, dados: DadosAvaliacao): Avaliacao {
   return {
     ...base,
@@ -80,7 +85,11 @@ export class FileAvaliacaoStore implements AvaliacaoStore {
     return this.enfileirar(async () => {
       const registros = await this.ler();
       const i = registros.findIndex((a) => a.leadId === leadId);
-      const base = i === -1 ? { id: randomUUID(), leadId, criadoEm: dados.em } : registros[i]!;
+      const atual = registros[i];
+      // só estes três campos atravessam a edição (o resto vem do pedido novo)
+      const base = atual
+        ? { id: atual.id, leadId: atual.leadId, criadoEm: atual.criadoEm }
+        : { id: randomUUID(), leadId, criadoEm: dados.em };
       const avaliacao = comDados(base, dados);
       if (i === -1) registros.push(avaliacao);
       else registros[i] = avaliacao;
@@ -116,6 +125,17 @@ export class FileAvaliacaoStore implements AvaliacaoStore {
       registros[i] = avaliacao;
       await this.escrever(registros);
       return { anterior, avaliacao };
+    });
+  }
+
+  /** O que o `ON DELETE CASCADE` da migração 006 faz sozinho no Postgres. */
+  removerDoLead(leadId: string): Promise<boolean> {
+    return this.enfileirar(async () => {
+      const registros = await this.ler();
+      const restantes = registros.filter((a) => a.leadId !== leadId);
+      if (restantes.length === registros.length) return false;
+      await this.escrever(restantes);
+      return true;
     });
   }
 

@@ -7,6 +7,8 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import { avaliar, REGRA_AVALIACAO } from "./avaliar";
+import { moderar } from "./admin";
+import { vitrine } from "./vitrine";
 import { textoConsentimentoAvaliacao } from "./consentimento";
 import { bancoTemporario, entradaAvaliacao, leadVerificado, resumoComArquivo } from "./apoioTestes";
 
@@ -119,6 +121,46 @@ describe("avaliar — o que fica gravado", () => {
     const { deps } = await comLead();
     const r = await avaliar(deps, entradaAvaliacao({ estrelas: 4, comentario: "fala comigo em www.exemplo.test" }), CTX);
     expect(r).toMatchObject({ status: "ok", avaliacao: { status: "pendente" }, resumo: resumoComArquivo(4) });
+  });
+
+  it("o que o fundador tirou do site não volta sozinho: reenviar o mesmo texto entra como pendente", async () => {
+    const { deps, lead } = await comLead();
+    const primeira = await avaliar(deps, entradaAvaliacao({ comentario: "Texto que o fundador tirou." }), CTX);
+    await moderar(deps.avaliacoes, (primeira as { avaliacao: { id: string } }).avaliacao.id, "recusado", T);
+
+    const reenvio = await avaliar(
+      { ...deps, agora: new Date(T.getTime() + 60_000) },
+      entradaAvaliacao({ comentario: "Texto que o fundador tirou." }),
+      CTX,
+    );
+    expect(reenvio).toMatchObject({ status: "ok", avaliacao: { status: "pendente" }, statusAnterior: "recusado" });
+
+    // e o texto não chega à landing enquanto ele não publicar
+    const publico = await vitrine(deps);
+    expect(publico.comentarios).toEqual([]);
+    expect(JSON.stringify(publico)).not.toContain("Texto que o fundador tirou.");
+    expect((await deps.avaliacoes.doLead(lead.id))!.status).toBe("pendente");
+  });
+
+  it("edição sem comentário apaga o texto anterior (nada de republicar o que foi segurado)", async () => {
+    const { deps, lead } = await comLead();
+    await avaliar(deps, entradaAvaliacao({ comentario: "Texto da primeira versão." }), CTX);
+    await avaliar({ ...deps, agora: new Date(T.getTime() + 60_000) }, { estrelas: 4, identificacao: "anonimo" }, CTX);
+
+    const gravada = await deps.avaliacoes.doLead(lead.id);
+    expect(gravada).not.toHaveProperty("comentario");
+    expect(await deps.avaliacoes.listarPublicadas(12)).toEqual([]);
+  });
+
+  it("pediu nome + CRECI e o cadastro não tem CRECI: grava 'só o nome', com o consentimento certo", async () => {
+    const { deps, lead } = await comLead({ creci: "" });
+    const r = await avaliar(deps, entradaAvaliacao({ identificacao: "nome_creci" }), CTX);
+    expect(r.status).toBe("ok");
+
+    const gravada = await deps.avaliacoes.doLead(lead.id);
+    expect(gravada!.identificacao).toBe("nome");
+    expect(gravada!.consentimento.texto).toBe(textoConsentimentoAvaliacao("nome"));
+    expect(gravada!.consentimento.texto).not.toContain("CRECI junto");
   });
 
   it("só a nota (sem comentário) publica direto e não inventa texto vazio", async () => {

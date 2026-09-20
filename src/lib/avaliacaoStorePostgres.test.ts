@@ -133,6 +133,18 @@ describe("leituras", () => {
   });
 });
 
+describe("removerDoLead (exclusão do lead, LGPD)", () => {
+  it("DELETE por lead_id; sem avaliação, devolve false em vez de erro", async () => {
+    const { pool, consultas } = poolFake([{ id: "aval-1" }]);
+    expect(await loja(pool).removerDoLead("lead-1")).toBe(true);
+    expect(consultas[0]!.sql).toMatch(/^DELETE FROM avaliacoes WHERE lead_id = \$1 RETURNING id$/);
+    expect(consultas[0]!.params).toEqual(["lead-1"]);
+
+    const vazio = poolFake([]);
+    expect(await loja(vazio.pool).removerDoLead("lead-9")).toBe(false);
+  });
+});
+
 describe("trocarStatus (moderação)", () => {
   it("a CTE devolve a situação anterior junto com a linha nova", async () => {
     const { pool, consultas } = poolFake([{ ...linha({ status: "recusado" }), status_anterior: "publicado" }]);

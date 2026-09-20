@@ -11,12 +11,19 @@
  * ficar sem código por causa de aviso repetido seria trocar o essencial pelo
  * acessório.
  *
+ * Dois tetos, conferidos JUNTOS e de forma atômica: o teto diário do app
+ * (o mesmo dos códigos de verificação) e um teto só do aviso. Sem o segundo,
+ * uma pessoa com o demo liberado poderia gastar a cota do dia inteira
+ * alternando a situação da própria avaliação — e aí ninguém mais receberia
+ * código para entrar. Estourou qualquer um dos dois: o aviso não sai, a
+ * avaliação segue gravada e o fundador a vê no `/admin`.
+ *
  * Nunca quebra a avaliação: provedor fora do ar, configuração faltando, teto
- * diário ou demora viram log com a causa, e a avaliação segue gravada. A rota
+ * ou demora viram log com a causa, e a avaliação segue gravada. A rota
  * espera (await): na Vercel, trabalho depois da resposta pode ser cortado.
  */
 import type { ProvedorEmail } from "../../lib/email";
-import type { RateLimiter } from "../../lib/ratelimit";
+import type { RateLimiter, RegraRate } from "../../lib/ratelimit";
 import type { BrandConfig } from "../../config/brand";
 import { causaDoErro } from "../../lib/erros";
 import { comPrazo } from "../../lib/prazo";
@@ -25,6 +32,10 @@ import type { ResultadoAvaliar } from "./avaliar";
 
 /** Prazo do aviso — não pode segurar a resposta de quem acabou de avaliar. */
 export const PRAZO_AVISO_AVALIACAO_MS = 4_000;
+
+/** Teto SÓ dos avisos de avaliação: 10 por dia, chave própria, sem PII. */
+export const CHAVE_TETO_AVISO = "avaliacao:aviso:dia";
+export const REGRA_TETO_AVISO: RegraRate = { max: 10, janelaMs: 24 * 60 * 60_000 };
 
 export type ResultadoAvisoAvaliacao = "enviado" | "nao_se_aplica" | "teto_diario" | "falhou";
 
@@ -58,8 +69,16 @@ export async function avisarAvaliacao(
   try {
     // provedor antes do teto: configuração quebrada não gasta vaga da cota do dia
     const provedor = deps.email();
-    if (!(await deps.limiter.permitir([CHAVE_TETO_DIARIO], regraTetoDiario(deps.limiteEnviosDia), agora))) {
-      console.warn("[aviso-avaliacao] teto diário de e-mails atingido; aviso não enviado (a avaliação está no /admin)");
+    // tudo ou nada: barrar por um teto não consome a vaga do outro
+    const dentroDosTetos = await deps.limiter.permitirCada(
+      [
+        { chave: CHAVE_TETO_DIARIO, regra: regraTetoDiario(deps.limiteEnviosDia) },
+        { chave: CHAVE_TETO_AVISO, regra: REGRA_TETO_AVISO },
+      ],
+      agora,
+    );
+    if (!dentroDosTetos) {
+      console.warn("[aviso-avaliacao] teto diário atingido; aviso não enviado (a avaliação está no /admin)");
       return "teto_diario";
     }
     // só a nota e a situação: quem avaliou e o que escreveu não entram, nem por engano

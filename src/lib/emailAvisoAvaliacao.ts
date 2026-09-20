@@ -30,7 +30,7 @@ export function montarEmailAvisoAvaliacao(brand: BrandConfig, aviso: AvisoAvalia
   const situacao = aviso.pendente
     ? "O comentário ficou fora do ar até você conferir (o filtro automático segurou)."
     : "O comentário já está publicado no site.";
-  const assunto = `${brand.nomeCurto}: nova avaliação (${aviso.estrelas} de 5)${aviso.pendente ? " — para conferir" : ""}`;
+  const assunto = `${brand.nomeCurto}: nova avaliação (${aviso.estrelas} de 5${aviso.pendente ? ", para conferir" : ""})`;
 
   const texto = [
     `Alguém que testou a demonstração do ${brand.nome} deixou uma avaliação: ${desenho} (${aviso.estrelas} de 5).`,

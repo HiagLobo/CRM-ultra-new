@@ -5,9 +5,10 @@
  * cookie `crm_demo` (e-mail já verificado na O1), e não por nada do corpo: não
  * dá para avaliar pelo e-mail de outra pessoa. Sem cookie válido, 401.
  *
- * A resposta leva só `status` (publicado/pendente) e o resumo do BANCO — nem o
- * id da avaliação, nem nome, nem e-mail. As três avaliações do arquivo
- * (`src/content/depoimentos.ts`, decisão F4) são somadas por quem exibe.
+ * A resposta leva só `status` (publicado/pendente) e o resumo — nem o id da
+ * avaliação, nem nome, nem e-mail. O resumo já vem SOMADO (banco + as três
+ * avaliações do arquivo, `src/content/depoimentos.ts`, decisão F4): a tela usa
+ * o número como ele chega e nunca soma o arquivo de novo.
  *
  * O 500 loga a causa segura (`causaDoErro`) — ver RUNBOOK §6.
  */

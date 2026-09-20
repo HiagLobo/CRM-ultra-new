@@ -174,21 +174,22 @@ arquivo do repositório (ele é público) nem em chat.
 
    **Por que a pooled:** cada função da Vercel abre o próprio pool. Com a string direta, um pico de
    acessos estoura o limite de conexões do Postgres (log `db:53300`).
-4. **As 5 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
+4. **As 6 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
    `migrations/001-leads.sql` no GitHub, copie **tudo**, cole e clique em **Run**. Repita com
-   `002-auditoria.sql`, `003-rate-limit.sql`, `004-funil.sql` e `005-cadastro-unico.sql`, nessa
-   ordem. São idempotentes: rodar de novo não estraga nada. (Banco que já estava no ar: a 004 pelo
-   passo 3.9, a 005 pelo 3.10.)
+   `002-auditoria.sql`, `003-rate-limit.sql`, `004-funil.sql`, `005-cadastro-unico.sql` e
+   `006-avaliacoes.sql`, nessa ordem. São idempotentes: rodar de novo não estraga nada. (Banco que já
+   estava no ar: a 004 pelo passo 3.9, a 005 pelo 3.10, a 006 pelo 3.11.)
 5. Confira no mesmo SQL Editor:
 
    ```sql
    SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY 1;
    ```
 
-   Têm de voltar **`auditoria`, `lead_notas`, `leads` e `rate_limit`**. Se faltar a `rate_limit`
-   (migração 003), todo pedido de acesso e todo login do admin dão erro (log `db:42P01`). Se faltar a
-   `auditoria` (002), o sistema funciona, mas a trilha de auditoria da LGPD **não grava**, em
-   silêncio. Se faltar a `lead_notas` (004), o funil do `/admin` dá erro (passo 3.9).
+   Têm de voltar **`auditoria`, `avaliacoes`, `lead_notas`, `leads` e `rate_limit`**. Se faltar a
+   `rate_limit` (migração 003), todo pedido de acesso e todo login do admin dão erro (log
+   `db:42P01`). Se faltar a `auditoria` (002), o sistema funciona, mas a trilha de auditoria da LGPD
+   **não grava**, em silêncio. Se faltar a `lead_notas` (004), o funil do `/admin` dá erro (passo
+   3.9). Se faltar a `avaliacoes` (006), quem tentar avaliar o demo recebe erro (passo 3.11).
 
 ### 3.5. (Opcional) Turnstile e aviso de lead novo
 
@@ -644,7 +645,7 @@ pessoal, que diz o que quebrou (`src/lib/erros.ts`). Exemplos de linha:
 | `email:missing_api_key` · `email:invalid_api_key` · `email:invalid_api_Key` · `email:restricted_api_key` | chave errada, revogada ou sem permissão para esse domínio | criar uma chave nova "Sending access" para `mail.crmultra.com.br` (3.3) → trocar `RESEND_API_KEY` → Redeploy |
 | `email:PrazoEsgotado` | o Resend não respondeu em 8 s | quase sempre passageiro. Se repetir, veja o status do Resend (resend-status.com) |
 | `email:application_error` · `email:internal_server_error` | falha do lado do Resend, ou da rede até ele | idem: status do Resend. O lead está no `/admin` |
-| `db:42P01` | uma tabela não existe: migração não rodada | rodar as migrações (3.4, passos 4 e 5; a 004 pelo 3.9) |
+| `db:42P01` | uma tabela não existe: migração não rodada | rodar as migrações (3.4, passos 4 e 5; a 004 pelo 3.9, a 006 pelo 3.11) |
 | `db:42703` | uma coluna não existe. Em `[/api/lead]` (todo cadastro falha) ou no funil do `/admin`: a 004 não rodou. Em `[verify] último acesso…` ou ao marcar a conferência do CRECI: a 005 não rodou (o login segue) | rodar a 004 (3.9) ou a 005 (3.10) |
 | `db:28P01` · `db:28000` | usuário ou senha do banco errados (ou a senha foi trocada no Neon) | copiar de novo a string pooled (3.4) → `DATABASE_URL` → Redeploy |
 | `db:3D000` | o banco do fim da string não existe | copiar de novo a string do Neon, sem editar o nome do banco |
@@ -771,7 +772,7 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/lib/token.ts` / `adminAuth.ts` | HMAC do token de demo e da sessão de admin |
 | `src/components/landing/` · `acesso/` | landing e fluxo de acesso |
 | `src/app/admin/` | painel de leads |
-| `migrations/` | as 5 migrações do Postgres (seção 3.4; a 004 também no 3.9, a 005 no 3.10) |
+| `migrations/` | as 6 migrações do Postgres (seção 3.4; a 004 também no 3.9, a 005 no 3.10, a 006 no 3.11) |
 | `waves/` | o plano por ondas e o estado de cada uma |
 
 Trocar de banco = escrever um adaptador novo com a mesma interface `LeadStore` e ensinar o

@@ -51,6 +51,13 @@ export interface AvaliacaoStore {
   listarPublicadas(limite: number): Promise<Avaliacao[]>;
   /** Todas, da mais recente para a mais antiga (painel do fundador). */
   listarTodas(): Promise<Avaliacao[]>;
+  /**
+   * Apaga a avaliação daquele lead, se houver (LGPD art. 18 — a exclusão do
+   * lead leva a avaliação junto). No Postgres o `ON DELETE CASCADE` da 006 já
+   * faz isso sozinho, e chamar de novo não é erro; no adaptador de arquivo é
+   * esta chamada que mantém o mesmo comportamento. `false` se não havia nada.
+   */
+  removerDoLead(leadId: string): Promise<boolean>;
   /** Muda a situação do texto. `null` se o id não existe. */
   trocarStatus(id: string, status: StatusAvaliacao, em: string): Promise<TrocaStatus | null>;
   /** Contagem para a média do site, sem trazer as linhas. */

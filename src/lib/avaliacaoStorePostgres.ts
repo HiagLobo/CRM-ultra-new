@@ -128,6 +128,19 @@ export class PostgresAvaliacaoStore implements AvaliacaoStore {
   }
 
   /**
+   * Redundante em produção (o `ON DELETE CASCADE` da 006 já apagou a linha
+   * quando o lead saiu), e é exatamente por isso que não pode falhar: apagar
+   * "de novo" não acha nada e devolve `false`.
+   */
+  async removerDoLead(leadId: string): Promise<boolean> {
+    const linhas = await this.consultar<{ id: string }>(
+      `DELETE FROM avaliacoes WHERE lead_id = $1 RETURNING id`,
+      [leadId],
+    );
+    return linhas.length > 0;
+  }
+
+  /**
    * A CTE lê a situação ANTES do UPDATE (o `WITH` enxerga o retrato do início
    * da instrução), então a auditoria registra "de → para" numa consulta só.
    */

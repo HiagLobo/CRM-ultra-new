@@ -10,7 +10,8 @@ import { MemoriaRateLimiter } from "../../lib/ratelimit";
 import { ErroConfiguracao } from "../../lib/erros";
 import { montarEmailAvisoAvaliacao, estrelasEmTexto } from "../../lib/emailAvisoAvaliacao";
 import { EmailFake, capturarConsole } from "../lead/apoioTestes";
-import { avisarAvaliacao, mereceAviso } from "./avisoAvaliacao";
+import { CHAVE_TETO_AVISO, REGRA_TETO_AVISO, avisarAvaliacao, mereceAviso } from "./avisoAvaliacao";
+import { CHAVE_TETO_DIARIO, regraTetoDiario } from "../lead/solicitarAcesso";
 import type { ResultadoAvaliar } from "./avaliar";
 import type { Avaliacao, StatusAvaliacao } from "./avaliacao";
 
@@ -101,7 +102,7 @@ describe("o que vai no aviso", () => {
 });
 
 describe("o aviso nunca derruba a avaliação", () => {
-  it("provedor que lança vira log com a causa, sem PII", async () => {
+  it("configuração faltando vira causa no log", async () => {
     const linhas = capturarConsole();
     const { deps: d } = deps({
       email: () => {
@@ -110,15 +111,53 @@ describe("o aviso nunca derruba a avaliação", () => {
     });
     expect(await avisarAvaliacao(d, resultado())).toBe("falhou");
     expect(linhas()).toContain("config:RESEND_API_KEY");
-    expect(linhas()).not.toContain("exemplo.com");
   });
 
-  it("teto diário atingido: não envia, registra e segue", async () => {
+  it("erro do provedor que CITA o destinatário: só o tipo vai ao log, o endereço não", async () => {
+    const linhas = capturarConsole();
+    const { deps: d } = deps({
+      email: () => {
+        // é assim que a falha real chega: a mensagem do provedor traz o destino
+        throw new Error("delivery failed for fundador@exemplo.com");
+      },
+    });
+    expect(await avisarAvaliacao(d, resultado())).toBe("falhou");
+    expect(linhas()).toContain("email:Error");
+    expect(linhas()).not.toContain("fundador@exemplo.com");
+  });
+
+  it("teto do app atingido: não envia, registra e segue", async () => {
     const linhas = capturarConsole();
     const { deps: d, email } = deps({ limiteEnviosDia: 1 });
     expect(await avisarAvaliacao(d, resultado())).toBe("enviado");
     expect(await avisarAvaliacao(d, resultado())).toBe("teto_diario");
     expect(email.avaliacoes).toHaveLength(1);
     expect(linhas()).toContain("teto diário");
+  });
+});
+
+describe("teto próprio do aviso (uma pessoa não pode gastar a cota dos códigos)", () => {
+  it("o 11º aviso do dia é recusado, e a cota dos códigos continua quase inteira", async () => {
+    capturarConsole();
+    const limiter = new MemoriaRateLimiter();
+    const { deps: d, email } = deps({ limiter, limiteEnviosDia: 90 });
+
+    for (let i = 0; i < REGRA_TETO_AVISO.max; i++) {
+      expect(await avisarAvaliacao(d, resultado())).toBe("enviado");
+    }
+    expect(await avisarAvaliacao(d, resultado())).toBe("teto_diario");
+    expect(email.avaliacoes).toHaveLength(REGRA_TETO_AVISO.max);
+
+    // o aviso recusado NÃO gastou vaga do teto do app: só os 10 que saíram contam
+    const gastas = REGRA_TETO_AVISO.max;
+    expect(await limiter.permitir([CHAVE_TETO_DIARIO], { max: gastas + 1, janelaMs: 86_400_000 }, T)).toBe(true);
+    expect(await limiter.permitir([CHAVE_TETO_DIARIO], { max: gastas + 1, janelaMs: 86_400_000 }, T)).toBe(false);
+    // e o envio de código segue liberado dentro do teto de verdade
+    expect(await limiter.permitir([CHAVE_TETO_DIARIO], regraTetoDiario(90), T)).toBe(true);
+  });
+
+  it("a chave do teto do aviso não carrega PII", () => {
+    expect(CHAVE_TETO_AVISO).toBe("avaliacao:aviso:dia");
+    expect(CHAVE_TETO_AVISO).not.toContain("@");
   });
 });

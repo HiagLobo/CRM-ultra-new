@@ -97,15 +97,30 @@ describe("vitrine pública", () => {
     expect(publico.quantas).toBe(resumoComArquivo(5, 5, 5, 5).quantas); // o limite corta a lista, não a contagem
   });
 
-  it("lead excluído (LGPD) com avaliação identificada: o texto sai do ar, a nota fica", async () => {
+  it("lead excluído (LGPD): a avaliação vai junto — texto E nota somem, como o CASCADE da 006 faz", async () => {
     const deps = banco.deps({ agora: T });
     await comLeads(deps, 1);
     await avaliar(deps, entradaAvaliacao({ identificacao: "nome", comentario: "Some comigo." }), ctx(0));
+
+    // a rota DELETE do /admin faz estes dois passos; no Postgres o segundo é o CASCADE
+    await deps.avaliacoes.removerDoLead("lead-0");
     await deps.leads.excluir("lead-0");
 
     const publico = await vitrine(deps);
     expect(publico.comentarios).toEqual([]);
-    expect(publico).toMatchObject(resumoComArquivo(5));
+    expect(publico).toMatchObject(resumoComArquivo()); // sobra só o arquivo
+    expect(await deps.avaliacoes.resumoContagem()).toEqual({ soma: 0, quantas: 0 });
+  });
+
+  it("registro órfão (base de dev fora de sincronia): o texto identificado não vai ao ar", async () => {
+    const deps = banco.deps({ agora: T });
+    await comLeads(deps, 1);
+    await avaliar(deps, entradaAvaliacao({ identificacao: "nome", comentario: "Sem dono." }), ctx(0));
+    await deps.leads.excluir("lead-0"); // sem remover a avaliação: o estado que não pode vazar nome
+
+    const publico = await vitrine(deps);
+    expect(publico.comentarios).toEqual([]);
+    expect(JSON.stringify(publico)).not.toContain("Sem dono.");
   });
 
   it("banco vazio: nenhum comentário, e a média fica sendo só a das três do arquivo (F4)", async () => {
