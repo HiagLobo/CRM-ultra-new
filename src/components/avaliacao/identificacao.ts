@@ -7,9 +7,11 @@
  * Mostrar uma coisa e gravar outra seria consentimento inválido — por isso o
  * texto mora num módulo só dele, puro e testável, e a marca vem do `brand`.
  */
-import { brand } from "@/config/brand";
+import { textoConsentimentoAvaliacao } from "@/features/avaliacao/consentimento";
 
-export type Identificacao = "nome_creci" | "nome" | "anonimo";
+/** Mesmo tipo do domínio: a tela e o servidor falam do mesmo conjunto. */
+export type { Identificacao } from "@/features/avaliacao/avaliacao";
+import type { Identificacao } from "@/features/avaliacao/avaliacao";
 
 /** Ordem em que as opções aparecem na tela. */
 export const IDENTIFICACOES: readonly Identificacao[] = ["nome_creci", "nome", "anonimo"];
@@ -21,17 +23,13 @@ export function rotuloIdentificacao(escolha: Identificacao): string {
   return "Anônimo";
 }
 
-/** O texto do consentimento que vai para o registro — palavra por palavra. */
-export function textoConsentimento(escolha: Identificacao): string {
-  const site = `no site do ${brand.nomeCurto}`;
-  if (escolha === "nome_creci") {
-    return `Autorizo publicar meu nome e meu CRECI junto da minha avaliação ${site}.`;
-  }
-  if (escolha === "nome") {
-    return `Autorizo publicar meu nome, sem o CRECI, junto da minha avaliação ${site}.`;
-  }
-  return `Não autorizo publicar meu nome nem meu CRECI: minha avaliação aparece como anônima ${site}.`;
-}
+/**
+ * O texto do consentimento que vai para o registro. Reexporta a fonte única do
+ * domínio (`features/avaliacao/consentimento.ts`), que é o que o servidor
+ * carimba: duas cópias acabariam divergindo numa vírgula, e consentimento só
+ * vale se o gravado for o que a pessoa leu.
+ */
+export const textoConsentimento = textoConsentimentoAvaliacao;
 
 /** Vale para as três escolhas: a nota sempre conta, o que muda é a assinatura. */
 export const AVISO_NOTA_SEMPRE_CONTA =
