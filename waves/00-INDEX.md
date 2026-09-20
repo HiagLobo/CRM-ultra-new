@@ -69,6 +69,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | **O7** | Prontidão de lançamento | Cadastro que não perde lead, anti-abuso, logs com causa, CRECI flexível, celular e painel de leads prático | O6 |
 | **O8** | Funil de leads e conversão | Etapas + retomar depois + Hoje, anotações e próxima ação, cadastro manual, "Quero usar" no demo, origem da campanha | O7 |
 | **O9** | Cadastro único e conferência do CRECI | Nome e UF no cadastro, WhatsApp/CRECI sem repetido, "Já tenho cadastro" (só e-mail + código), dados novos só depois do código, conferir CRECI no painel, "voltou ao demo" | O8 |
+| **O10** | Avaliação no demo | Convite depois de 4 min no demo, estrelas e comentário com escolha de identificação, média ao vivo na landing, moderação no painel | O9 |
 
 ### Sub-entregas e "Pronto quando"
 
@@ -136,6 +137,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | O8 | ✅ código concluído (2026-09-19) — funil com 7 etapas em abas (Hoje, Novos, Em contato, Demonstração, Negociação, Clientes, Retomar depois, Perdidos, Todos), retomar com data e motivo, perdido com motivo, próxima ação e anotações na ficha do lead, cadastro manual com dedupe, "Quero usar" no demo e origem da campanha (UTM/ref) no pedido de acesso. 576 testes + crawl desktop/celular. Ver `08-funil-leads/ESTADO.md`. **Publicar:** deploy primeiro, `migrations/004-funil.sql` no Neon logo em seguida (RUNBOOK 3.9). |
 
 | O9 | ✅ código concluído (2026-09-19) — cadastro com nome completo e Estado do CRECI, WhatsApp e CRECI sem repetido (WhatsApp com dica do e-mail mascarado), e-mail existente não regrava nada (dados novos só depois do código), "Já tenho cadastro" (só e-mail + código; acesso vencido abre nele), conferência do CRECI na busca oficial de cada conselho, selos de repetido e "voltou ao demo". 793 testes + smoke 19/19 + crawl desktop/celular. Ver `09-cadastro-unico/ESTADO.md`. **Publicar:** `migrations/005-cadastro-unico.sql` no Neon ANTES do deploy (RUNBOOK 3.10). |
+| O10 | 🟦 em andamento — plano escrito (2026-09-19). Publicação: `migrations/006` no Neon ANTES do deploy (só cria tabela e índices). Ver `10-avaliacoes/ESTADO.md`. |
 _Legenda: ⬜ pendente · 🟦 em andamento · ✅ concluída._
 
 ### Rodada de hardening (fora do plano de ondas, 2026-08-12)
