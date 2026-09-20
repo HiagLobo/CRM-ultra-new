@@ -36,7 +36,11 @@ const inp: React.CSSProperties = { border: `1px solid ${cs.g300}`, borderRadius:
 
 const money = (n: number) => 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/* ---------------- DATA (valores de exemplo, fictícios) ---------------- */
+/* ---------------- DATA (valores de exemplo, fictícios) ----------------
+   Custos da rede fictícia do demo. Nenhum número daqui pode bater com a tabela
+   real do CRM Ultra, e nenhuma leitura da tela pode entregar múltiplo de custo
+   sobre mensalidade (decisão F5 da O11). Guarda em `demoNaoEspelhaTabela.test.ts`.
+   ------------------------------------- */
 type Item = { id: string; nome: string; det: string; qtd: number; un: string; vu: number; repasse?: string };
 
 const FIXOS_INI: Item[] = [
@@ -57,7 +61,7 @@ const VAR_INI: Item[] = [
   { id: 'v4', nome: 'Avaliação de imóvel (AVM)', det: 'comparáveis próprios + modelo de IA', qtd: 380, un: 'avaliação', vu: 0.01 },
   { id: 'v5', nome: 'Bureau de crédito', det: 'média ponderada entre bureaus', qtd: 65, un: 'consulta', vu: 10, repasse: 'repassado na taxa de análise' },
   { id: 'v6', nome: 'Validação CRECI', det: 'serviço de consulta · por uso', qtd: 14, un: 'consulta', vu: 0.8 },
-  { id: 'v7', nome: 'Boleto', det: 'emissão · tabela do gateway', qtd: 1050, un: 'boleto', vu: 1.5, repasse: `conta do gateway em nome da ${demo.nomeCurto}` },
+  { id: 'v7', nome: 'Boleto', det: 'emissão · tabela do gateway', qtd: 1050, un: 'boleto', vu: 1.9, repasse: `conta do gateway em nome da ${demo.nomeCurto}` },
 ];
 
 /* ---------------- TABELA EDITÁVEL ---------------- */
@@ -158,7 +162,7 @@ export default function CeoCustosPage() {
     { l: 'Custo líquido (após repasses)', v: money(liquido), d: `${money(totRepasse)} repassados`, ic: 'wallet', good: true },
     { l: 'Fixo (infra)', v: money(totFixo), d: `${fixos.length} serviços`, ic: 'database' },
     { l: 'Variável (por uso)', v: money(totVar), d: 'cresce com o negócio', ic: 'trending-up' },
-    { l: 'Custo por corretor', v: money(total / corretores), d: 'mensalidade mínima cobre 8×', ic: 'users', good: true },
+    { l: 'Custo por corretor', v: money(total / corretores), d: 'base do rateio entre as unidades', ic: 'users', good: true },
     { l: 'Projeção no dobro (684)', v: money(totFixo + totVar * 2), d: 'fixo não dobra, escala bem', ic: 'rocket' },
   ];
 

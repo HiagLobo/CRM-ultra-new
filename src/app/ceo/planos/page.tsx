@@ -32,41 +32,46 @@ function PlHead({ title, sub, right }: any) {
   );
 }
 
-/* ---------------- DATA ---------------- */
+/* ---------------- DATA ----------------
+   Preços da REDE FICTÍCIA do demo. Não espelham a tabela do CRM Ultra de
+   propósito (decisão F5 da O11): outra granularidade (unidade com assentos
+   inclusos, corretor cobrado por trimestre), outros valores e nenhum nome de
+   plano que colida com "Pro" e "Ultra". Guarda em `demoNaoEspelhaTabela.test.ts`.
+   ------------------------------------- */
 const PLANS: any[] = [
-  { name: 'Associado', price: 'R$ 450', adesao: 'R$ 1.500', seats: 'até 3 assentos', credits: '30 créditos/mês', feat: 'CRM + Radar básico', units: 49, tone: pl.info, icon: 'handshake' },
-  { name: 'Franquia', price: 'R$ 1.900', adesao: 'R$ 20.000', seats: 'até 15 assentos', credits: '150 créditos/mês', feat: 'Território + leads prioritários', units: 28, tone: pl.primary, icon: 'store' },
-  { name: 'Franquia Premium', price: 'R$ 3.600', adesao: 'R$ 40.000', seats: 'até 40 assentos', credits: '400 créditos/mês', feat: 'Inteligência completa + leads premium', units: 8, tone: pl.p3, highlight: true, icon: 'crown' },
+  { name: 'Associado', price: 'R$ 520', adesao: 'R$ 2.400', seats: 'até 4 assentos', credits: '40 créditos/mês', feat: 'CRM + Radar básico', units: 49, tone: pl.info, icon: 'handshake' },
+  { name: 'Franquia', price: 'R$ 2.150', adesao: 'R$ 24.000', seats: 'até 12 assentos', credits: '180 créditos/mês', feat: 'Território + leads prioritários', units: 28, tone: pl.primary, icon: 'store' },
+  { name: 'Franquia Premium', price: 'R$ 4.280', adesao: 'R$ 48.000', seats: 'até 35 assentos', credits: '500 créditos/mês', feat: 'Inteligência avançada + leads premium', units: 8, tone: pl.p3, highlight: true, icon: 'crown' },
 ];
 const CORRETOR_PLANS: any[] = [
-  { name: 'Corretor', price: 'R$ 99', noAdesao: true, seats: '1 corretor', credits: '15 créditos/mês', feat: 'CRM + funil + agenda + Radar básico + materiais', units: 28, unitLabel: 'corretores', tone: pl.info, icon: 'user' },
-  { name: 'Corretor Pro', price: 'R$ 199', noAdesao: true, seats: '1 corretor', credits: '40 créditos/mês', feat: 'Tudo do Corretor + inteligência completa + leads prioritários + AVM', units: 12, unitLabel: 'corretores', tone: pl.p3, highlight: true, icon: 'user-check' },
+  { name: 'Corretor', price: 'R$ 960', periodo: '/trimestre', noAdesao: true, seats: '1 corretor', credits: '20 créditos/mês', feat: 'CRM + funil + agenda + Radar básico + materiais', units: 28, unitLabel: 'corretores', tone: pl.info, icon: 'user' },
+  { name: 'Corretor Elite', price: 'R$ 1.620', periodo: '/trimestre', noAdesao: true, seats: '1 corretor', credits: '60 créditos/mês', feat: 'Tudo do Corretor + inteligência avançada + leads prioritários + AVM', units: 12, unitLabel: 'corretores', tone: pl.p3, highlight: true, icon: 'user-check' },
 ];
 
 const SUBS: any[] = [
-  { id: 's1', member: `${demo.nomeCurto} Boa Viagem`, type: 'Franquia', plan: 'Franquia Premium', value: 'R$ 3.600', extra: '', used: 38, inc: 40, status: 'Ativo', next: '05/07', since: '03/2024', uf: 'PE' },
+  { id: 's1', member: `${demo.nomeCurto} Boa Viagem`, type: 'Franquia', plan: 'Franquia Premium', value: 'R$ 4.280/mês', extra: '', used: 33, inc: 35, status: 'Ativo', next: '05/07', since: '03/2024', uf: 'PE' },
   {
-    id: 's2', member: 'Imobiliária Costa', type: 'Associado', plan: 'Associado', value: 'R$ 450', extra: '', used: 3, inc: 3, status: 'Em atraso', lateDays: 8, next: '28/06', since: '11/2024', uf: 'PE',
-    resp: 'Marcos Costa', method: 'Boleto', adesaoPaid: 'R$ 1.500 · paga', creditsInc: 30, creditsUsed: 22, creditsPack: 0,
-    payHist: [{ m: 'Jun', ok: false }, { m: 'Mai', ok: true }, { m: 'Abr', ok: true }, { m: 'Mar', ok: true }], invoice: 'R$ 450 · 8 dias em atraso',
+    id: 's2', member: 'Imobiliária Costa', type: 'Associado', plan: 'Associado', value: 'R$ 520/mês', extra: '', used: 4, inc: 4, status: 'Em atraso', lateDays: 8, next: '28/06', since: '11/2024', uf: 'PE',
+    resp: 'Marcos Costa', method: 'Boleto', adesaoPaid: 'R$ 2.400 · paga', creditsInc: 40, creditsUsed: 31, creditsPack: 0,
+    payHist: [{ m: 'Jun', ok: false }, { m: 'Mai', ok: true }, { m: 'Abr', ok: true }, { m: 'Mar', ok: true }], invoice: 'R$ 520 · 8 dias em atraso',
   },
-  { id: 's3', member: `${demo.nomeCurto} Caruaru`, type: 'Franquia', plan: 'Franquia', value: 'R$ 1.900', extra: '', used: 11, inc: 15, status: 'Ativo', next: '10/07', since: '01/2025', uf: 'PE' },
-  { id: 's4', member: 'Pedro Nunes Imóveis', type: 'Associado', plan: 'Associado', value: 'R$ 450', extra: '', used: 2, inc: 3, status: 'Ativo', next: '12/07', since: '05/2025', uf: 'PE' },
-  { id: 's5', member: `${demo.nomeCurto} Recife Centro`, type: 'Franquia', plan: 'Franquia', value: 'R$ 1.900', extra: '+ assentos extras', used: 15, inc: 15, status: 'Ativo', next: '15/07', since: '08/2024', uf: 'PE' },
-  { id: 's6', member: 'Lucas Ferreira', type: 'Corretor', plan: 'Corretor Pro', value: 'R$ 199', extra: '', used: null, inc: null, status: 'Ativo', next: '09/07', since: '02/2025', uf: 'SP' },
-  { id: 's7', member: 'Renata Alves', type: 'Corretor', plan: 'Corretor', value: 'R$ 99', extra: '', used: null, inc: null, status: 'Ativo', next: '14/07', since: '06/2025', uf: 'SP' },
-  { id: 's8', member: 'Bruno Tavares', type: 'Corretor', plan: 'Corretor', value: 'R$ 99', extra: '', used: null, inc: null, status: 'Ativo', next: '25/07', since: '09/2024', uf: 'PE' },
+  { id: 's3', member: `${demo.nomeCurto} Caruaru`, type: 'Franquia', plan: 'Franquia', value: 'R$ 2.150/mês', extra: '', used: 9, inc: 12, status: 'Ativo', next: '10/07', since: '01/2025', uf: 'PE' },
+  { id: 's4', member: 'Pedro Nunes Imóveis', type: 'Associado', plan: 'Associado', value: 'R$ 520/mês', extra: '', used: 2, inc: 4, status: 'Ativo', next: '12/07', since: '05/2025', uf: 'PE' },
+  { id: 's5', member: `${demo.nomeCurto} Recife Centro`, type: 'Franquia', plan: 'Franquia', value: 'R$ 2.150/mês', extra: '+ assentos extras', used: 12, inc: 12, status: 'Ativo', next: '15/07', since: '08/2024', uf: 'PE' },
+  { id: 's6', member: 'Lucas Ferreira', type: 'Corretor', plan: 'Corretor Elite', value: 'R$ 1.620/tri', extra: '', used: null, inc: null, status: 'Ativo', next: '09/07', since: '02/2025', uf: 'SP' },
+  { id: 's7', member: 'Renata Alves', type: 'Corretor', plan: 'Corretor', value: 'R$ 960/tri', extra: '', used: null, inc: null, status: 'Ativo', next: '14/07', since: '06/2025', uf: 'SP' },
+  { id: 's8', member: 'Bruno Tavares', type: 'Corretor', plan: 'Corretor', value: 'R$ 960/tri', extra: '', used: null, inc: null, status: 'Ativo', next: '25/07', since: '09/2024', uf: 'PE' },
 ];
 
 /* ---------------- SUMMARY ---------------- */
 function PlSummary() {
   const cards = [
-    { l: 'Receita recorrente (MRR)', v: 'R$ 114 mil', sub: '/mês', note: 'R$ 109 mil unid. · R$ 5,2 mil corr.', ic: 'repeat', hl: true },
-    { l: 'ARR (anualizada)', v: 'R$ 1,4 mi', ic: 'calendar-range' },
+    { l: 'Receita recorrente (MRR)', v: 'R$ 135 mil', sub: '/mês', note: 'R$ 120 mil unid. · R$ 15 mil corr.', ic: 'repeat', hl: true },
+    { l: 'ARR (anualizada)', v: 'R$ 1,6 mi', ic: 'calendar-range' },
     { l: 'Assinaturas ativas', v: '125', note: '85 unidades · 40 corretores', ic: 'badge-check' },
     { l: 'Novas no mês', v: '7', ic: 'plus-circle' },
     { l: 'Churn', v: '2,3%', sub: '2 canc.', ic: 'user-minus' },
-    { l: 'Ticket médio (ARPU)', v: 'R$ 1.279', ic: 'receipt' },
+    { l: 'Ticket médio (ARPU)', v: 'R$ 1.083', ic: 'receipt' },
     { l: 'Inadimplência', v: '4,7%', ic: 'alert-circle' },
   ];
   return (
@@ -94,7 +99,7 @@ function PlanCard({ p }: any) {
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: pl.ink, marginTop: 12 }}>{p.name}</div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
         <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 26, color: pl.primary, whiteSpace: 'nowrap' }}>{p.price}</span>
-        <span style={{ fontSize: 13, color: pl.g500 }}>/mês</span>
+        <span style={{ fontSize: 13, color: pl.g500 }}>{p.periodo || '/mês'}</span>
       </div>
       <div style={{ fontSize: 12.5, color: pl.g500, marginTop: 2 }}>{p.noAdesao ? 'sem taxa de adesão' : `+ adesão ${p.adesao}`}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16, paddingTop: 16, borderTop: `1px solid ${pl.g100}` }}>
@@ -155,7 +160,7 @@ function PlTable({ onSelect }: any) {
     (fPlan === 'Todos os planos' || s.plan === fPlan) &&
     (fStatus === 'Todos os status' || s.status === fStatus)
   );
-  const cols = ['Membro', 'Tipo', 'Plano', 'Valor/mês', 'Assentos', 'Status', 'Próx. cobrança', 'Cliente desde'];
+  const cols = ['Membro', 'Tipo', 'Plano', 'Valor', 'Assentos', 'Status', 'Próx. cobrança', 'Cliente desde'];
   return (
     <div style={{ ...plCard, padding: 22 }}>
       <PlHead title="Assinaturas" sub={`${rows.length} de ${SUBS.length} assinaturas`} />
@@ -165,7 +170,7 @@ function PlTable({ onSelect }: any) {
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar membro…" style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontFamily: 'var(--font-body)', fontSize: 13.5, color: pl.ink }} />
         </div>
         <PlSelect icon="layers" value={fType} onChange={setFType} options={['Todos os tipos', 'Franquia', 'Associado', 'Corretor']} />
-        <PlSelect icon="tag" value={fPlan} onChange={setFPlan} options={['Todos os planos', 'Associado', 'Franquia', 'Franquia Premium', 'Corretor', 'Corretor Pro']} />
+        <PlSelect icon="tag" value={fPlan} onChange={setFPlan} options={['Todos os planos', 'Associado', 'Franquia', 'Franquia Premium', 'Corretor', 'Corretor Elite']} />
         <PlSelect icon="activity" value={fStatus} onChange={setFStatus} options={['Todos os status', 'Ativo', 'Em atraso', 'Cancelado']} />
       </div>
 
@@ -173,7 +178,7 @@ function PlTable({ onSelect }: any) {
       <div className="pl-table-wrap" style={{ overflowX: 'auto', marginTop: 18 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
           <thead><tr>
-            {cols.map(h => <th key={h} style={{ textAlign: ['Valor/mês', 'Assentos'].includes(h) ? 'right' : 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: pl.g500, padding: '0 12px 12px', borderBottom: `1px solid ${pl.g300}`, whiteSpace: 'nowrap' } as React.CSSProperties}>{h}</th>)}
+            {cols.map(h => <th key={h} style={{ textAlign: ['Valor', 'Assentos'].includes(h) ? 'right' : 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: pl.g500, padding: '0 12px 12px', borderBottom: `1px solid ${pl.g300}`, whiteSpace: 'nowrap' } as React.CSSProperties}>{h}</th>)}
           </tr></thead>
           <tbody>
             {rows.map(s => {
@@ -225,16 +230,16 @@ function PlTable({ onSelect }: any) {
 /* ---------------- REVENUE & GROWTH ---------------- */
 function PlGrowth() {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-  const mrr = [79, 85, 90, 96, 101, 114];
-  const max = 160;
+  const mrr = [94, 101, 110, 118, 126, 135];
+  const max = 180;
   const W = 460, H = 180, padL = 28, padB = 24, padT = 8;
   const gw = (W - padL) / months.length;
   const y = (v: any) => padT + (1 - v / max) * (H - padB - padT);
   const moves = [
-    { l: 'Novo', v: '+R$ 14 mil', tone: pl.success, ic: 'plus' },
-    { l: 'Expansão (upgrades + add-ons)', v: '+R$ 6 mil', tone: pl.success, ic: 'trending-up' },
-    { l: 'Contração (downgrades)', v: '−R$ 2 mil', tone: pl.warning, ic: 'trending-down' },
-    { l: 'Churn', v: '−R$ 5 mil', tone: pl.error, ic: 'user-minus' },
+    { l: 'Novo', v: '+R$ 16 mil', tone: pl.success, ic: 'plus' },
+    { l: 'Expansão (upgrades + add-ons)', v: '+R$ 7 mil', tone: pl.success, ic: 'trending-up' },
+    { l: 'Contração (downgrades)', v: '−R$ 3 mil', tone: pl.warning, ic: 'trending-down' },
+    { l: 'Churn', v: '−R$ 11 mil', tone: pl.error, ic: 'user-minus' },
   ];
   return (
     <div style={{ ...plCard, padding: 22 }}>
@@ -242,7 +247,7 @@ function PlGrowth() {
       <div className="pl-growth">
         <div>
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="180" preserveAspectRatio="none">
-            {[0, 40, 80, 120, 160].map(g => (
+            {[0, 45, 90, 135, 180].map(g => (
               <g key={g}><line x1={padL} x2={W} y1={y(g)} y2={y(g)} stroke={pl.g100} strokeWidth="1" /><text x={padL - 5} y={y(g) + 3} textAnchor="end" fontSize="8.5" fill={pl.g500} fontFamily="var(--font-body)">{g}</text></g>
             ))}
             {mrr.map((v, i) => {
@@ -263,7 +268,7 @@ function PlGrowth() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', background: pl.lilac2, borderRadius: 10, marginTop: 2 }}>
               <CIc n="equal" s={16} c={pl.primary} />
               <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: pl.ink }}>Crescimento líquido</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: pl.success, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>+R$ 13 mil</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: pl.success, fontFamily: 'var(--font-display)', whiteSpace: 'nowrap' }}>+R$ 9 mil</span>
             </div>
           </div>
         </div>
@@ -276,13 +281,13 @@ function PlGrowth() {
 const PL_STAGE: any = { 'Lembrete enviado': pl.warning, '2ª cobrança': pl.warning, 'Pré-suspensão': pl.error, 'Suspenso': pl.error };
 function PlDelinquency() {
   const late = [
-    { member: 'Imobiliária Costa', plan: 'Associado', days: 8, val: 'R$ 450', stage: '2ª cobrança' },
-    { member: `${demo.nomeCurto} Petrolina`, plan: 'Franquia', days: 3, val: 'R$ 1.900', stage: 'Lembrete enviado' },
-    { member: 'Lar Imóveis', plan: 'Associado', days: 21, val: 'R$ 450', stage: 'Pré-suspensão' },
+    { member: 'Imobiliária Costa', plan: 'Associado', days: 8, val: 'R$ 520', stage: '2ª cobrança' },
+    { member: `${demo.nomeCurto} Petrolina`, plan: 'Franquia', days: 3, val: 'R$ 2.150', stage: 'Lembrete enviado' },
+    { member: 'Lar Imóveis', plan: 'Associado', days: 21, val: 'R$ 520', stage: 'Pré-suspensão' },
   ];
   return (
     <div style={{ ...plCard, padding: 22 }}>
-      <PlHead title="Inadimplência de assinatura" sub="Separada da inadimplência de aluguel" right={<span style={{ fontSize: 12.5, fontWeight: 700, color: pl.error, background: pl.errBg, padding: '5px 12px', borderRadius: 999 }}>Total R$ 5,1 mil</span>} />
+      <PlHead title="Inadimplência de assinatura" sub="Separada da inadimplência de aluguel" right={<span style={{ fontSize: 12.5, fontWeight: 700, color: pl.error, background: pl.errBg, padding: '5px 12px', borderRadius: 999 }}>Total R$ 3,2 mil</span>} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {late.map((l, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: pl.page, borderRadius: 12, flexWrap: 'wrap' }}>
@@ -305,10 +310,10 @@ function PlDelinquency() {
 /* ---------------- ADD-ONS & CREDITS ---------------- */
 function PlAddons() {
   const items = [
-    { l: 'Assentos extras', v: '24 assentos', sub: 'R$ 49 cada · R$ 1.176/mês', ic: 'user-plus', tone: pl.primary },
+    { l: 'Blocos de assentos extras', v: '7 blocos', sub: 'bloco de 5 assentos · R$ 340/mês', ic: 'user-plus', tone: pl.primary },
     { l: 'Pacotes de créditos', v: '38 pacotes', sub: 'vendidos no mês', ic: 'search', tone: pl.info },
-    { l: 'Inteligência Premium', v: '12 assinantes', sub: 'R$ 290/mês cada', ic: 'sparkles', tone: pl.p3 },
-    { l: 'Taxa de adesão (período)', v: '2 novas', sub: 'R$ 20.000 cada', ic: 'door-open', tone: pl.success },
+    { l: 'Inteligência Premium', v: '12 assinantes', sub: 'R$ 380/mês cada', ic: 'sparkles', tone: pl.p3 },
+    { l: 'Taxa de adesão (período)', v: '2 novas', sub: 'R$ 24.000 cada', ic: 'door-open', tone: pl.success },
   ];
   return (
     <div style={{ ...plCard, padding: 22 }}>
@@ -385,8 +390,8 @@ function PlSub({ sub, onClose }: any) {
           <PlField l="Razão social" v={s.member} />
           <PlField l="Responsável" v={s.resp || '—'} />
           <PlField l="Plano" v={s.plan} />
-          <PlField l="Valor/mês" v={s.value} />
-          <PlField l="Ciclo" v="Mensal" />
+          <PlField l="Valor" v={s.value} />
+          <PlField l="Ciclo" v={s.type === 'Corretor' ? 'Trimestral' : 'Mensal'} />
           <PlField l="Cliente desde" v={s.since} />
           <PlField l="Taxa de adesão" v={s.adesaoPaid || '—'} tone={pl.success} />
         </div>
@@ -401,7 +406,7 @@ function PlSub({ sub, onClose }: any) {
             </div>
             <div style={{ flex: 1, background: pl.page, borderRadius: 12, padding: 14 }}>
               <div style={{ fontSize: 12, color: pl.g500, marginBottom: 6 }}>Créditos de consulta</div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: pl.ink }}>{s.creditsUsed != null ? s.creditsUsed : 0}<span style={{ fontSize: 14, color: pl.g500 }}> / {s.creditsInc || 30}</span></div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 20, color: pl.ink }}>{s.creditsUsed != null ? s.creditsUsed : 0}<span style={{ fontSize: 14, color: pl.g500 }}> / {s.creditsInc || 40}</span></div>
               <div style={{ fontSize: 11, color: pl.g500 }}>{s.creditsPack || 0} pacotes extras</div>
               <button style={{ marginTop: 6, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: `1px solid ${pl.g300}`, background: '#fff', color: pl.primary, borderRadius: 9, padding: '7px', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 12.5 }}><CIc n="plus" s={14} c={pl.primary} /> Adicionar créditos</button>
             </div>
