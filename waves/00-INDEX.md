@@ -70,6 +70,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 | **O8** | Funil de leads e conversão | Etapas + retomar depois + Hoje, anotações e próxima ação, cadastro manual, "Quero usar" no demo, origem da campanha | O7 |
 | **O9** | Cadastro único e conferência do CRECI | Nome e UF no cadastro, WhatsApp/CRECI sem repetido, "Já tenho cadastro" (só e-mail + código), dados novos só depois do código, conferir CRECI no painel, "voltou ao demo" | O8 |
 | **O10** | Avaliação no demo | Convite depois de 4 min no demo, estrelas e comentário com escolha de identificação, média ao vivo na landing, moderação no painel | O9 |
+| **O11** | Orçamento no painel | Tabela oficial em código, escada por assento com piso travado, histórico ligado ao lead e proposta A4 pronta para virar PDF | O10 |
 
 ### Sub-entregas e "Pronto quando"
 
@@ -138,6 +139,7 @@ dados fictícios. Três entradas de demonstração: **Painel do Corretor**, **CE
 
 | O9 | ✅ código concluído (2026-09-19) — cadastro com nome completo e Estado do CRECI, WhatsApp e CRECI sem repetido (WhatsApp com dica do e-mail mascarado), e-mail existente não regrava nada (dados novos só depois do código), "Já tenho cadastro" (só e-mail + código; acesso vencido abre nele), conferência do CRECI na busca oficial de cada conselho, selos de repetido e "voltou ao demo". 793 testes + smoke 19/19 + crawl desktop/celular. Ver `09-cadastro-unico/ESTADO.md`. **Publicar:** `migrations/005-cadastro-unico.sql` no Neon ANTES do deploy (RUNBOOK 3.10). |
 | O10 | ✅ código concluído (2026-09-20) — convite para avaliar depois do tempo navegado no demo, estrelas e comentário com escolha de identificação (nome+CRECI, nome, anônimo), publicação direta com filtro automático de link/contato/palavrão, média e contagem ao vivo na landing, seção Avaliações no painel (publicar/tirar do site) e aviso por e-mail sem PII. 1012 testes + smoke 17/17 + navegador desktop/celular. Ver `10-avaliacoes/ESTADO.md`. **Publicar:** `migrations/006-avaliacoes.sql` no Neon ANTES do deploy (RUNBOOK 3.11). |
+| O11 | 🟦 em andamento — plano escrito (2026-09-20). Ancoragem 20% acima, landing continua sem preço. Publicação: `migrations/007` no Neon ANTES do deploy. Ver `11-orcamentos/ESTADO.md`. |
 _Legenda: ⬜ pendente · 🟦 em andamento · ✅ concluída._
 
 ### Rodada de hardening (fora do plano de ondas, 2026-08-12)
