@@ -70,19 +70,18 @@ export function salvarSegundos(segundos: number): void {
   gravar({ ...lerEstado(), segundos });
 }
 
-/** "Agora não": some nesta visita e nas próximas, até o link do Guia reabrir. */
+/**
+ * "Agora não": o cartão não volta a aparecer, nesta visita nem nas próximas.
+ * Quem mudar de ideia usa o link "Avaliar o demo" do Guia, que abre o formulário
+ * direto — a dispensa continua valendo para o convite automático.
+ */
 export function marcarDispensado(): void {
   gravar({ ...lerEstado(), dispensado: true });
 }
 
 /** Avaliação enviada: o convite não aparece mais. */
 export function marcarRespondido(): void {
-  gravar({ ...lerEstado(), respondido: true, dispensado: false });
-}
-
-/** Link do Guia ("Avaliar o demo"): desfaz a dispensa para o convite poder voltar. */
-export function reabrirConvite(): void {
-  gravar({ ...lerEstado(), dispensado: false });
+  gravar({ ...lerEstado(), respondido: true });
 }
 
 /** Limpa a memória do convite (reapresentar o demo a alguém). */

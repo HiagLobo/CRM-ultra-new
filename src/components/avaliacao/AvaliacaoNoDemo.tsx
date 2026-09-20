@@ -10,7 +10,7 @@
 import * as React from "react";
 import ConviteAvaliacao from "./ConviteAvaliacao";
 import ModalAvaliacao from "./ModalAvaliacao";
-import { lerEstado, marcarDispensado, reabrirConvite, salvarSegundos } from "./estado";
+import { lerEstado, marcarDispensado, salvarSegundos } from "./estado";
 import { comVisibilidade, deveConvidar, iniciarRelogio, segundosDe, type Relogio } from "./tempoNoDemo";
 
 /** De quanto em quanto tempo o tempo navegado é salvo e a regra é conferida. */
@@ -32,20 +32,26 @@ export default function AvaliacaoNoDemo({
 }) {
   const [convidar, setConvidar] = React.useState(false);
   const [modal, setModal] = React.useState(false);
-  const dispensado = React.useRef(false);
-  const respondido = React.useRef(false);
+  /** Abriu e fechou o formulário sem enviar: nesta tela o cartão não volta a insistir. */
+  const jaApareceu = React.useRef(false);
 
   React.useEffect(() => {
     const inicial = lerEstado();
-    dispensado.current = inicial.dispensado;
-    respondido.current = inicial.respondido;
     if (inicial.respondido) return; // quem já avaliou não recebe convite
 
     let relogio: Relogio = iniciarRelogio(inicial.segundos, abaVisivel(), Date.now());
 
+    /**
+     * Lê o estado NA HORA (e não uma cópia do início): com o demo aberto em duas
+     * abas, quem dispensou ou avaliou numa delas não pode continuar sendo
+     * convidado na outra. Por isso decide os dois lados, mostrar e esconder.
+     */
     const conferir = () => {
-      const estado = { dispensado: dispensado.current, respondido: respondido.current };
-      if (deveConvidar(relogio, Date.now(), estado)) setConvidar(true);
+      if (jaApareceu.current) {
+        setConvidar(false);
+        return;
+      }
+      setConvidar(deveConvidar(relogio, Date.now(), lerEstado()));
     };
 
     const guardar = () => salvarSegundos(segundosDe(relogio, Date.now()));
@@ -79,24 +85,20 @@ export default function AvaliacaoNoDemo({
     };
   }, []);
 
-  // pedido > 0 = a pessoa clicou em "Avaliar o demo" no Guia
+  /**
+   * "Avaliar o demo" no Guia: abre o formulário e pronto. NÃO desfaz o "Agora
+   * não" gravado — quem dispensou o convite continua dispensando; só pediu para
+   * avaliar agora, por conta própria.
+   */
   React.useEffect(() => {
     if (pedido <= 0) return;
-    reabrirConvite();
-    dispensado.current = false;
     setConvidar(false);
     setModal(true);
   }, [pedido]);
 
   const dispensar = () => {
-    dispensado.current = true;
     marcarDispensado();
     setConvidar(false);
-  };
-
-  const fecharModal = () => {
-    setModal(false);
-    respondido.current = lerEstado().respondido;
   };
 
   return (
@@ -105,13 +107,14 @@ export default function AvaliacaoNoDemo({
         <ConviteAvaliacao
           rodape={rodape}
           aoAvaliar={() => {
+            jaApareceu.current = true; // fechou sem enviar? o cartão não reaparece sozinho
             setConvidar(false);
             setModal(true);
           }}
           aoDispensar={dispensar}
         />
       )}
-      {modal && <ModalAvaliacao aoFechar={fecharModal} />}
+      {modal && <ModalAvaliacao aoFechar={() => setModal(false)} />}
     </>
   );
 }

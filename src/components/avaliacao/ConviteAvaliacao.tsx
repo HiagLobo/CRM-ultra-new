@@ -37,7 +37,9 @@ export default function ConviteAvaliacao({
         position: "fixed",
         right: 16,
         bottom: rodape,
-        zIndex: 240, // abaixo do guia (250) e dos modais (300)
+        // abaixo do botão Guia e do painel do guia (250), do modal da avaliação
+        // (310), das boas-vindas (300) e do tour (400)
+        zIndex: 240,
         width: "min(320px, calc(100vw - 32px))",
         boxSizing: "border-box",
         background: "#fff",
@@ -68,7 +70,7 @@ export default function ConviteAvaliacao({
             O que achou até aqui?
           </div>
           <div style={{ fontSize: 13, color: p.g700, lineHeight: 1.5, marginTop: 4 }}>
-            Você já navegou alguns minutos. Dá uma nota de 1 a 5 — leva menos de um minuto.
+            Você já navegou alguns minutos. Dá uma nota de 1 a 5, leva menos de um minuto.
           </div>
         </div>
       </div>

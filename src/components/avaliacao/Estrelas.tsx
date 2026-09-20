@@ -42,11 +42,31 @@ export function proximaNota(atual: number, passo: number): Nota {
   return alvo as Nota;
 }
 
+/**
+ * Teclas do grupo de rádio, na direção do padrão WAI-ARIA: direita e **para
+ * baixo** avançam, esquerda e **para cima** voltam; Home e End vão às pontas.
+ * Tecla que não é do grupo devolve `null` (segue o caminho normal do navegador).
+ */
+export function notaDaTecla(tecla: string, atual: number): Nota | null {
+  if (tecla === "Home") return 1;
+  if (tecla === "End") return 5;
+  const passo = tecla === "ArrowRight" || tecla === "ArrowDown" ? 1 : tecla === "ArrowLeft" || tecla === "ArrowUp" ? -1 : 0;
+  if (passo === 0) return null;
+  // sem nota ainda: a primeira seta escolhe 1 (e não 2, nem "volta" para lugar nenhum)
+  return atual === 0 ? 1 : proximaNota(atual, passo);
+}
+
+/** Roving tabindex: só uma estrela entra na ordem do Tab (a escolhida, ou a 1ª). */
+export function ehFocavel(valor: number, nota: number): boolean {
+  return (valor === 0 ? 1 : valor) === nota;
+}
+
 export function SeletorEstrelas({
   valor,
   aoEscolher,
   idRotulo,
   erro,
+  idErro,
 }: {
   /** 0 = ainda sem nota. */
   valor: number;
@@ -54,34 +74,18 @@ export function SeletorEstrelas({
   /** Id do texto que rotula o grupo ("Que nota você dá ao demo?"). */
   idRotulo: string;
   erro?: string;
+  /** Id do aviso de erro, para o leitor de tela achar a mensagem do grupo. */
+  idErro?: string;
 }) {
   const refs = React.useRef<(HTMLButtonElement | null)[]>([]);
 
-  const irPara = (nota: Nota) => {
+  const aoTeclar = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const nota = notaDaTecla(e.key, valor);
+    if (nota === null) return;
+    e.preventDefault();
     aoEscolher(nota);
     refs.current[nota - 1]?.focus();
   };
-
-  const aoTeclar = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const teclas: Record<string, number> = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 };
-    if (e.key in teclas) {
-      e.preventDefault();
-      // sem nota ainda: a primeira seta escolhe 1 (e não 2)
-      irPara(valor === 0 ? 1 : proximaNota(valor, teclas[e.key]!));
-      return;
-    }
-    if (e.key === "Home") {
-      e.preventDefault();
-      irPara(1);
-    }
-    if (e.key === "End") {
-      e.preventDefault();
-      irPara(5);
-    }
-  };
-
-  // roving tabindex: um só ponto de entrada no grupo, como manda o padrão de rádio
-  const focavel = valor === 0 ? 1 : valor;
 
   return (
     <div>
@@ -91,6 +95,7 @@ export function SeletorEstrelas({
         aria-labelledby={idRotulo}
         aria-required="true"
         aria-invalid={!!erro}
+        aria-errormessage={erro && idErro ? idErro : undefined}
         onKeyDown={aoTeclar}
         style={{ display: "inline-flex", gap: 4 }}
       >
@@ -104,7 +109,7 @@ export function SeletorEstrelas({
             role="radio"
             aria-checked={valor === n}
             aria-label={rotuloDaNota(n)}
-            tabIndex={focavel === n ? 0 : -1}
+            tabIndex={ehFocavel(valor, n) ? 0 : -1}
             onClick={() => aoEscolher(n)}
             className="av-estrela"
           >

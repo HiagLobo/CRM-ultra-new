@@ -79,13 +79,18 @@ function numero(valor: unknown): number | null {
   return typeof valor === "number" && Number.isFinite(valor) ? valor : null;
 }
 
-/** Resumo só quando os dois números vierem de verdade; senão a tela omite os números. */
+/**
+ * Resumo só quando os dois números vierem de verdade **e fizerem sentido**:
+ * média fora de 0 a 5 é resposta quebrada, e a tela prefere não mostrar número
+ * nenhum a estampar "12,0 de 5".
+ */
 export function lerResumo(corpo: unknown): Resumo | null {
   const c = (corpo ?? {}) as Record<string, unknown>;
   const cru = (c.resumo ?? c) as Record<string, unknown>;
   const media = numero(cru.media);
   const quantas = numero(cru.quantas);
   if (media === null || quantas === null || quantas < 0) return null;
+  if (media < 0 || media > 5) return null;
   return { media, quantas: Math.floor(quantas) };
 }
 

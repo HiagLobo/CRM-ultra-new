@@ -5,7 +5,7 @@
 |-----|--------|--------|---------|----------------|
 | S1 — Modelo e API | A | ⬜ | — | |
 | S3 — Painel | A | ⬜ | — | |
-| S2 — Convite no demo e vitrine | B | ✅ | `onda-10/sub-S2` | ✅ aprovado |
+| S2 — Convite no demo e vitrine | B | ✅ | `onda-10/sub-S2` + correções | 🚨 reprovado → corrigido |
 
 ## Decisões tomadas
 
@@ -29,8 +29,29 @@
 - **Relógio**: conta só com a aba visível, salva a cada 15 s, ao esconder a aba, ao sair da página
   e ao trocar de tela do demo. Storage `crm_avaliacao` guarda **só** `segundos`, `dispensado` e
   `respondido` — nenhum campo de pessoa.
-- **"Agora não" vale para as próximas visitas também** (F1: "uma vez por pessoa"); o link
-  "Avaliar o demo" no Guia desfaz a dispensa e abre o formulário.
+- **"Agora não" vale para as próximas visitas também** (F1: "uma vez por pessoa"). O link
+  "Avaliar o demo" no Guia abre o formulário direto e **não** desfaz a dispensa: quem pediu para
+  não ser incomodado continua sem o convite automático.
+
+### S2 — correções da revisão cética
+
+- **Travessão fora do texto de tela.** O convite perdeu o único que tinha. Os textos de
+  consentimento, os rótulos das estrelas e as mensagens da API estão cobertos por teste
+  (`identificacao.test.ts`, `Estrelas.test.ts`).
+- **Empilhamento.** O modal ganhou camada própria (`z-index: 310` no invólucro, dentro da
+  `src/components/avaliacao/**`): acima do botão Guia e do painel do guia (250) e das boas-vindas
+  (300), abaixo do tour (400). Antes abria por baixo do guia, porque a moldura do acesso é 200.
+- **Duas abas.** A regra do convite lê o storage **na hora** a cada conferência, em vez de uma
+  cópia do início: dispensar ou avaliar numa aba esconde o cartão na outra em até 15 s.
+- **Foco do diálogo.** `useFocoModal`: foco no primeiro controle, Tab preso dentro do cartão e
+  foco devolvido ao elemento de origem quando fecha.
+- **`lerResumo` recusa média fora de 0 a 5** (resposta quebrada não vira "12,0 de 5" na tela).
+- **Vitrine**: o teto de 12 passou a ser do **total** na tela (os três do arquivo nunca caem) e
+  ids repetidos da API não geram chave repetida no React.
+- **401 deixou de ser beco sem saída**: o erro leva o link para a landing com o
+  `PARAM_ACESSO`, que já abre o "Entrar" explicando a sessão vencida (O9·S2).
+- **Aviso do 409** some quando a pessoa troca a identificação; setas do grupo de estrelas seguem
+  o padrão WAI-ARIA (direita/baixo avançam); o grupo aponta o erro por `aria-errormessage`.
 
 ## Pendências fora de escopo
 
@@ -41,3 +62,9 @@
 - A conferência no navegador da S2 depende da API da trilha A; até ela subir, o `GET
   /api/avaliacoes` responde 404, a vitrine fica com os três do arquivo (comportamento correto) e o
   DevTools mostra o 404 da rede — nada escrito pelo nosso código.
+- Quem abre o formulário pelo cartão e fecha sem enviar não é incomodado de novo **naquela tela**;
+  ao trocar de tela do demo o componente remonta e o cartão pode voltar. Transformar isso em
+  memória de visita exigiria um terceiro sinal no storage — fica para o fundador decidir.
+- O texto do consentimento está duplicado entre as trilhas (cliente e servidor), preso por teste
+  golden dos dois lados. Na integração, `identificacao.ts` passa a importar do módulo canônico da
+  trilha A e o golden continua valendo.

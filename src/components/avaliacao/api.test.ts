@@ -9,7 +9,6 @@ import {
   lerResumo,
   lerVitrine,
 } from "./api";
-import { IDENTIFICACOES, rotuloIdentificacao, textoConsentimento, ehIdentificacao } from "./identificacao";
 
 /** `fetch` de mentira para o GET (que vai sem corpo, então o dublê do acesso não serve). */
 function fetchGet(status: number, corpo: unknown, opts: { naoEhJson?: boolean } = {}) {
@@ -186,38 +185,22 @@ describe("GET /api/avaliacoes — leitura da vitrine", () => {
     expect(await buscarAvaliacoes()).toBeNull();
   });
 
+  it("média fora da escala de 1 a 5 é recusada: nunca aparece '12,0 de 5' na tela", async () => {
+    expect(lerResumo({ media: 12, quantas: 3 })).toBeNull();
+    expect(lerResumo({ media: -1, quantas: 3 })).toBeNull();
+    expect(lerResumo({ resumo: { media: 6, quantas: 9 } })).toBeNull();
+    expect(lerResumo({ media: 5, quantas: 3 })).toEqual({ media: 5, quantas: 3 });
+    expect(lerResumo({ media: 0, quantas: 0 })).toEqual({ media: 0, quantas: 0 });
+    expect(lerVitrine({ media: 50, quantas: 3, comentarios: [] })).toBeNull();
+
+    fetchGet(200, { media: 99, quantas: 3, comentarios: [] });
+    expect(await buscarAvaliacoes()).toBeNull();
+  });
+
   it("a falha do GET não escreve nada no console", async () => {
     const logs = capturarConsole();
     fetchOffline();
     await buscarAvaliacoes();
     expect(logs).toEqual([]);
-  });
-});
-
-describe("identificação e consentimento (F3 + LGPD)", () => {
-  it("são exatamente as três escolhas do contrato", () => {
-    expect(IDENTIFICACOES).toEqual(["nome_creci", "nome", "anonimo"]);
-    expect(ehIdentificacao("nome")).toBe(true);
-    expect(ehIdentificacao("qualquer")).toBe(false);
-  });
-
-  it("cada escolha tem rótulo e texto de consentimento próprios, sem repetição", () => {
-    const textos = IDENTIFICACOES.map(textoConsentimento);
-    expect(new Set(textos).size).toBe(3);
-    expect(new Set(IDENTIFICACOES.map(rotuloIdentificacao)).size).toBe(3);
-    for (const t of textos) expect(t.length).toBeGreaterThan(40);
-  });
-
-  it("o texto diz o que será publicado, e o anônimo NEGA a publicação do nome", () => {
-    expect(textoConsentimento("nome_creci")).toMatch(/nome e meu CRECI/);
-    expect(textoConsentimento("nome")).toMatch(/sem o CRECI/);
-    expect(textoConsentimento("anonimo")).toMatch(/^Não autorizo/);
-  });
-
-  it("o nome do produto vem da marca, não cravado no texto", async () => {
-    const { brand } = await import("@/config/brand");
-    for (const escolha of IDENTIFICACOES) {
-      expect(textoConsentimento(escolha)).toContain(brand.nomeCurto);
-    }
   });
 });

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { DEPOIMENTOS, mediaDasNotas } from "@/content/depoimentos";
 import type { ComentarioPublicado, VitrineDaApi } from "./api";
-import { ASSINATURA_ANONIMA, MAX_COMENTARIOS, assinaturaDoBanco, montarVitrine } from "./vitrine";
+import { ASSINATURA_ANONIMA, MAX_CARTOES, assinaturaDoBanco, montarVitrine } from "./vitrine";
 
 const doBanco = (id: string, extra: Partial<ComentarioPublicado> = {}): ComentarioPublicado => ({
   id,
@@ -48,15 +48,25 @@ describe("vitrine — arquivo + banco", () => {
     expect(v.resumo).toEqual(mediaDasNotas(DEPOIMENTOS));
   });
 
-  it("no máximo 12 comentários do banco, mesmo se o servidor mandar mais", () => {
+  it("no máximo 12 cartões NO TOTAL, e os do arquivo nunca são cortados", () => {
     const muitos = Array.from({ length: 30 }, (_, i) => doBanco(String(i)));
     const v = montarVitrine(resposta({ comentarios: muitos }));
-    expect(v.cartoes.filter((c) => c.chave.startsWith("banco-"))).toHaveLength(MAX_COMENTARIOS);
+    expect(v.cartoes).toHaveLength(MAX_CARTOES);
+    expect(v.cartoes.filter((c) => c.chave.startsWith("arquivo-"))).toHaveLength(DEPOIMENTOS.length);
+    expect(v.cartoes.filter((c) => c.chave.startsWith("banco-"))).toHaveLength(MAX_CARTOES - DEPOIMENTOS.length);
   });
 
   it("as chaves não colidem entre arquivo e banco", () => {
     const v = montarVitrine(resposta({ comentarios: [doBanco(DEPOIMENTOS[0]!.id)] }));
     expect(new Set(v.cartoes.map((c) => c.chave)).size).toBe(v.cartoes.length);
+  });
+
+  it("id repetido na resposta não vira chave repetida no React", () => {
+    const v = montarVitrine(resposta({ comentarios: [doBanco("7"), doBanco("7"), doBanco("8")] }));
+    const chaves = v.cartoes.map((c) => c.chave);
+    expect(chaves.filter((c) => c === "banco-7")).toHaveLength(1);
+    expect(new Set(chaves).size).toBe(chaves.length);
+    expect(chaves).toContain("banco-8"); // o repetido some, o resto continua
   });
 });
 

@@ -13,8 +13,13 @@
 import { DEPOIMENTOS, assinatura, mediaDasNotas, type Depoimento } from "@/content/depoimentos";
 import type { Resumo, VitrineDaApi } from "./api";
 
-/** Teto do contrato ("no máximo 12"); o cliente reforça para não confiar só no servidor. */
-export const MAX_COMENTARIOS = 12;
+/**
+ * Teto de cartões da seção. O contrato já limita a 12 os comentários do banco,
+ * mas o que não pode passar de 12 é o **total na tela** (arquivo + banco) — senão
+ * a seção vira uma parede de 15 cartões. Os três do arquivo entram primeiro e
+ * nunca são cortados.
+ */
+export const MAX_CARTOES = 12;
 
 /** Como a avaliação anônima assina — honesto e sem inventar pessoa. */
 export const ASSINATURA_ANONIMA = "Avaliação anônima de quem testou a demonstração";
@@ -45,6 +50,15 @@ function doArquivo(d: Depoimento): CartaoVitrine {
   };
 }
 
+/**
+ * Id repetido vindo da API viraria chave repetida no React (cartão sumindo ou
+ * aparecendo duas vezes). Fica o primeiro de cada chave, na ordem que chegou.
+ */
+function semRepetidos(cartoes: CartaoVitrine[]): CartaoVitrine[] {
+  const vistas = new Set<string>();
+  return cartoes.filter((c) => (vistas.has(c.chave) ? false : (vistas.add(c.chave), true)));
+}
+
 /** "Ana · CRECI PE 12345", "Ana" ou anônimo — só o que a pessoa autorizou (F3). */
 export function assinaturaDoBanco(nome?: string, creci?: string): string {
   if (!nome) return ASSINATURA_ANONIMA;
@@ -64,7 +78,7 @@ export function montarVitrine(
     return { resumo: mediaDasNotas(depoimentos), cartoes: doArquivoTodos, comBanco: false };
   }
 
-  const doBanco = dados.comentarios.slice(0, MAX_COMENTARIOS).map((c) => ({
+  const doBanco = dados.comentarios.map((c) => ({
     chave: `banco-${c.id}`,
     texto: c.texto,
     estrelas: c.estrelas,
@@ -74,7 +88,7 @@ export function montarVitrine(
   return {
     // o servidor já somou arquivo + banco; quantas = 0 é "ninguém avaliou"
     resumo: dados.quantas > 0 ? { media: dados.media, quantas: dados.quantas } : mediaDasNotas(depoimentos),
-    cartoes: [...doArquivoTodos, ...doBanco],
+    cartoes: semRepetidos([...doArquivoTodos, ...doBanco]).slice(0, MAX_CARTOES),
     comBanco: true,
   };
 }

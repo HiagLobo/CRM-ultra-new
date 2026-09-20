@@ -49,7 +49,7 @@ export default function Agradecimento({
       {resumo && (
         <div style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13.5, color: p.g700 }}>
           <EstrelasNota nota={resumo.media} rotulo={`média de ${notaEmTexto(resumo.media)} estrelas`} tamanho={18} />
-          <span>média de quem testou o demo</span>
+          <span>média de quem testou a demonstração</span>
         </div>
       )}
 

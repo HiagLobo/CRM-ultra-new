@@ -42,22 +42,22 @@ describe("memória do convite (crm_avaliacao)", () => {
     expect(lerEstado().segundos).toBe(220);
   });
 
-  it('"Agora não" fica marcado, e o link do Guia reabre o convite', async () => {
-    const { marcarDispensado, reabrirConvite, lerEstado, salvarSegundos } = await mod();
+  it('"Agora não" fica marcado para sempre: nada no app desfaz a dispensa', async () => {
+    const { marcarDispensado, marcarRespondido, lerEstado, salvarSegundos } = await mod();
     salvarSegundos(240);
     marcarDispensado();
     expect(lerEstado().dispensado).toBe(true);
 
-    reabrirConvite();
-    expect(lerEstado().dispensado).toBe(false);
-    expect(lerEstado().segundos).toBe(240); // reabrir não zera o tempo navegado
+    // abrir o formulário pelo Guia e até responder não "desdispensa" o convite:
+    // quem pediu para não ser incomodado continua sem ser incomodado
+    marcarRespondido();
+    expect(lerEstado().dispensado).toBe(true);
+    expect(lerEstado().segundos).toBe(240); // e o tempo navegado segue intacto
   });
 
-  it("quem respondeu não recebe convite de novo (nem depois de reabrir)", async () => {
-    const { marcarRespondido, reabrirConvite, lerEstado } = await mod();
+  it("quem respondeu não recebe convite de novo", async () => {
+    const { marcarRespondido, lerEstado } = await mod();
     marcarRespondido();
-    expect(lerEstado().respondido).toBe(true);
-    reabrirConvite();
     expect(lerEstado().respondido).toBe(true);
   });
 

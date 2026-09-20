@@ -8,6 +8,7 @@
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
+import { PARAM_ACESSO, VALOR_ACESSO_NECESSARIO } from "@/lib/demoAccess";
 import { Aviso, BotaoSubmit } from "@/components/acesso/ui";
 import { SeletorEstrelas, type Nota } from "./Estrelas";
 import { MAX_COMENTARIO } from "./api";
@@ -23,6 +24,10 @@ const ID_NOTA = "av-nota";
 const ID_COMENTARIO = "av-comentario";
 const ID_CONTADOR = "av-contador";
 const ID_IDENT = "av-identificacao";
+const ID_ERRO = "av-erro";
+
+/** Volta para a landing já abrindo o "Entrar" com o aviso de sessão vencida (O9·S2). */
+const LINK_ENTRAR = `/?${PARAM_ACESSO}=${VALOR_ACESSO_NECESSARIO}`;
 
 const CSS_FORM = `
 .av-opcao { display: flex; gap: 10px; align-items: flex-start; border: 1.5px solid ${p.g300}; border-radius: 12px; padding: 12px 14px; cursor: pointer; }
@@ -48,6 +53,7 @@ export default function FormAvaliacao({
   enviando,
   erro,
   aviso,
+  semAcesso,
 }: {
   dados: DadosForm;
   aoMudar: (novos: Partial<DadosForm>) => void;
@@ -57,6 +63,8 @@ export default function FormAvaliacao({
   erro?: string;
   /** Aviso sem gravidade (ex.: 409 sem_nome, que jogou a escolha para anônimo). */
   aviso?: string;
+  /** 401: o erro ganha a saída de entrar de novo, em vez de virar beco sem saída. */
+  semAcesso?: boolean;
 }) {
   const restam = MAX_COMENTARIO - dados.comentario.length;
   const semNota = dados.estrelas === 0;
@@ -80,6 +88,7 @@ export default function FormAvaliacao({
           aoEscolher={(n: Nota) => aoMudar({ estrelas: n })}
           idRotulo={ID_NOTA}
           erro={semNota && erro ? erro : undefined}
+          idErro={erro ? ID_ERRO : undefined}
         />
       </div>
 
@@ -153,7 +162,19 @@ export default function FormAvaliacao({
           aviso) — repetir aria-live aqui faria o leitor de tela ler duas vezes. */}
       <div style={{ display: "grid", gap: 10 }}>
         {aviso && <Aviso tipo="info">{aviso}</Aviso>}
-        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+        {erro && (
+          <Aviso tipo="erro" id={ID_ERRO}>
+            {erro}
+            {semAcesso && (
+              <>
+                {" "}
+                <a href={LINK_ENTRAR} style={{ color: p.primary, fontWeight: 600, whiteSpace: "nowrap" }}>
+                  Entrar de novo
+                </a>
+              </>
+            )}
+          </Aviso>
+        )}
       </div>
 
       {/* o botão não fica desabilitado: sem nota, o envio explica o que falta */}
