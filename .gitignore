@@ -40,3 +40,6 @@ yarn-error.log*
 
 # lixeira de assets antigos (host trava o rm)
 /.trash
+
+# arte e material do fundador (nao faz parte do app)
+/imagens

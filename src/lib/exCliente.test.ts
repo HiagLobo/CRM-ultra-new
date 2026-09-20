@@ -10,7 +10,7 @@
  * — e acrescente em IDENTIDADE/CONTEUDO (e a primeira palavra em PRIMEIRAS).
  * Imagem: `sha256sum arquivo` → IMAGENS.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import path from "path";
@@ -196,6 +196,13 @@ async function termosProibidos(arquivos: string[], proibidos: Set<string>): Prom
   }
   return achados;
 }
+
+/** A varredura le o repositorio inteiro e cresce a cada onda; 5 s (padrao) ficou curto. */
+const TEMPO_VARREDURA = 30_000;
+
+// A varredura lê o repositório inteiro e cresce a cada onda: os 5 s padrão do
+// vitest já estavam no limite (falha intermitente na O10).
+vi.setConfig({ testTimeout: 30_000 });
 
 describe("ex-cliente (O6): identidade", () => {
   it("nome, sigla e pessoas do ex-cliente não aparecem no código nem nos assets", async () => {
