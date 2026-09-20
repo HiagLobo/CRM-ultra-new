@@ -67,6 +67,7 @@ export {
   ExclusaoOrcamentoSchema,
   IdOrcamentoSchema,
   LIMITE_OBSERVACAO,
+  LIMITE_QUANTIDADE_EXTRA,
   NovoOrcamentoSchema,
   StatusOrcamentoSchema,
 } from "./schema";

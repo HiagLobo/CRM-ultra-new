@@ -13,8 +13,12 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import {
   CODIGOS_EXTRA,
+  ENTRADA_MAX_PCT,
+  ENTRADA_MIN_PCT,
   EXTRAS,
   LIMITE_OBSERVACAO,
+  MESES_DO_ANO,
+  MESES_PAGOS_NO_ANUAL,
   PUBLICOS,
   ROTULO_PUBLICO,
   formatarReais,
@@ -26,10 +30,12 @@ import Dialogo from "./Dialogo";
 import Campo from "./Campo";
 import EscolherLead from "./EscolherLead";
 import ResumoOrcamento from "./ResumoOrcamento";
-import { acao, caixaErro, rotuloCampo } from "./estilos";
+import { acao, caixaErro, mensagemErroCampo, rotuloCampo } from "./estilos";
 import { identificacaoLead } from "./contatoLead";
 import {
   FORM_ORCAMENTO_VAZIO,
+  campoDaPrevia,
+  mensagemDaPrevia,
   previaDoForm,
   validarOrcamento,
   type CampoOrcamento,
@@ -64,7 +70,7 @@ export default function ModalOrcamento({
   aoFechar: () => void;
   aoSalvar: (form: FormOrcamento, leadId: string) => Promise<ResultadoOrcamentoTela>;
   aoSalvo: (orcamento: OrcamentoAdmin) => void;
-  aoNovoLead: () => void;
+  aoNovoLead: (form: FormOrcamento) => void;
 }) {
   const [lead, setLead] = React.useState<LeadAdmin | null>(leadInicial);
   const [busca, setBusca] = React.useState("");
@@ -72,8 +78,18 @@ export default function ModalOrcamento({
   const [erros, setErros] = React.useState<Partial<Record<CampoOrcamento, string>>>({});
   const [falha, setFalha] = React.useState<string | null>(null);
   const [enviando, setEnviando] = React.useState(false);
+  const [extrasAbertos, setExtrasAbertos] = React.useState(false);
 
   const previa = React.useMemo(() => previaDoForm(form), [form]);
+  // a recusa da prévia que tem dono aparece no campo dele (extras, unidades)
+  const campoRecusado = campoDaPrevia(previa);
+  const mensagemRecusada = mensagemDaPrevia(previa);
+  const erroDoCampo = (campo: CampoOrcamento): string | undefined =>
+    erros[campo] ?? (campoRecusado === campo ? (mensagemRecusada ?? undefined) : undefined);
+  const erroExtras = erroDoCampo("extras");
+  // o campo da entrada só faz sentido quando existe implantação a cobrar
+  const temImplantacao = previa.ok && previa.calculo.implantacao.totalCentavos > 0;
+
   const mudar = (parcial: Partial<FormOrcamento>) => {
     setForm((f) => ({ ...f, ...parcial }));
     setFalha(null);
@@ -94,7 +110,12 @@ export default function ModalOrcamento({
     else setFalha(r.status === "recusado" ? r.mensagem : r.erro);
   }
 
-  const numero = (campo: "pro" | "ultra" | "unidades" | "descontoPct" | "validadeDias", rotulo: string, erro?: string, extra?: React.InputHTMLAttributes<HTMLInputElement>) => (
+  const numero = (
+    campo: "pro" | "ultra" | "unidades" | "descontoPct" | "entradaPct" | "validadeDias",
+    rotulo: string,
+    erro?: string,
+    extra?: React.InputHTMLAttributes<HTMLInputElement>,
+  ) => (
     <Campo id={`orcamento-${campo}`} rotulo={rotulo} erro={erro}>
       {(props) => (
         <input
@@ -137,14 +158,21 @@ export default function ModalOrcamento({
               setLead(l);
               setErros((e) => ({ ...e, leadId: undefined }));
             }}
-            aoNovoLead={aoNovoLead}
+            aoNovoLead={() => aoNovoLead(form)}
           />
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", columnGap: 12 }}>
           <Campo id="orcamento-publico" rotulo="Público *" erro={erros.publico}>
             {(props) => (
-              <select {...props} value={form.publico} onChange={(e) => mudar({ publico: e.target.value as PublicoOrcamento })}>
+              <select
+                {...props}
+                // o `autoFocus` da busca de cliente não existe quando o lead já
+                // veio escolhido: sem isto, o diálogo abria sem foco nenhum
+                autoFocus={!!leadInicial}
+                value={form.publico}
+                onChange={(e) => mudar({ publico: e.target.value as PublicoOrcamento })}
+              >
                 {PUBLICOS.map((valor) => (
                   <option key={valor} value={valor}>
                     {ROTULO_PUBLICO[valor]}
@@ -153,16 +181,19 @@ export default function ModalOrcamento({
               </select>
             )}
           </Campo>
-          {numero("pro", "Assentos Pro", erros.assentos, { step: 1 })}
-          {numero("ultra", "Assentos Ultra", undefined, { step: 1 })}
-          {form.publico === "rede" && numero("unidades", "Unidades ativas *", erros.unidades, { step: 1, min: 1 })}
+          {numero("pro", "Assentos Pro", erros.assentosPro ?? erros.assentos, { step: 1 })}
+          {numero("ultra", "Assentos Ultra", erros.assentosUltra, { step: 1 })}
+          {form.publico === "rede" && numero("unidades", "Unidades ativas *", erroDoCampo("unidades"), { step: 1, min: 1 })}
           {numero("descontoPct", "Desconto (%)", erros.descontoPct, { step: 0.5, max: 100 })}
+          {temImplantacao && numero("entradaPct", "Entrada (%)", erros.entradaPct, { step: 5, min: ENTRADA_MIN_PCT, max: ENTRADA_MAX_PCT })}
           {numero("validadeDias", "Validade (dias)", erros.validadeDias, { step: 1, min: 1 })}
         </div>
 
         <label style={caixaMarcar}>
           <input type="checkbox" checked={form.anual} onChange={(e) => mudar({ anual: e.target.checked })} style={{ width: 18, height: 18, marginTop: 2, accentColor: p.primary, flexShrink: 0 }} />
-          <span>Plano anual: 12 meses pelo preço de 10, com implantação isenta.</span>
+          <span>
+            Plano anual: {MESES_DO_ANO} meses pelo preço de {MESES_PAGOS_NO_ANUAL}, com implantação isenta.
+          </span>
         </label>
         <label style={caixaMarcar}>
           <input type="checkbox" checked={form.implantacaoIsenta} onChange={(e) => mudar({ implantacaoIsenta: e.target.checked })} style={{ width: 18, height: 18, marginTop: 2, accentColor: p.primary, flexShrink: 0 }} />
@@ -173,7 +204,8 @@ export default function ModalOrcamento({
           <span>Condição de fundador (as contrapartidas saem escritas na proposta).</span>
         </label>
 
-        <details style={{ margin: "6px 0 14px" }}>
+        {/* com erro nos extras a lista abre sozinha: o problema não pode ficar escondido atrás do resumo */}
+        <details style={{ margin: "6px 0 14px" }} open={extrasAbertos || !!erroExtras} onToggle={(e) => setExtrasAbertos(e.currentTarget.open)}>
           <summary style={{ ...rotuloCampo, cursor: "pointer", marginBottom: 10 }}>Extras e repasses</summary>
           <div style={{ display: "grid", gap: 8 }}>
             {CODIGOS_EXTRA.map((codigo) => {
@@ -186,6 +218,8 @@ export default function ModalOrcamento({
                     step={1}
                     inputMode="numeric"
                     aria-label={`Quantidade: ${extra.nome}`}
+                    aria-invalid={!!erroExtras}
+                    {...(erroExtras ? { "aria-describedby": "orcamento-extras-erro" } : {})}
                     value={form.extras[codigo] ?? ""}
                     onChange={(e) => mudar({ extras: { ...form.extras, [codigo]: e.target.value } })}
                     style={{ width: 78, padding: "6px 8px", border: `1.5px solid ${p.g300}`, borderRadius: 8, fontFamily: "var(--font-body)", fontSize: 14 }}
@@ -198,6 +232,11 @@ export default function ModalOrcamento({
               );
             })}
           </div>
+          {erroExtras && (
+            <div id="orcamento-extras-erro" role="alert" style={{ ...mensagemErroCampo, marginTop: 8 }}>
+              {erroExtras}
+            </div>
+          )}
         </details>
 
         <Campo id="orcamento-observacao" rotulo="Observação" erro={erros.observacao} ajuda="Sai no documento, abaixo dos totais.">

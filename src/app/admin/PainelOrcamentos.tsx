@@ -14,7 +14,7 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import type { LeadAdmin } from "@/features/lead/admin";
-import type { OrcamentoAdmin, StatusOrcamento } from "@/features/orcamento";
+import { ROTULO_STATUS, type OrcamentoAdmin, type StatusOrcamento } from "@/features/orcamento";
 import Aviso, { FaixaErro, LinkAviso } from "./Aviso";
 import FaixaAbas from "./FaixaAbas";
 import LinhaOrcamento from "./LinhaOrcamento";
@@ -28,6 +28,7 @@ export default function PainelOrcamentos({
   painel,
   hoje,
   leadsPorId,
+  recemSalvo,
   aoAbrirLead,
   aoNovoOrcamento,
 }: {
@@ -35,6 +36,8 @@ export default function PainelOrcamentos({
   /** Dia de Recife (`AAAA-MM-DD`), para a validade vencida. */
   hoje: string;
   leadsPorId: Map<string, LeadAdmin>;
+  /** O que acabou de ser salvo: a seção abre na aba dele e anuncia o número. */
+  recemSalvo: OrcamentoAdmin | null;
   aoAbrirLead: (leadId: string) => void;
   aoNovoOrcamento: (lead: LeadAdmin | null, form?: FormOrcamento) => void;
 }) {
@@ -42,6 +45,8 @@ export default function PainelOrcamentos({
   const [confirmando, setConfirmando] = React.useState<OrcamentoAdmin | null>(null);
   const [erroExclusao, setErroExclusao] = React.useState<string | null>(null);
   const [errosPorId, setErrosPorId] = React.useState<Record<string, string>>({});
+  /** O que a região viva anuncia: resultado da última ação, nada de total. */
+  const [aviso, setAviso] = React.useState<string | null>(null);
 
   const contagem = React.useMemo(() => contarPorAba(painel.orcamentos), [painel.orcamentos]);
   const abaAtiva: AbaOrcamento = aba ?? "todos";
@@ -50,6 +55,21 @@ export default function PainelOrcamentos({
   React.useEffect(() => {
     if (painel.carregado && aba === null) setAba(abaInicial(contagem));
   }, [painel.carregado, aba, contagem]);
+
+  /**
+   * Acabou de salvar: a seção vai para a aba onde a proposta nova está (senão
+   * ela some atrás de uma aba que o fundador não abriu) e o número é anunciado.
+   */
+  React.useEffect(() => {
+    if (!recemSalvo) return;
+    setAba((atual) => (atual === null || atual === "todos" ? atual : recemSalvo.status));
+    setAviso(`Orçamento ${recemSalvo.numero} salvo em ${ROTULO_STATUS[recemSalvo.status]}.`);
+  }, [recemSalvo]);
+
+  /** Leva o foco para a aba de destino, em vez de deixá-lo cair no corpo da página. */
+  function focarAba(valor: AbaOrcamento) {
+    document.getElementById(`aba-orcamento-${valor}`)?.focus();
+  }
 
   function guardarErro(id: string, erro: string | null) {
     setErrosPorId((atuais) => {
@@ -60,8 +80,19 @@ export default function PainelOrcamentos({
 
   async function marcar(o: OrcamentoAdmin, status: StatusOrcamento) {
     guardarErro(o.id, null);
+    setAviso(null);
     const r = await painel.trocarStatus(o.id, status);
-    guardarErro(o.id, r.ok ? null : r.erro);
+    if (!r.ok) return guardarErro(o.id, r.erro);
+    guardarErro(o.id, null);
+    // numa aba por situação, marcar tira o cartão da lista: sem isto o foco caía
+    // no corpo da página e nada era anunciado
+    const saiuDaAba = abaAtiva !== "todos" && abaAtiva !== status;
+    setAviso(
+      saiuDaAba
+        ? `${o.numero} agora está em ${ROTULO_STATUS[status]} e saiu desta aba.`
+        : `${o.numero} agora está em ${ROTULO_STATUS[status]}.`,
+    );
+    if (saiuDaAba) focarAba(status);
   }
 
   async function excluir(o: OrcamentoAdmin) {
@@ -70,6 +101,7 @@ export default function PainelOrcamentos({
     if (!r.ok) return setErroExclusao(r.erro);
     guardarErro(o.id, null);
     setConfirmando(null);
+    setAviso(`${o.numero} foi excluído.`);
   }
 
   const novo = (
@@ -81,6 +113,11 @@ export default function PainelOrcamentos({
   return (
     <div id="secao-orcamentos" role="tabpanel" aria-labelledby="secao-aba-orcamentos" tabIndex={0}>
       {painel.erro && <FaixaErro mensagem={painel.erro} aoRecarregar={() => void painel.carregar()} />}
+
+      {/* região viva vazia: só fala quando uma ação termina */}
+      <p role="status" style={{ margin: aviso ? "0 0 12px" : 0, fontSize: 13.5, color: p.g700 }}>
+        {aviso ?? ""}
+      </p>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <p style={{ margin: 0, fontSize: 13.5, color: p.g700, lineHeight: 1.5, maxWidth: 560 }}>

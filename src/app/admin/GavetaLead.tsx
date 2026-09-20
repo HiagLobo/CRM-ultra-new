@@ -35,6 +35,7 @@ export default function GavetaLead({
   avaliacao,
   avaliacoesIndisponiveis,
   orcamentos,
+  orcamentosIndisponiveis,
   hoje,
   escAtivo,
   aviso,
@@ -57,6 +58,8 @@ export default function GavetaLead({
   avaliacoesIndisponiveis?: boolean;
   /** As propostas deste cliente (O11), da mais recente para a mais antiga. */
   orcamentos: ReadonlyArray<OrcamentoAdmin>;
+  /** A lista de orçamentos não carregou: a ficha avisa, em vez de dizer que não há nenhuma. */
+  orcamentosIndisponiveis?: boolean;
   /** Dia de Recife (`AAAA-MM-DD`), para a validade vencida. */
   hoje: string;
   /** Desligado enquanto um diálogo está aberto por cima (o Esc é dele). */
@@ -188,7 +191,12 @@ export default function GavetaLead({
 
           <section aria-labelledby="gaveta-orcamentos">
             <h3 id="gaveta-orcamentos" style={tituloSecao}>Orçamentos</h3>
-            <BlocoOrcamentos orcamentos={orcamentos} hoje={hoje} aoNovoOrcamento={aoNovoOrcamento} />
+            <BlocoOrcamentos
+              orcamentos={orcamentos}
+              hoje={hoje}
+              indisponiveis={orcamentosIndisponiveis}
+              aoNovoOrcamento={aoNovoOrcamento}
+            />
           </section>
 
           <section aria-labelledby="gaveta-notas">

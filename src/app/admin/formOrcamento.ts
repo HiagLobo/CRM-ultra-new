@@ -7,6 +7,8 @@
  * Puro (sem React), para o teste cobrir campo a campo.
  */
 import {
+  ENTRADA_PADRAO_PCT,
+  LIMITE_QUANTIDADE_EXTRA,
   NovoOrcamentoSchema,
   calcularOrcamento,
   formatarReais,
@@ -33,20 +35,42 @@ export interface FormOrcamento {
   anual: boolean;
   implantacaoIsenta: boolean;
   condicaoFundador: boolean;
+  /** Quanto da implantação entra na assinatura; o resto é saldo na conclusão. */
+  entradaPct: string;
   validadeDias: string;
   observacao: string;
   /** Quantidade por extra; vazio ou 0 = não entra no orçamento. */
   extras: Partial<Record<CodigoExtra, string>>;
 }
 
-export type CampoOrcamento = "leadId" | "publico" | "assentos" | "unidades" | "descontoPct" | "extras" | "validadeDias" | "observacao";
+/**
+ * Onde cada erro aparece na tela. `assentosPro` e `assentosUltra` existem
+ * porque o Zod aponta `["assentos", "ultra"]`: sem separar, o erro do Ultra
+ * saía embaixo do campo do Pro. `assentos` fica para o 400 do servidor, que
+ * achata o caminho e só devolve a raiz.
+ */
+export type CampoOrcamento =
+  | "leadId"
+  | "publico"
+  | "assentos"
+  | "assentosPro"
+  | "assentosUltra"
+  | "unidades"
+  | "descontoPct"
+  | "entradaPct"
+  | "extras"
+  | "validadeDias"
+  | "observacao";
 
 export const CAMPOS_ORCAMENTO: readonly CampoOrcamento[] = [
   "leadId",
   "publico",
   "assentos",
+  "assentosPro",
+  "assentosUltra",
   "unidades",
   "descontoPct",
+  "entradaPct",
   "extras",
   "validadeDias",
   "observacao",
@@ -61,6 +85,7 @@ export const FORM_ORCAMENTO_VAZIO: FormOrcamento = {
   anual: false,
   implantacaoIsenta: false,
   condicaoFundador: false,
+  entradaPct: String(ENTRADA_PADRAO_PCT),
   validadeDias: String(VALIDADE_PADRAO_DIAS),
   observacao: "",
   extras: {},
@@ -95,6 +120,7 @@ export function corpoDoForm(form: FormOrcamento, leadId: string): Record<string,
     anual: form.anual,
     implantacaoIsenta: form.implantacaoIsenta,
     condicaoFundador: form.condicaoFundador,
+    entradaPct: numeroDoCampo(form.entradaPct, ENTRADA_PADRAO_PCT),
     validadeDias: numeroDoCampo(form.validadeDias, VALIDADE_PADRAO_DIAS),
     ...(form.publico === "rede" ? { unidades: numeroDoCampo(form.unidades, Number.NaN) } : {}),
     ...(extras.length ? { extras } : {}),
@@ -102,15 +128,29 @@ export function corpoDoForm(form: FormOrcamento, leadId: string): Record<string,
   };
 }
 
+/**
+ * O campo da tela onde aquele problema do Zod aparece. `["assentos", "ultra"]`
+ * vai para o campo do Ultra, e não para o do Pro (era onde caía antes).
+ */
+export function campoDoCaminho(caminho: ReadonlyArray<string | number>): CampoOrcamento | null {
+  const [raiz, filho] = caminho;
+  if (raiz === "assentos") {
+    if (filho === "pro") return "assentosPro";
+    if (filho === "ultra") return "assentosUltra";
+    return "assentos";
+  }
+  const campo = CAMPOS_ORCAMENTO.find((c) => c === raiz);
+  return campo ?? null;
+}
+
 /** Confere com o schema do servidor; o erro aparece no campo antes de enviar. */
 export function validarOrcamento(form: FormOrcamento, leadId: string): Validacao<NovoOrcamento, CampoOrcamento> {
   const r = NovoOrcamentoSchema.safeParse(corpoDoForm(form, leadId));
   if (r.success) return { ok: true, valor: r.data };
-  const { fieldErrors } = r.error.flatten();
   const erros: Partial<Record<CampoOrcamento, string>> = {};
-  for (const campo of CAMPOS_ORCAMENTO) {
-    const mensagem = (fieldErrors as Partial<Record<CampoOrcamento, string[]>>)[campo]?.[0];
-    if (mensagem) erros[campo] = mensagem;
+  for (const problema of r.error.issues) {
+    const campo = campoDoCaminho(problema.path as ReadonlyArray<string | number>);
+    if (campo && !erros[campo]) erros[campo] = problema.message;
   }
   return { ok: false, erros };
 }
@@ -122,11 +162,33 @@ const paraPrevia = (texto: string, vazio: number) => {
 };
 
 /**
- * A prévia ao vivo: a MESMA função do servidor, com os números do formulário.
- * Recusa (piso, mínimo, sem assento) também é prévia: a tela mostra o motivo
- * antes de o fundador tentar salvar.
+ * A prévia ao vivo, com os mesmos NÃOs do schema: o que o servidor recusaria
+ * também é recusado aqui, senão o botão fica aceso, o clique não faz nada e
+ * ninguém explica por quê.
  */
-export function previaDoForm(form: FormOrcamento): ResultadoCalculo {
+export type PreviaOrcamento =
+  | ResultadoCalculo
+  | { ok: false; erro: "quantidade_invalida"; campo: "extras" }
+  | { ok: false; erro: "unidades_faltando"; campo: "unidades" };
+
+/** Quantidade de extra que o Zod recusaria (quebrada, negativa ou fora do teto). */
+function extraInvalido(form: FormOrcamento): boolean {
+  return Object.values(form.extras).some((texto) => {
+    const limpo = (texto ?? "").trim();
+    if (limpo === "") return false;
+    const n = numeroDoCampo(limpo, 0);
+    return !Number.isInteger(n) || n < 0 || n > LIMITE_QUANTIDADE_EXTRA;
+  });
+}
+
+export function previaDoForm(form: FormOrcamento): PreviaOrcamento {
+  if (extraInvalido(form)) return { ok: false, erro: "quantidade_invalida", campo: "extras" };
+  // a rede sem unidades não vira "1 unidade" por conta própria: o mínimo
+  // faturável e a implantação dependem do número, então a tela pergunta
+  if (form.publico === "rede") {
+    const unidades = numeroDoCampo(form.unidades, Number.NaN);
+    if (!Number.isInteger(unidades) || unidades < 1) return { ok: false, erro: "unidades_faltando", campo: "unidades" };
+  }
   const pedido: PedidoOrcamento = {
     publico: form.publico,
     assentos: { pro: paraPrevia(form.pro, 0), ultra: paraPrevia(form.ultra, 0) },
@@ -134,6 +196,7 @@ export function previaDoForm(form: FormOrcamento): ResultadoCalculo {
     anual: form.anual,
     implantacaoIsenta: form.implantacaoIsenta,
     condicaoFundador: form.condicaoFundador,
+    entradaPct: paraPrevia(form.entradaPct, ENTRADA_PADRAO_PCT),
     extras: extrasDoForm(form),
     validadeDias: paraPrevia(form.validadeDias, VALIDADE_PADRAO_DIAS),
     ...(form.publico === "rede" ? { unidades: paraPrevia(form.unidades, 1) } : {}),
@@ -153,12 +216,22 @@ export function mensagemDaRecusa(corpo: unknown): string {
     return `O mínimo faturável desse público é ${c.minimo} ${c.minimo === 1 ? "assento" : "assentos"}${lancados}.`;
   }
   if (c.erro === "sem_assentos") return "Lance pelo menos um assento Pro ou Ultra.";
+  if (c.erro === "quantidade_invalida") {
+    return `A quantidade de um extra precisa ser um número inteiro, de 1 até ${LIMITE_QUANTIDADE_EXTRA.toLocaleString("pt-BR")}.`;
+  }
+  if (c.erro === "unidades_faltando") return "Informe quantas unidades da rede estão ativas.";
   return "Esses números não fecham com a tabela. Confira os assentos e o desconto.";
 }
 
 /** A recusa da prévia usa a mesma frase do servidor (nada de dois textos para a mesma regra). */
-export function mensagemDaPrevia(resultado: ResultadoCalculo): string | null {
+export function mensagemDaPrevia(resultado: PreviaOrcamento): string | null {
   return resultado.ok ? null : mensagemDaRecusa(resultado);
+}
+
+/** O campo onde a recusa da prévia deve aparecer, quando ela tem dono. */
+export function campoDaPrevia(resultado: PreviaOrcamento): CampoOrcamento | null {
+  if (resultado.ok) return null;
+  return "campo" in resultado ? resultado.campo : null;
 }
 
 /** O que a tela faz com a resposta do POST (201 · 409 · 404 · 400 · o resto). */
@@ -196,6 +269,7 @@ export function formDoOrcamento(o: OrcamentoAdmin): FormOrcamento {
     // marcá-la à mão é decisão de quem monta a proposta nova
     implantacaoIsenta: o.condicoes.implantacaoIsenta && !o.condicoes.anual && !o.condicoes.condicaoFundador,
     condicaoFundador: o.condicoes.condicaoFundador,
+    entradaPct: String(o.condicoes.entradaPct ?? ENTRADA_PADRAO_PCT),
     validadeDias: String(o.condicoes.validadeDias),
     observacao: o.observacao ?? "",
     extras,

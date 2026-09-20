@@ -36,7 +36,7 @@ import { useOrcamentosAdmin } from "./useOrcamentosAdmin";
 import { contarPorAba as contarAvaliacoes, porLead } from "./listaAvaliacoes";
 import { contarPorAba as contarOrcamentos, porLead as orcamentosPorLead } from "./listaOrcamentos";
 import { diaEmRecife } from "@/features/orcamento";
-import type { FormOrcamento } from "./formOrcamento";
+import { useNovoOrcamento } from "./useNovoOrcamento";
 import { useAgora } from "./useAgora";
 import { pedeDetalhe, type EtapaComDetalhe } from "./etapas";
 import { abaInicial, contarPorAba, filtrarPorAba, textoContagem, type Aba } from "./filtroLeads";
@@ -59,7 +59,7 @@ export default function PainelLeads() {
   const [erroExclusao, setErroExclusao] = React.useState<string | null>(null);
   const [novoAberto, setNovoAberto] = React.useState(false);
   // o formulário do orçamento fica ACIMA das seções: ele também abre da ficha do lead
-  const [novoOrcamento, setNovoOrcamento] = React.useState<{ lead: LeadAdmin | null; form?: FormOrcamento } | null>(null);
+  const novoOrcamento = useNovoOrcamento();
 
   const contagem = React.useMemo(() => contarPorAba(painel.leads, busca, agora), [painel.leads, busca, agora]);
   const pendentesHoje = React.useMemo(() => contarPorAba(painel.leads, "", agora).hoje, [painel.leads, agora]);
@@ -118,6 +118,9 @@ export default function PainelLeads() {
   function cadastrado(lead: LeadAdmin, observacaoNaoSalva: boolean) {
     setNovoAberto(false);
     setBusca("");
+    // veio do "+ Novo orçamento": volta para o formulário com o que já estava
+    // digitado e o cliente novo escolhido, em vez de jogar a proposta fora
+    if (novoOrcamento.voltarDoNovoLead(lead)) return;
     setAbertoId(lead.id);
     setAvisoGaveta(observacaoNaoSalva ? AVISO_OBSERVACAO : null);
   }
@@ -159,8 +162,9 @@ export default function PainelLeads() {
             painel={orcamentos}
             hoje={hoje}
             leadsPorId={leadsPorId}
+            recemSalvo={novoOrcamento.salvo}
             aoAbrirLead={abrirLead}
-            aoNovoOrcamento={(lead, form) => setNovoOrcamento({ lead, ...(form ? { form } : {}) })}
+            aoNovoOrcamento={novoOrcamento.abrir}
           />
         ) : (
         <div id="secao-leads" role="tabpanel" aria-labelledby="secao-aba-leads" tabIndex={0}>
@@ -212,15 +216,16 @@ export default function PainelLeads() {
           avaliacao={avaliacaoPorLead.get(aberto.id)}
           avaliacoesIndisponiveis={!avaliacoes.carregado && !avaliacoes.carregando}
           orcamentos={orcamentosDoLead.get(aberto.id) ?? []}
+          orcamentosIndisponiveis={!orcamentos.carregado && !orcamentos.carregando}
           hoje={hoje}
-          escAtivo={!pedidoEtapa && !confirmando && !novoAberto && !novoOrcamento}
+          escAtivo={!pedidoEtapa && !confirmando && !novoAberto && !novoOrcamento.pedido}
           aviso={avisoGaveta}
           aoFechar={fecharGaveta}
           aoEscolherEtapa={(etapa) => escolherEtapa(aberto, etapa)}
           aoAlterarRetomar={() => setPedidoEtapa({ lead: aberto, etapa: "retomar" })}
           aoDefinirProximaAcao={(acao) => painel.definirProximaAcao(aberto.id, acao)}
           aoConferirCreci={(conferencia) => painel.conferirCreci(aberto.id, conferencia)}
-          aoNovoOrcamento={() => setNovoOrcamento({ lead: aberto })}
+          aoNovoOrcamento={() => novoOrcamento.abrir(aberto)}
           aoExcluir={() => {
             setErroExclusao(null);
             setConfirmando(aberto);
@@ -240,7 +245,10 @@ export default function PainelLeads() {
 
       {novoAberto && (
         <ModalNovoLead
-          aoFechar={() => setNovoAberto(false)}
+          aoFechar={() => {
+            setNovoAberto(false);
+            novoOrcamento.voltarDoNovoLead(null); // desistiu: volta para a proposta
+          }}
           aoCadastrar={painel.cadastrar}
           aoCadastrado={cadastrado}
           aoAbrirExistente={(id) => {
@@ -250,20 +258,20 @@ export default function PainelLeads() {
         />
       )}
 
-      {novoOrcamento && (
+      {novoOrcamento.pedido && (
         <ModalOrcamento
           leads={painel.leads}
-          leadInicial={novoOrcamento.lead}
-          formInicial={novoOrcamento.form}
-          aoFechar={() => setNovoOrcamento(null)}
+          leadInicial={novoOrcamento.pedido.lead}
+          formInicial={novoOrcamento.pedido.form}
+          aoFechar={novoOrcamento.fechar}
           aoSalvar={orcamentos.criar}
-          aoSalvo={() => {
-            setNovoOrcamento(null);
+          aoSalvo={(orcamento) => {
+            novoOrcamento.salvou(orcamento);
             fecharGaveta();
             setSecao("orcamentos");
           }}
-          aoNovoLead={() => {
-            setNovoOrcamento(null);
+          aoNovoLead={(form) => {
+            novoOrcamento.irParaNovoLead(form);
             setNovoAberto(true);
           }}
         />

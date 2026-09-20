@@ -8,22 +8,29 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { formatarReais, ROTULO_STATUS, type OrcamentoAdmin } from "@/features/orcamento";
-import { botaoContorno } from "./estilos";
+import { botaoContorno, selo } from "./estilos";
 import { COR_STATUS, linkDocumento, textoValidade } from "./listaOrcamentos";
 
 export default function BlocoOrcamentos({
   orcamentos,
   hoje,
+  indisponiveis,
   aoNovoOrcamento,
 }: {
   /** Os deste lead, do mais recente para o mais antigo. */
   orcamentos: ReadonlyArray<OrcamentoAdmin>;
   hoje: string;
+  /** A lista de orçamentos não carregou: a ficha diz isso em vez de afirmar que não há nenhum. */
+  indisponiveis?: boolean;
   aoNovoOrcamento: () => void;
 }) {
   return (
     <div>
-      {orcamentos.length === 0 ? (
+      {indisponiveis ? (
+        <p role="alert" style={{ margin: "0 0 10px", fontSize: 14, color: p.g700, lineHeight: 1.5 }}>
+          Não deu para carregar os orçamentos deste cliente. Recarregue a lista na seção Orçamentos.
+        </p>
+      ) : orcamentos.length === 0 ? (
         <p style={{ margin: "0 0 10px", fontSize: 14, color: p.g700, lineHeight: 1.5 }}>
           Nenhuma proposta para este cliente ainda.
         </p>
@@ -35,7 +42,7 @@ export default function BlocoOrcamentos({
                 <a href={linkDocumento(o.id)} target="_blank" rel="noopener noreferrer" style={{ color: p.primary, fontWeight: 700, fontSize: 14 }}>
                   {o.numero}
                 </a>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: COR_STATUS[o.status] }}>{ROTULO_STATUS[o.status]}</span>
+                <span style={selo(COR_STATUS[o.status])}>{ROTULO_STATUS[o.status]}</span>
                 <span style={{ fontSize: 12.5, color: p.g500, marginLeft: "auto" }}>{textoValidade(o, hoje)}</span>
               </div>
               <span style={{ fontSize: 13.5, color: p.ink }}>{formatarReais(o.totais.mensalCentavos)} por mês</span>

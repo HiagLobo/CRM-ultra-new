@@ -65,6 +65,25 @@ export const rotuloCampo: React.CSSProperties = {
 
 export const mensagemErroCampo: React.CSSProperties = { fontSize: 12.5, color: p.error, marginTop: 5 };
 
+/**
+ * Selo de situação (avaliação, orçamento): contorno e fundo na cor da situação,
+ * com o texto em `ink` — cor clara escrita em branco não se lê.
+ */
+export function selo(cor: string): React.CSSProperties {
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 5,
+    border: `1px solid ${cor}66`,
+    background: `${cor}14`,
+    color: p.ink,
+    borderRadius: 999,
+    padding: "2px 10px",
+    fontSize: 12.5,
+    fontWeight: 600,
+  };
+}
+
 /** Chip de escolha rápida (atalhos de data, motivos). */
 export function chip(ativo: boolean): React.CSSProperties {
   return {

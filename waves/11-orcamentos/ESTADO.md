@@ -4,7 +4,7 @@
 | Sub | Trilha | Status | Commits | Revisão cética |
 |-----|--------|--------|---------|----------------|
 | S1 — Modelo, cálculo e API | A | ✅ | `onda-11/sub-S1` + `correcoes da revisao` | 🚨 REPROVADO na 1ª revisão: o **anual furava o piso** (o teto era checado no mensal) e o `lpad` do Postgres **truncava** o número 1000. Corrigido, com teste para cada achado. |
-| S2 — Painel | A | ⬜ | `onda-11/sub-S2` | 🚨 REPROVADO na 1ª revisão: o erro dos extras era calculado e jogado fora, o diálogo abria sem foco e a troca de situação não anunciava nada. Correções em andamento. |
+| S2 — Painel | A | ✅ | `onda-11/sub-S2` + `correcoes da revisao` | 🚨 REPROVADO na 1ª revisão: o erro dos **extras** era calculado e jogado fora (botão aceso, clique mudo), o diálogo abria **sem foco** com o cliente pré-escolhido e marcar "enviado" tirava o cartão da aba sem anunciar nada. Corrigido, com guarda automática de que todo campo tem onde aparecer. |
 | S3 — Documento A4 e demo | B | ⬜ | — | |
 
 ## Decisões tomadas
@@ -57,6 +57,15 @@
 - **`inclusos` e `franquias` são texto do dia**: ficam gravados em `condicoes` na emissão, e o
   documento nunca os lê da tabela de hoje. Radar e baixas automáticas só aparecem quando há assento
   Ultra na conta.
+
+- **A prévia da tela recusa o que o schema recusaria** (quantidade de extra quebrada ou negativa,
+  rede sem unidades ativas): o botão de salvar só fica aceso quando a conta fecha, e o motivo
+  aparece no campo. Quando a prévia é recusada, os últimos totais válidos ficam na tela esmaecidos,
+  com o vermelho embaixo.
+- **Sair para "+ Novo lead" não joga a proposta fora**: o formulário volta com o que estava digitado
+  e com o cliente novo escolhido (ou com o que havia, se o cadastro for cancelado).
+- **Marcar uma situação anuncia o resultado** numa região viva própria e leva o foco para a aba de
+  destino; a região não fala mais o total do ano a cada clique.
 
 ## Pendências fora de escopo
 - `src/components/Icon.tsx` não tem ícone de lixeira nem de cópia (`trash-2`, `copy`). A lista de

@@ -6,6 +6,8 @@
 import { describe, it, expect } from "vitest";
 import { calcularOrcamento, NovoOrcamentoSchema, type OrcamentoAdmin } from "@/features/orcamento";
 import {
+  campoDaPrevia,
+  campoDoCaminho,
   corpoDoForm,
   extrasDoForm,
   formDoOrcamento,
@@ -30,6 +32,7 @@ describe("o corpo do POST", () => {
       anual: false,
       implantacaoIsenta: false,
       condicaoFundador: false,
+      entradaPct: 50, // metade da implantação na assinatura
       validadeDias: 15,
     });
     // o schema do servidor aceita o corpo que a tela monta
@@ -50,7 +53,30 @@ describe("o corpo do POST", () => {
   it("o que não é número vira erro de campo, e não 0 calado", () => {
     const r = validarOrcamento(form({ pro: "cinco" }), "lead-1");
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.erros.assentos).toBeTruthy();
+    if (!r.ok) expect(r.erros.assentosPro).toBeTruthy();
+  });
+
+  it("o erro do Ultra vai para o campo do Ultra (antes caía no do Pro)", () => {
+    const r = validarOrcamento(form({ pro: "3", ultra: "2,5" }), "lead-1");
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.erros.assentosUltra).toBeTruthy();
+      expect(r.erros.assentosPro).toBeUndefined();
+    }
+    expect(campoDoCaminho(["assentos", "ultra"])).toBe("assentosUltra");
+    expect(campoDoCaminho(["assentos", "pro"])).toBe("assentosPro");
+    expect(campoDoCaminho(["assentos"])).toBe("assentos"); // o 400 do servidor achata o caminho
+    expect(campoDoCaminho(["entradaPct"])).toBe("entradaPct");
+    expect(campoDoCaminho(["coisa_nova"])).toBeNull();
+  });
+
+  it("a entrada da implantação vai no corpo e é conferida antes de enviar", () => {
+    expect(corpoDoForm(form({ entradaPct: "30" }), "lead-1")).toMatchObject({ entradaPct: 30 });
+    for (const entradaPct of ["5", "120", "33,5"]) {
+      const r = validarOrcamento(form({ entradaPct }), "lead-1");
+      expect(r.ok, entradaPct).toBe(false);
+      if (!r.ok) expect(r.erros.entradaPct, entradaPct).toBeTruthy();
+    }
   });
 
   it("rede sem unidades e desconto fora da faixa não passam da tela", () => {
@@ -85,6 +111,30 @@ describe("prévia ao vivo: a mesma conta do servidor", () => {
   it("campo pela metade não quebra a prévia: conta como 0", () => {
     expect(previaDoForm(form({ pro: "", ultra: "" }))).toEqual({ ok: false, erro: "sem_assentos" });
     expect(previaDoForm(form({ pro: "abc" }))).toEqual({ ok: false, erro: "sem_assentos" });
+  });
+
+  it("quantidade de extra que o Zod recusaria já barra na prévia, apontando o campo", () => {
+    for (const quantidade of ["1,5", "-2", "200000"]) {
+      const r = previaDoForm(form({ extras: { whatsapp_adicional: quantidade } }));
+      expect(r, quantidade).toEqual({ ok: false, erro: "quantidade_invalida", campo: "extras" });
+      expect(campoDaPrevia(r)).toBe("extras");
+      expect(mensagemDaRecusa(r)).toContain("inteiro");
+    }
+    // vazio não é erro: é extra não contratado
+    expect(previaDoForm(form({ extras: { whatsapp_adicional: "" } })).ok).toBe(true);
+  });
+
+  it("rede sem unidades recusa, em vez de fingir que é 1 unidade", () => {
+    const semUnidades = previaDoForm(form({ publico: "rede", pro: "30" }));
+    expect(semUnidades).toEqual({ ok: false, erro: "unidades_faltando", campo: "unidades" });
+    expect(campoDaPrevia(semUnidades)).toBe("unidades");
+    expect(mensagemDaRecusa(semUnidades)).toContain("unidades");
+    // com as unidades preenchidas, o mínimo faturável volta a valer (5 por unidade)
+    expect(previaDoForm(form({ publico: "rede", pro: "30", unidades: "4" })).ok).toBe(true);
+    expect(previaDoForm(form({ publico: "rede", pro: "10", unidades: "4" }))).toMatchObject({
+      erro: "assentos_abaixo_do_minimo",
+      minimo: 20,
+    });
   });
 
   it("a prévia já recusa o desconto abaixo do piso, antes de tentar salvar", () => {
@@ -170,6 +220,7 @@ describe("duplicar", () => {
       anual: false,
       implantacaoIsenta: false,
       condicaoFundador: false,
+      entradaPct: "50",
       validadeDias: "15",
       observacao: "combinado por WhatsApp",
       extras: { suporte_sincrono: "2" },

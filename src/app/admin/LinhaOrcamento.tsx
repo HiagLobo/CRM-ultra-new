@@ -13,21 +13,8 @@ import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { formatarReais, ROTULO_STATUS, STATUS_ORCAMENTO, type OrcamentoAdmin, type StatusOrcamento } from "@/features/orcamento";
-import { botaoContorno, caixaErro } from "./estilos";
+import { botaoContorno, caixaErro, selo } from "./estilos";
 import { COR_STATUS, linkDocumento, resumoDaLinha, textoValidade, venceu } from "./listaOrcamentos";
-
-const selo = (cor: string): React.CSSProperties => ({
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 5,
-  border: `1px solid ${cor}66`,
-  background: `${cor}14`,
-  color: p.ink,
-  borderRadius: 999,
-  padding: "2px 10px",
-  fontSize: 12.5,
-  fontWeight: 600,
-});
 
 /** Só as três que o fundador marca: "rascunho" é como a proposta nasce. */
 const MARCAVEIS = STATUS_ORCAMENTO.filter((s) => s !== "rascunho");
@@ -132,9 +119,11 @@ export default function LinhaOrcamento({
         </button>
       </div>
 
-      <p role="status" style={{ margin: 0, fontSize: 12.5, color: p.g500 }}>
-        {ocupado ? "Salvando…" : `Total do ano: ${formatarReais(orcamento.totais.anoCentavos)}`}
+      <p style={{ margin: 0, fontSize: 12.5, color: p.g500 }}>
+        Total do ano: {formatarReais(orcamento.totais.anoCentavos)}
       </p>
+      {/* região viva só para o andamento: antes, o total do ano era anunciado a cada ação */}
+      <p role="status" style={{ margin: 0, fontSize: 12.5, color: p.g500 }}>{ocupado ? "Salvando…" : ""}</p>
       {erro && <div role="alert" style={caixaErro}>{erro}</div>}
     </article>
   );

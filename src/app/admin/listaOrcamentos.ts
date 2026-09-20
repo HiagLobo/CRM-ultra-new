@@ -9,7 +9,7 @@
 import { palette as p } from "@/lib/palette";
 import type { OrcamentoAdmin } from "@/features/orcamento/admin";
 import type { CondicoesOrcamento, StatusOrcamento } from "@/features/orcamento/orcamento";
-import { diaBR, formatarReais, ROTULO_STATUS } from "@/features/orcamento/orcamento";
+import { diaBR, formatarReais } from "@/features/orcamento/orcamento";
 import { ROTULO_NIVEL, ROTULO_PUBLICO } from "@/features/orcamento/tabela";
 
 /** Uma aba por situação, mais "Todos". */
@@ -88,11 +88,6 @@ export function venceu(o: Pick<OrcamentoAdmin, "validadeEm">, hoje: string): boo
 /** "Vale até 05/10/2026" ou "Venceu em 05/10/2026". */
 export function textoValidade(o: Pick<OrcamentoAdmin, "validadeEm">, hoje: string): string {
   return `${venceu(o, hoje) ? "Venceu em" : "Vale até"} ${diaBR(o.validadeEm)}`;
-}
-
-/** Rótulo da situação, com a data de envio quando houver. */
-export function textoSituacao(o: Pick<OrcamentoAdmin, "status">): string {
-  return ROTULO_STATUS[o.status];
 }
 
 /** A página do documento A4 (trilha B). O id vai escapado na URL. */
