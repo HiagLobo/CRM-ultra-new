@@ -18,6 +18,7 @@ vi.mock("@/lib/criarLeadStore", () => ({ leadStore: () => dubles.leads }));
 vi.mock("@/lib/criarAvaliacaoStore", () => ({ avaliacaoStore: () => dubles.avaliacoes }));
 
 import { GET } from "./route";
+import { limparCacheDaVitrine } from "./cacheVitrine";
 
 const banco = bancoTemporario("rota-avaliacoes");
 const T = "2026-09-19T15:00:00.000Z";
@@ -35,8 +36,12 @@ const dados = (over: Partial<DadosAvaliacao> = {}): DadosAvaliacao => ({
 beforeEach(() => {
   dubles.leads = banco.leads();
   dubles.avaliacoes = banco.avaliacoes();
+  limparCacheDaVitrine(); // a rota guarda a resposta por 60 s: cada teste começa do zero
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date("2026-09-20T12:00:00.000Z"));
 });
 afterEach(async () => {
+  vi.useRealTimers();
   await banco.limpar();
   vi.restoreAllMocks();
 });
@@ -55,9 +60,23 @@ describe("GET /api/avaliacoes", () => {
     expect(await (await GET()).json()).toMatchObject({ media: 4.6, quantas: 5 });
   });
 
-  it("cache de 60 s na borda", async () => {
-    const res = await GET();
-    expect(res.headers.get("cache-control")).toBe("s-maxage=60, stale-while-revalidate=300");
+  it("guarda a resposta boa por 60 s (o Next carimba no-store nesta rota, então o cache mora aqui)", async () => {
+    const chamadas = vi.spyOn(dubles.avaliacoes, "listarPublicadas");
+    await GET();
+    await GET();
+    expect(chamadas.mock.calls.length).toBe(1); // a 2ª veio da memória
+
+    vi.setSystemTime(new Date(Date.now() + 61_000));
+    await GET();
+    expect(chamadas.mock.calls.length).toBe(2); // passou de 60 s: consulta de novo
+    chamadas.mockRestore();
+  });
+
+  it("erro NÃO fica guardado: a chamada seguinte tenta o banco de novo", async () => {
+    const quebrado = vi.spyOn(dubles.avaliacoes, "listarPublicadas").mockRejectedValueOnce(new Error("db fora"));
+    expect((await GET()).status).toBe(500);
+    quebrado.mockRestore();
+    expect((await GET()).status).toBe(200);
   });
 
   it("não vaza nome de anônimo, texto de pendente/recusado nem e-mail de ninguém", async () => {

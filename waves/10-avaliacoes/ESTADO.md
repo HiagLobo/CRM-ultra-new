@@ -91,8 +91,9 @@
   (RUNBOOK 3.11).
 - `src/lib/regressao.test.ts` (`AREAS_DAS_ONDAS`) ainda não vigia `src/components/avaliacao/`,
   `src/components/guia/` nem `src/features/avaliacao/` na regra das 300 linhas.
-- Cache de borda do `GET /api/avaliacoes` (`s-maxage`) é o primeiro do repositório: conferir uma vez
-  na Vercel depois do deploy.
+- ~~Cache de borda do `GET /api/avaliacoes`~~ — conferido em produção em 2026-09-20: a rota é
+  `force-dynamic`, o Next carimba `no-store` e o `s-maxage` era ignorado. Trocado por cache de 60 s
+  na memória da função (`cacheVitrine.ts`), com teste. Avaliação nova aparece no site em até 1 min.
 - A edição sobrescreve o consentimento anterior: some o registro de sob qual texto o nome esteve
   publicado antes de alguém trocar para anônimo.
 - Quem abre o formulário pelo cartão e fecha sem enviar pode ver o convite de novo ao trocar de tela

@@ -10,25 +10,32 @@
  * em `src/content/depoimentos.ts` (decisão F4). Quem exibe usa o número como
  * ele chega e nunca soma o arquivo de novo.
  *
- * Cache de 60 s na borda: a landing é a página mais visitada, e a média não
- * precisa ser do segundo. `force-dynamic` porque a lista vem do banco, e não
- * do build.
+ * **Cache**: a rota é `force-dynamic` (a lista vem do banco, não do build), e o
+ * Next carimba `no-store` nesse caso — o `s-maxage` que tentamos mandar era
+ * ignorado pela borda (conferido em produção em 2026-09-20). Então a proteção
+ * do banco mora aqui: a resposta boa fica 60 s na memória da função, que a
+ * plataforma reaproveita entre requisições. Erro nunca é guardado, e uma
+ * avaliação nova aparece no site em até 1 minuto.
  */
 import { NextResponse } from "next/server";
 import { leadStore } from "@/lib/criarLeadStore";
 import { avaliacaoStore } from "@/lib/criarAvaliacaoStore";
 import { causaDoErro } from "@/lib/erros";
 import { vitrine } from "@/features/avaliacao";
+import { guardarVitrine, vitrineGuardada } from "./cacheVitrine";
 
 export const runtime = "nodejs"; // o store (arquivo/pg) exige runtime Node
 export const dynamic = "force-dynamic";
 
-const CACHE = "s-maxage=60, stale-while-revalidate=300";
-
 export async function GET() {
+  const agora = Date.now();
+  const guardado = vitrineGuardada(agora);
+  if (guardado) return NextResponse.json(guardado);
+
   try {
     const dados = await vitrine({ avaliacoes: avaliacaoStore(), leads: leadStore() });
-    return NextResponse.json(dados, { headers: { "Cache-Control": CACHE } });
+    guardarVitrine(dados, agora);
+    return NextResponse.json(dados);
   } catch (err) {
     // a vitrine não pode derrubar a landing: o erro vira 500 sem detalhe e a
     // tela cai para as avaliações do arquivo (decisão F4)
