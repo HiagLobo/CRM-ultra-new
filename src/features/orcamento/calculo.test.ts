@@ -7,7 +7,6 @@
  */
 import { describe, it, expect } from "vitest";
 import { calcularOrcamento } from "./calculo";
-import { implantacaoDoPorte, minimoFaturavel } from "./porte";
 import { FAIXAS, PISOS, TABELA, type TabelaPrecos } from "./tabela";
 
 /** Atalho: o cálculo que deu certo, ou uma falha clara no teste. */
@@ -99,63 +98,75 @@ describe("desconto: o piso é trava, não aviso", () => {
     expect(calculado({ ...dezPro, descontoPct: 14.99 }).condicoes.descontoAlto).toBe(false);
     expect(calculado({ ...dezPro, descontoPct: 15 }).condicoes.descontoAlto).toBe(true);
   });
+
+  it("conta misturada: o piso do Pro aperta primeiro (5 Pro + 3 Ultra)", () => {
+    // Ultra ocupa 1 a 3 = 827,00 e Pro ocupa 4 a 8 = 695,00; o piso do Pro é
+    // 85,00 x 5 = 425,00, e o do Ultra 109,00 x 3 = 327,00 (sobra muito mais)
+    const misturado = { publico: "imobiliaria" as const, assentos: { pro: 5, ultra: 3 } };
+    const passa = calculado({ ...misturado, descontoPct: 38.85 });
+    expect(passa.condicoes.efetivoPorAssento.pro).toBe(8_500); // exatamente no piso
+    expect(passa.condicoes.efetivoPorAssento.ultra).toBeGreaterThan(PISOS.ultra);
+
+    // 69.500 x 0,6114 = 42.492,3, arredondado para cima = 42.493, abaixo de 42.500
+    expect(calcularOrcamento({ ...misturado, descontoPct: 38.86 })).toEqual({
+      ok: false,
+      erro: "abaixo_do_piso",
+      nivel: "pro",
+      piso: 8_500,
+      efetivo: 8_498,
+    });
+  });
 });
 
-describe("anual, mínimo faturável e implantação", () => {
-  // 5 assentos Pro = 2 x 179,00 + 3 x 139,00 = 775,00
-  const cincoPro = { publico: "imobiliaria" as const, assentos: { pro: 5, ultra: 0 } };
+describe("o piso vale sobre o que o cliente PAGA (anual incluído)", () => {
+  const dezPro = { publico: "imobiliaria" as const, assentos: { pro: 10, ultra: 0 } };
 
-  it("anual: 12 meses pelo preço de 10, com implantação isenta", () => {
-    const mensal = calculado(cincoPro);
-    expect(mensal.totais.mensalCentavos).toBe(77_500);
-    expect(mensal.totais.anoCentavos).toBe(77_500 * 12); // 930.000
-    expect(mensal.totais.implantacaoCentavos).toBe(179_000);
-
-    const anual = calculado({ ...cincoPro, anual: true });
-    expect(anual.totais.anoCentavos).toBe(77_500 * 10); // 775.000
-    expect(anual.totais.economiaAnualCentavos).toBe(77_500 * 2); // os 2 meses poupados
-    expect(anual.totais.implantacaoCentavos).toBe(0);
-    expect(anual.totais.implantacaoCheiaCentavos).toBe(179_000); // o documento mostra o que foi abatido
-  });
-
-  it("a condição de fundador isenta a implantação, e o resto do preço fica igual", () => {
-    const c = calculado({ ...cincoPro, condicaoFundador: true });
-    expect(c.totais.mensalCentavos).toBe(77_500);
-    expect(c.totais.implantacaoCentavos).toBe(0);
-    expect(c.condicoes.condicaoFundador).toBe(true);
-  });
-
-  it("mínimo faturável por público: autônomo 1, imobiliária 3, rede 5 por unidade", () => {
-    expect(minimoFaturavel("autonomo", 1)).toBe(1);
-    expect(minimoFaturavel("imobiliaria", 1)).toBe(3);
-    expect(minimoFaturavel("rede", 4)).toBe(20);
-
-    expect(calcularOrcamento({ publico: "imobiliaria", assentos: { pro: 2, ultra: 0 } })).toEqual({
+  it("o caso que passava: 41,37% no anual é recusado, porque o pago cai 16,67%", () => {
+    // mensal: 145.000 x 0,5863 = 85.014, que no mensal fica acima do piso
+    expect(calculado({ ...dezPro, descontoPct: 41.37 }).totais.mensalCentavos).toBe(85_014);
+    // anual: paga 10 mensalidades em 12 meses = 850.140 no ano, contra o piso de
+    // 85,00 x 10 assentos x 12 meses = 1.020.000. Dá R$ 70,84 por assento/mês.
+    expect(calcularOrcamento({ ...dezPro, descontoPct: 41.37, anual: true })).toEqual({
       ok: false,
-      erro: "assentos_abaixo_do_minimo",
-      minimo: 3,
-      assentos: 2,
-    });
-    expect(calcularOrcamento({ publico: "rede", assentos: { pro: 10, ultra: 0 }, unidades: 3 })).toEqual({
-      ok: false,
-      erro: "assentos_abaixo_do_minimo",
-      minimo: 15,
-      assentos: 10,
-    });
-    expect(calcularOrcamento({ publico: "autonomo", assentos: { pro: 0, ultra: 0 } })).toEqual({
-      ok: false,
-      erro: "sem_assentos",
+      erro: "abaixo_do_piso",
+      nivel: "pro",
+      piso: 8_500,
+      efetivo: 7_084,
     });
   });
 
-  it("implantação da rede: matriz mais cada unidade ativada", () => {
-    expect(implantacaoDoPorte("rede", 25, 5)).toEqual({
-      centavos: 1_190_000 + 5 * 99_000, // 16.850,00
-      descricao: "Migração de carteira e treinamento, matriz mais 5 unidades ativadas",
+  it("no anual o teto do desconto cai para 29,65% (era 41,37% no mensal)", () => {
+    const passa = calculado({ ...dezPro, descontoPct: 29.65, anual: true });
+    // 145.000 x 0,7035 = 102.007,5 → 102.008; x 10 meses = 1.020.080 ≥ 1.020.000
+    expect(passa.totais.mensalCentavos).toBe(102_008);
+    expect(passa.condicoes.efetivoPorAssento.pro).toBe(8_500);
+
+    expect(calcularOrcamento({ ...dezPro, descontoPct: 29.66, anual: true })).toMatchObject({
+      ok: false,
+      erro: "abaixo_do_piso",
+      nivel: "pro",
+      efetivo: 8_499,
     });
-    expect(implantacaoDoPorte("imobiliaria", 9, 1).centavos).toBe(179_000);
-    expect(implantacaoDoPorte("imobiliaria", 10, 1).centavos).toBe(299_000);
-    expect(implantacaoDoPorte("autonomo", 1, 1).centavos).toBe(0);
+  });
+
+  it("mesma trava no Ultra: 56,25% passa no anual, 56,26% não", () => {
+    // 2 Ultra = 598,00; piso 109,00 x 2 x 12 = 2.616,00 no ano
+    const doisUltra = { publico: "autonomo" as const, assentos: { pro: 0, ultra: 2 } };
+    expect(calculado({ ...doisUltra, descontoPct: 56.25, anual: true }).condicoes.efetivoPorAssento.ultra).toBe(10_901);
+    expect(calcularOrcamento({ ...doisUltra, descontoPct: 56.26, anual: true })).toEqual({
+      ok: false,
+      erro: "abaixo_do_piso",
+      nivel: "ultra",
+      piso: 10_900,
+      efetivo: 10_898,
+    });
+  });
+
+  it("sem desconto, o anual sozinho não fura o piso", () => {
+    const c = calculado({ ...dezPro, anual: true });
+    // 145.000 x 10 / 12 = 120.833,33 por mês, ou R$ 120,83 por assento
+    expect(c.condicoes.efetivoPorAssento.pro).toBe(12_083);
+    expect(c.totais.anoCentavos).toBe(1_450_000);
   });
 });
 
@@ -184,6 +195,24 @@ describe("extras entram sem desconto, e o que é única não entra no mensal", (
       totalCentavos: 29_800,
       recorrencia: "mensal",
     });
+  });
+
+  it("quantidade negativa ou quebrada é aparada, nunca vira desconto disfarçado", () => {
+    const negativo = calculado({
+      publico: "imobiliaria",
+      assentos: { pro: 5, ultra: 0 },
+      extras: [{ item: "whatsapp_adicional", quantidade: -3 }],
+    });
+    expect(negativo.totais.extrasMensaisCentavos).toBe(0);
+    expect(negativo.totais.mensalCentavos).toBe(77_500);
+    expect(negativo.itens.some((i) => i.tipo === "extra")).toBe(false);
+
+    const quebrado = calculado({
+      publico: "imobiliaria",
+      assentos: { pro: 5, ultra: 0 },
+      extras: [{ item: "whatsapp_adicional", quantidade: 2.9 }],
+    });
+    expect(quebrado.totais.extrasMensaisCentavos).toBe(29_800); // 2 unidades, não 2,9
   });
 
   it("código de extra que a tabela não conhece recusa, em vez de sumir da conta", () => {

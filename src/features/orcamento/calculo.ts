@@ -25,7 +25,7 @@ import {
 } from "./tabela";
 import { implantacaoDoPorte, minimoFaturavel } from "./porte";
 import { textosDoDia } from "./inclusos";
-import type { CondicoesOrcamento, ItemOrcamento, TotaisOrcamento } from "./orcamento";
+import type { CondicoesOrcamento, ImplantacaoOrcamento, ItemOrcamento, TotaisOrcamento } from "./orcamento";
 
 export interface ExtraPedido {
   item: CodigoExtra;
@@ -44,12 +44,16 @@ export interface PedidoOrcamento {
   extras?: readonly ExtraPedido[];
   condicaoFundador?: boolean;
   validadeDias?: number;
+  /** Quanto da implantação entra na assinatura (padrão da tabela). */
+  entradaPct?: number;
 }
 
 export interface CalculoOrcamento {
   itens: ItemOrcamento[];
   totais: TotaisOrcamento;
   condicoes: CondicoesOrcamento;
+  /** As três partes da implantação juntas (o documento e a tela pedem assim). */
+  implantacao: ImplantacaoOrcamento;
 }
 
 export type ResultadoCalculo =
@@ -58,6 +62,16 @@ export type ResultadoCalculo =
   | { ok: false; erro: "assentos_abaixo_do_minimo"; minimo: number; assentos: number }
   | { ok: false; erro: "abaixo_do_piso"; nivel: NivelAssento; piso: number; efetivo: number }
   | { ok: false; erro: "extra_desconhecido" };
+
+/**
+ * A implantação em duas partes: entrada na assinatura e saldo na conclusão
+ * (decisão do fundador em 2026-09-20). O centavo quebrado fica na ENTRADA: o
+ * saldo é o que falta, nunca um arredondamento para cima depois de pago.
+ */
+export function partirImplantacao(totalCentavos: number, entradaPct: number): ImplantacaoOrcamento {
+  const entradaCentavos = Math.ceil((totalCentavos * entradaPct) / 100);
+  return { totalCentavos, entradaCentavos, saldoCentavos: totalCentavos - entradaCentavos, entradaPct };
+}
 
 /** Desconto em centésimos de por cento: 12,5% vira 1250 (inteiro, exato). */
 const emCentesimos = (pct: number) => Math.round(pct * 100);
@@ -133,14 +147,18 @@ function linhasDeExtra(
   for (const pedido of pedidos) {
     const extra = tabela.extras.find((e) => e.codigo === pedido.item);
     if (!extra) return null; // código que a tabela não conhece: nada some em silêncio
-    const total = extra.centavos * pedido.quantidade;
+    // quantidade negativa ou quebrada (chamada direta, sem passar pelo Zod) viraria
+    // desconto disfarçado no total mensal: aqui ela é aparada antes de multiplicar
+    const quantidade = Math.max(0, Math.trunc(pedido.quantidade));
+    if (quantidade === 0) continue;
+    const total = extra.centavos * quantidade;
     if (extra.recorrencia === "mensal") mensais += total;
     else unicos += total;
     itens.push({
       tipo: "extra",
       codigo: extra.codigo,
       descricao: extra.nome,
-      quantidade: pedido.quantidade,
+      quantidade,
       unitarioCentavos: extra.centavos,
       totalCentavos: total,
       recorrencia: extra.recorrencia,
@@ -165,6 +183,11 @@ export function calcularOrcamento(pedido: PedidoOrcamento, tabela: TabelaPrecos 
 
   const assentos = linhasDeAssento({ pro, ultra }, tabela.faixas);
   const centesimos = emCentesimos(pedido.descontoPct ?? 0);
+  // O anual entra ANTES da trava: quem paga 10 mensalidades por 12 meses paga
+  // menos por assento, e é sobre esse número que o piso vale. Sem isto, anual e
+  // desconto se empilhavam e furavam o piso em 16,67% (achado da revisão).
+  const anual = pedido.anual === true;
+  const mesesPagos = anual ? tabela.mesesPagosNoAnual : tabela.mesesDoAno;
 
   // desconto nível a nível: a soma das linhas é o total, sem sobra de arredondamento
   const quantidade: Record<NivelAssento, number> = { pro, ultra };
@@ -174,10 +197,13 @@ export function calcularOrcamento(pedido: PedidoOrcamento, tabela: TabelaPrecos 
     if (quantidade[nivel] === 0) continue;
     const doNivel = comDesconto(assentos.porNivel[nivel], centesimos);
     assentosComDesconto += doNivel;
-    efetivoPorAssento[nivel] = Math.floor(doNivel / quantidade[nivel]);
+    // o que o cliente paga por este nível ao longo do ano, e o mensal que isso
+    // representa por assento (no anual, 10 mensalidades divididas por 12 meses)
+    const pagoNoAno = doNivel * mesesPagos;
+    efetivoPorAssento[nivel] = Math.floor(pagoNoAno / (quantidade[nivel] * tabela.mesesDoAno));
     const piso = tabela.pisos[nivel];
-    // comparação em inteiros: o piso vale por assento, então multiplica em vez de dividir
-    if (doNivel < piso * quantidade[nivel]) {
+    // comparação em inteiros: o piso vale por assento/mês, então multiplica em vez de dividir
+    if (pagoNoAno < piso * quantidade[nivel] * tabela.mesesDoAno) {
       return { ok: false, erro: "abaixo_do_piso", nivel, piso, efetivo: efetivoPorAssento[nivel] };
     }
   }
@@ -185,7 +211,6 @@ export function calcularOrcamento(pedido: PedidoOrcamento, tabela: TabelaPrecos 
   const extras = linhasDeExtra(pedido.extras ?? [], tabela);
   if (!extras) return { ok: false, erro: "extra_desconhecido" };
 
-  const anual = pedido.anual === true;
   const cheia = implantacaoDoPorte(pedido.publico, total, unidades ?? 1, tabela);
   // anual e condição de fundador já vêm com a implantação isenta (00-PLANO)
   const isenta = anual || pedido.implantacaoIsenta === true || pedido.condicaoFundador === true;
@@ -193,17 +218,22 @@ export function calcularOrcamento(pedido: PedidoOrcamento, tabela: TabelaPrecos 
 
   const assentosCentavos = assentos.porNivel.pro + assentos.porNivel.ultra;
   const mensalCentavos = assentosComDesconto + extras.mensais;
-  const meses = anual ? tabela.mesesPagosNoAnual : tabela.mesesDoAno;
+  const entradaPct = pedido.entradaPct ?? tabela.entradaPadraoPct;
+  const implantacao = partirImplantacao(implantacaoCentavos, entradaPct);
   const totais: TotaisOrcamento = {
     assentosCentavos,
     descontoCentavos: assentosCentavos - assentosComDesconto,
     extrasMensaisCentavos: extras.mensais,
     extrasUnicosCentavos: extras.unicos,
     mensalCentavos,
-    anoCentavos: mensalCentavos * meses,
-    economiaAnualCentavos: anual ? mensalCentavos * (tabela.mesesDoAno - tabela.mesesPagosNoAnual) : 0,
+    // o "12 meses pelo preço de 10" é da ASSINATURA: consumo medido (IA, Radar,
+    // bureau, baixa extra) é pago por uso e não ganha dois meses de graça
+    anoCentavos: assentosComDesconto * mesesPagos + extras.mensais * tabela.mesesDoAno,
+    economiaAnualCentavos: anual ? assentosComDesconto * (tabela.mesesDoAno - tabela.mesesPagosNoAnual) : 0,
     implantacaoCentavos,
     implantacaoCheiaCentavos: cheia.centavos,
+    implantacaoEntradaCentavos: implantacao.entradaCentavos,
+    implantacaoSaldoCentavos: implantacao.saldoCentavos,
   };
 
   const itemImplantacao: ItemOrcamento = {
@@ -226,11 +256,15 @@ export function calcularOrcamento(pedido: PedidoOrcamento, tabela: TabelaPrecos 
     pisos: { ...tabela.pisos },
     efetivoPorAssento,
     validadeDias: pedido.validadeDias ?? VALIDADE_PADRAO_DIAS,
+    entradaPct,
     descontoAlto: (pedido.descontoPct ?? 0) >= DESCONTO_QUE_AVISA,
     // texto do dia: o documento de uma proposta antiga continua dizendo o que
     // foi prometido naquele dia, mesmo depois de a tabela mudar
     ...textosDoDia({ pro, ultra }, tabela),
   };
 
-  return { ok: true, calculo: { itens: [...assentos.itens, ...extras.itens, itemImplantacao], totais, condicoes } };
+  return {
+    ok: true,
+    calculo: { itens: [...assentos.itens, ...extras.itens, itemImplantacao], totais, condicoes, implantacao },
+  };
 }

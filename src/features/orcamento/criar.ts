@@ -13,7 +13,7 @@ import { calcularOrcamento, type ResultadoCalculo } from "./calculo";
 import { anoEmRecife, diaEmRecife, diaMaisDias } from "./orcamento";
 import { paraOrcamentoAdmin, clienteDoLead, type OrcamentoAdmin } from "./admin";
 import type { NovoOrcamento } from "./schema";
-import { VALIDADE_PADRAO_DIAS, type PublicoOrcamento } from "./tabela";
+import { TABELA, VALIDADE_PADRAO_DIAS, type PublicoOrcamento, type TabelaPrecos } from "./tabela";
 
 export interface DepsCriarOrcamento {
   orcamentos: OrcamentoStore;
@@ -44,11 +44,14 @@ export async function criarOrcamento(
   deps: DepsCriarOrcamento,
   pedido: NovoOrcamento,
   agora: Date = new Date(),
+  /** A tabela em vigor. Entra por parâmetro para o teste provar que orçamento
+   *  emitido não muda quando a tabela muda, sem remendar o singleton. */
+  tabela: TabelaPrecos = TABELA,
 ): Promise<ResultadoCriarOrcamento> {
   const lead = await deps.leads.buscarPorId(pedido.leadId);
   if (!lead) return { status: "lead_nao_encontrado" };
 
-  const calculado = calcularOrcamento(pedido);
+  const calculado = calcularOrcamento(pedido, tabela);
   if (!calculado.ok) return { status: "recusado", recusa: calculado };
 
   const hoje = diaEmRecife(agora);

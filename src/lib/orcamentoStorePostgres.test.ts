@@ -6,7 +6,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { PostgresOrcamentoStore, diaDaColuna, paraDominio, type LinhaOrcamento } from "./orcamentoStorePostgres";
 import type { DadosOrcamento } from "./orcamentoStorePorta";
-import { calcularOrcamento } from "@/features/orcamento";
+import { calcularOrcamento, formatarNumero } from "@/features/orcamento";
 
 const T = "2026-09-20T15:00:00.000Z";
 
@@ -69,18 +69,43 @@ const DADOS: DadosOrcamento = {
 const repetido = () => Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" });
 
 describe("criar: a numeração sai dentro do INSERT", () => {
+  /**
+   * O número que o pool falso devolve não prova nada (é o que o dublê mandou):
+   * o que se confere aqui é a EXPRESSÃO que vai ao banco.
+   */
   it("o próximo número vem do MAX do ano, numa instrução só", async () => {
     const { pool, consultas, cliente } = poolFake();
-    const orcamento = await loja(pool).criar(DADOS);
+    await loja(pool).criar(DADOS);
 
     const { sql, params } = consultas[0]!;
     expect(sql).toContain("INSERT INTO orcamentos");
     expect(sql).toContain("COALESCE(MAX(substring(numero from '[0-9]+$')::int), 0) + 1");
-    expect(sql).toContain("FROM orcamentos WHERE numero LIKE");
+    expect(sql).toContain("WHERE numero LIKE $11 || '%'");
     expect(params[10]).toBe("ORC-2026-"); // o prefixo do ano filtra e monta o número
     expect(typeof params[11]).toBe("string"); // o id é gerado aqui
-    expect(orcamento.numero).toBe("ORC-2026-001");
     expect(cliente.release).toHaveBeenCalled();
+  });
+
+  /**
+   * `lpad(x, 3, '0')` TRUNCA: no orçamento 1000 ele montaria 'ORC-AAAA-100',
+   * colidiria com o 100 e o retry nunca sairia disso. A expressão tem de
+   * completar até 3 dígitos e nunca cortar, como o `padStart` do domínio.
+   */
+  it("acima de 999 o número mantém todos os dígitos", async () => {
+    const { pool, consultas } = poolFake();
+    await loja(pool).criar(DADOS);
+    const { sql } = consultas[0]!;
+
+    expect(sql).toContain("lpad(seq, greatest(3, length(seq)), '0')");
+    expect(sql).not.toMatch(/lpad\([^)]*,\s*3\s*,\s*'0'\)/); // nada de tamanho fixo
+
+    // a mesma regra da expressão, conferida contra o domínio
+    const comoNoBanco = (seq: number) => String(seq).padStart(Math.max(3, String(seq).length), "0");
+    expect(comoNoBanco(7)).toBe("007");
+    expect(comoNoBanco(999)).toBe("999");
+    expect(comoNoBanco(1_000)).toBe("1000");
+    expect(`ORC-2026-${comoNoBanco(1_000)}`).toBe(formatarNumero(2026, 1_000));
+    expect(`ORC-2026-${comoNoBanco(7)}`).toBe(formatarNumero(2026, 7));
   });
 
   it("o retrato vai como JSONB e a validade como DATE", async () => {

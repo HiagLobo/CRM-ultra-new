@@ -7,6 +7,9 @@ export {
   FAIXAS,
   PISOS,
   DESCONTO_QUE_AVISA,
+  ENTRADA_PADRAO_PCT,
+  ENTRADA_MIN_PCT,
+  ENTRADA_MAX_PCT,
   MINIMO_FATURAVEL,
   MESES_PAGOS_NO_ANUAL,
   MESES_DO_ANO,
@@ -43,6 +46,7 @@ export {
   diaMaisDias,
   formatarNumero,
   formatarReais,
+  implantacaoDoOrcamento,
   normalizarPublico,
   normalizarStatusOrcamento,
   proximoNumero,
@@ -50,12 +54,13 @@ export {
 } from "./orcamento";
 export type {
   CondicoesOrcamento,
+  ImplantacaoOrcamento,
   ItemOrcamento,
   Orcamento,
   StatusOrcamento,
   TotaisOrcamento,
 } from "./orcamento";
-export { calcularOrcamento } from "./calculo";
+export { calcularOrcamento, partirImplantacao } from "./calculo";
 export { implantacaoDoPorte, minimoFaturavel } from "./porte";
 export type { CalculoOrcamento, ExtraPedido, PedidoOrcamento, ResultadoCalculo } from "./calculo";
 export {
@@ -79,6 +84,7 @@ export { textosDoDia } from "./inclusos";
 export type { FranquiaDoDia, TextosDoDia } from "./inclusos";
 export { emReais, paraDocumento } from "./documento";
 export type {
+  ImplantacaoDocumento,
   LinhaAssentoDocumento,
   LinhaExtraDocumento,
   OrcamentoDocumento,

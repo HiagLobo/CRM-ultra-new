@@ -8,6 +8,9 @@ import {
   CODIGOS_EXTRA,
   CONDICAO_FUNDADOR,
   DESCONTO_QUE_AVISA,
+  ENTRADA_MAX_PCT,
+  ENTRADA_MIN_PCT,
+  ENTRADA_PADRAO_PCT,
   EXTRAS,
   FAIXAS,
   FRANQUIAS,
@@ -17,6 +20,7 @@ import {
   MESES_PAGOS_NO_ANUAL,
   MINIMO_FATURAVEL,
   NIVEIS,
+  NOME_IMPLANTACAO,
   PISOS,
   VALIDADE_PADRAO_DIAS,
   extraPorCodigo,
@@ -67,6 +71,17 @@ describe("pisos, mínimos e prazos", () => {
     expect(MESES_PAGOS_NO_ANUAL).toBe(10);
     expect(MESES_DO_ANO).toBe(12);
     expect(VALIDADE_PADRAO_DIAS).toBe(15);
+  });
+
+  it("entrada da implantação: metade na assinatura, entre 10% e 100%", () => {
+    expect(ENTRADA_PADRAO_PCT).toBe(50);
+    expect(ENTRADA_MIN_PCT).toBe(10);
+    expect(ENTRADA_MAX_PCT).toBe(100);
+    expect(ENTRADA_PADRAO_PCT).toBeGreaterThanOrEqual(ENTRADA_MIN_PCT);
+    expect(ENTRADA_PADRAO_PCT).toBeLessThanOrEqual(ENTRADA_MAX_PCT);
+    // o nome no documento fala de personalização; a amortização saiu do modelo
+    expect(NOME_IMPLANTACAO).toContain("Personalização");
+    expect(NOME_IMPLANTACAO.toLowerCase()).not.toContain("amortiz");
   });
 
   it("implantação por porte, em centavos", () => {

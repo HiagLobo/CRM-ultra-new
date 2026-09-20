@@ -33,6 +33,9 @@ export const runtime = "nodejs"; // o store (arquivo/pg) exige runtime Node
 
 const naoEncontrado = () => NextResponse.json({ ok: false, erro: "orcamento_nao_encontrado" }, { status: 404 });
 
+/** Proposta com preço e cliente não pode ficar guardada em cache de borda. */
+const SEM_CACHE = { "Cache-Control": "no-store" };
+
 /**
  * Recusa do cálculo → 409 com o código e o que a tela precisa mostrar. É
  * conflito de regra, não corpo malformado (o Zod já passou): mesmo tratamento
@@ -54,7 +57,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const dados = await listarOrcamentosParaAdmin(orcamentoStore(), leadStore());
-    return NextResponse.json({ ok: true, ...dados });
+    return NextResponse.json({ ok: true, ...dados }, { headers: SEM_CACHE });
   } catch (err) {
     return falhaInterna("[/api/admin/orcamentos] GET", err);
   }

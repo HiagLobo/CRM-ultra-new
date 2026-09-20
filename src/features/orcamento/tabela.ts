@@ -75,7 +75,18 @@ export const MESES_DO_ANO = 12;
 export const VALIDADE_PADRAO_DIAS = 15;
 
 /** Nome da implantação no documento (o que o cliente lê). */
-export const NOME_IMPLANTACAO = "Migração de carteira e treinamento";
+export const NOME_IMPLANTACAO = "Personalização, migração de carteira e treinamento";
+
+/**
+ * Quanto da implantação entra na assinatura (o resto fica para a conclusão).
+ * Decisão do fundador em 2026-09-20: a implantação é personalização do software
+ * para aquela empresa, então parte é paga na entrada. Editável por orçamento.
+ * NÃO é diluída em 12 meses e NÃO volta se o cliente sair: o serviço foi feito.
+ */
+export const ENTRADA_PADRAO_PCT = 50;
+/** Limites da entrada no orçamento (nunca 0%: alguma entrada sempre há). */
+export const ENTRADA_MIN_PCT = 10;
+export const ENTRADA_MAX_PCT = 100;
 
 /** Faixa de implantação da imobiliária, por quantidade de assentos. */
 export interface FaixaImplantacao {
@@ -85,8 +96,8 @@ export interface FaixaImplantacao {
 }
 
 /**
- * Implantação, cobrada no go live e amortizada em 1/12 por mês. Autônomo não
- * paga. Imobiliária: duas faixas. Rede: matriz + cada unidade ativada.
+ * Implantação, paga em duas partes (entrada na assinatura + saldo na conclusão).
+ * Autônomo não paga. Imobiliária: duas faixas. Rede: matriz + cada unidade.
  *
  * Interpretação (o 00-PLANO só escreve "de 10 a 49"): de 10 assentos em diante
  * vale a mesma faixa, porque imobiliária com 50 assentos é rede na prática e
@@ -217,18 +228,27 @@ export const CONDICAO_FUNDADOR = {
   ],
 } as const;
 
-/** A tabela inteira num objeto só: é o que o cálculo recebe (e o teste troca). */
+/**
+ * A tabela inteira num objeto só: é o que o cálculo recebe. Tudo `readonly` de
+ * propósito — quem quiser simular outro preço (teste, estudo) passa uma CÓPIA,
+ * e o singleton `TABELA` nunca é remendado em tempo de execução.
+ */
 export interface TabelaPrecos {
-  faixas: readonly FaixaAssento[];
-  pisos: Record<NivelAssento, number>;
-  minimoFaturavel: Record<PublicoOrcamento, number>;
-  implantacao: typeof IMPLANTACAO;
-  extras: readonly Extra[];
+  readonly faixas: readonly FaixaAssento[];
+  readonly pisos: Readonly<Record<NivelAssento, number>>;
+  readonly minimoFaturavel: Readonly<Record<PublicoOrcamento, number>>;
+  readonly implantacao: {
+    readonly autonomo: number;
+    readonly imobiliaria: readonly FaixaImplantacao[];
+    readonly rede: { readonly matriz: number; readonly porUnidade: number };
+  };
+  readonly extras: readonly Extra[];
   /** Entram no orçamento como TEXTO do dia (o documento guarda o que prometeu). */
-  inclusos: Record<NivelAssento, readonly string[]>;
-  franquias: FranquiasDeUso;
-  mesesPagosNoAnual: number;
-  mesesDoAno: number;
+  readonly inclusos: Readonly<Record<NivelAssento, readonly string[]>>;
+  readonly franquias: Readonly<FranquiasDeUso>;
+  readonly entradaPadraoPct: number;
+  readonly mesesPagosNoAnual: number;
+  readonly mesesDoAno: number;
 }
 
 export const TABELA: TabelaPrecos = {
@@ -239,6 +259,7 @@ export const TABELA: TabelaPrecos = {
   extras: EXTRAS,
   inclusos: INCLUSOS,
   franquias: FRANQUIAS,
+  entradaPadraoPct: ENTRADA_PADRAO_PCT,
   mesesPagosNoAnual: MESES_PAGOS_NO_ANUAL,
   mesesDoAno: MESES_DO_ANO,
 };

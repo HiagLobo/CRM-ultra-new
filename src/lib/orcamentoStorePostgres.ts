@@ -110,12 +110,18 @@ export class PostgresOrcamentoStore implements OrcamentoStore {
       dados.em,
       dados.status === "enviado" ? dados.em : null,
     ];
+    // `lpad(x, 3, '0')` TRUNCA o que passa de 3 dígitos: no orçamento 1000 ele
+    // montaria `ORC-AAAA-100`, colidiria com o 100 e o retry nunca sairia disso.
+    // `greatest(3, length(seq))` completa com zero à esquerda sem nunca cortar,
+    // que é exatamente o que o `padStart` do domínio faz.
     const sql =
+      `WITH proximo AS (SELECT (COALESCE(MAX(substring(numero from '[0-9]+$')::int), 0) + 1)::text AS seq ` +
+      `FROM orcamentos WHERE numero LIKE $11 || '%') ` +
       `INSERT INTO orcamentos (id, numero, lead_id, publico, status, itens, totais, condicoes, ` +
       `validade_em, observacao, criado_em, atualizado_em, enviado_em) ` +
-      `SELECT $12, $11 || lpad((COALESCE(MAX(substring(numero from '[0-9]+$')::int), 0) + 1)::text, 3, '0'), ` +
+      `SELECT $12, $11 || lpad(seq, greatest(3, length(seq)), '0'), ` +
       `$1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::date, $8, $9::timestamptz, $9::timestamptz, $10::timestamptz ` +
-      `FROM orcamentos WHERE numero LIKE $11 || '%' RETURNING *`;
+      `FROM proximo RETURNING *`;
 
     const prefixo = `${PREFIXO_NUMERO}-${dados.ano}-`;
     let ultima: unknown;

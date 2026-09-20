@@ -37,6 +37,18 @@ export interface ItemOrcamento {
   recorrencia?: Recorrencia;
 }
 
+/**
+ * A implantação da proposta, em duas partes: entrada na assinatura e saldo na
+ * conclusão. Não é diluída em 12 meses e não volta se o cliente sair (decisão
+ * do fundador em 2026-09-20).
+ */
+export interface ImplantacaoOrcamento {
+  totalCentavos: number;
+  entradaCentavos: number;
+  saldoCentavos: number;
+  entradaPct: number;
+}
+
 export interface TotaisOrcamento {
   /** Assentos antes do desconto. */
   assentosCentavos: number;
@@ -56,6 +68,10 @@ export interface TotaisOrcamento {
   implantacaoCentavos: number;
   /** Implantação de tabela, mesmo quando isenta: o documento mostra o que foi abatido. */
   implantacaoCheiaCentavos: number;
+  /** Parte paga na assinatura. Centavo quebrado fica aqui, nunca no saldo. */
+  implantacaoEntradaCentavos: number;
+  /** Parte paga na conclusão da implantação. */
+  implantacaoSaldoCentavos: number;
 }
 
 /** As condições do dia, escritas junto com os valores. */
@@ -72,6 +88,8 @@ export interface CondicoesOrcamento {
   /** Preço efetivo por assento, já com desconto (0 no nível sem assento). */
   efetivoPorAssento: Record<NivelAssento, number>;
   validadeDias: number;
+  /** Quanto da implantação entra na assinatura (o resto é saldo na conclusão). */
+  entradaPct: number;
   /** O desconto passou do limite que o painel avisa. */
   descontoAlto: boolean;
   /**
@@ -100,6 +118,22 @@ export interface Orcamento {
   atualizadoEm: string;
   /** Quando foi marcado como enviado (a 1ª vez fica). */
   enviadoEm?: string;
+}
+
+/**
+ * A implantação do registro remontada em um objeto só (o documento e a tela
+ * pedem as três partes juntas). Lê o que está gravado, nunca recalcula.
+ */
+export function implantacaoDoOrcamento(
+  totais: Pick<TotaisOrcamento, "implantacaoCentavos" | "implantacaoEntradaCentavos" | "implantacaoSaldoCentavos">,
+  condicoes: Pick<CondicoesOrcamento, "entradaPct">,
+): ImplantacaoOrcamento {
+  return {
+    totalCentavos: totais.implantacaoCentavos,
+    entradaCentavos: totais.implantacaoEntradaCentavos,
+    saldoCentavos: totais.implantacaoSaldoCentavos,
+    entradaPct: condicoes.entradaPct,
+  };
 }
 
 /**

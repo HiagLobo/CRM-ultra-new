@@ -7,7 +7,7 @@
  * fundador sobre um cliente).
  */
 import { z } from "zod";
-import { CODIGOS_EXTRA, PUBLICOS, VALIDADE_PADRAO_DIAS } from "./tabela";
+import { CODIGOS_EXTRA, ENTRADA_MAX_PCT, ENTRADA_MIN_PCT, PUBLICOS, VALIDADE_PADRAO_DIAS } from "./tabela";
 import { STATUS_ORCAMENTO } from "./orcamento";
 
 /** Limites de sanidade: acima disso é erro de digitação, não negócio. */
@@ -64,6 +64,13 @@ export const NovoOrcamentoSchema = z
       .max(CODIGOS_EXTRA.length, "extra repetido na lista")
       .optional(),
     condicaoFundador: z.boolean().optional(),
+    // quanto da implantação entra na assinatura; o saldo sai na conclusão
+    entradaPct: z
+      .number({ invalid_type_error: "entrada inválida" })
+      .int("a entrada é em % inteiro")
+      .min(ENTRADA_MIN_PCT, `a entrada começa em ${ENTRADA_MIN_PCT}%`)
+      .max(ENTRADA_MAX_PCT, `a entrada vai até ${ENTRADA_MAX_PCT}%`)
+      .optional(),
     validadeDias: z
       .number({ invalid_type_error: "validade inválida" })
       .int("validade inválida")

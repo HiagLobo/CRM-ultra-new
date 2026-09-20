@@ -3,11 +3,33 @@
 ## Status das subs
 | Sub | Trilha | Status | Commits | Revisão cética |
 |-----|--------|--------|---------|----------------|
-| S1 — Modelo, cálculo e API | A | ✅ | `onda-11/sub-S1` | aprovada: piso travado no servidor, auditoria sem dinheiro |
-| S2 — Painel | A | ✅ | `onda-11/sub-S2` | aprovada: a tela nunca refaz conta nem escreve preço |
+| S1 — Modelo, cálculo e API | A | ✅ | `onda-11/sub-S1` + `correcoes da revisao` | 🚨 REPROVADO na 1ª revisão: o **anual furava o piso** (o teto era checado no mensal) e o `lpad` do Postgres **truncava** o número 1000. Corrigido, com teste para cada achado. |
+| S2 — Painel | A | ⬜ | `onda-11/sub-S2` | 🚨 REPROVADO na 1ª revisão: o erro dos extras era calculado e jogado fora, o diálogo abria sem foco e a troca de situação não anunciava nada. Correções em andamento. |
 | S3 — Documento A4 e demo | B | ⬜ | — | |
 
 ## Decisões tomadas
+- **Implantação com entrada e saldo** (fundador, 2026-09-20, substitui a amortização): é a
+  personalização do software para aquela empresa, mais migração e treinamento. **Entrada na
+  assinatura (padrão 50%, `entradaPct` de 10 a 100 por orçamento) e saldo na conclusão.** Não é
+  diluída em 12 meses e não volta na saída. O centavo quebrado da divisão fica na **entrada**.
+  **Não há multa de saída** em nenhum plano; no mensal, aviso por escrito com 30 dias.
+- **O piso vale sobre o que o cliente PAGA** (achado da revisão): o anual dá 12 meses pelo preço de
+  10, então o efetivo é `mensal × 10 ÷ 12` e é ESSE número que é comparado com o piso. Antes, 10
+  assentos Pro com 41,37% no anual passavam a R$ 70,84 efetivos, contra um piso de R$ 85,00. Com a
+  correção, o teto do desconto no anual cai para 29,65% (10 Pro) e 56,25% (2 Ultra).
+- **O desconto do anual vale só na linha dos assentos** (decisão): consumo medido (IA excedente,
+  Radar, bureau, baixa extra) é pago por uso e não ganha dois meses de graça. Fórmula:
+  `ano = assentos com desconto × 10 + extras mensais × 12`, e `economia = assentos × 2`.
+- **O piso é a MÉDIA do nível na conta**, não o preço de cada degrau da escada (decisão, mantida
+  como está). Cobrar degrau a degrau limitaria o desconto a ~10% numa conta grande e inviabilizaria
+  negociação de volume. Consequência conhecida, registrada de propósito:
+
+  | Conta | Desconto | Faixa de 100+ fica em | Média do nível |
+  |---|---|---|---|
+  | 600 assentos Pro | 13,05% | ~R$ 82,60 (abaixo do piso) | R$ 85,00 (exatamente no piso) |
+
+  Ou seja: num contrato grande, os assentos da última faixa saem abaixo de R$ 85,00 desde que a
+  média do nível fique no piso. É a leitura de "preço efetivo por assento" do 00-PLANO.
 - **Escada com níveis misturados**: os assentos **Ultra ocupam as primeiras posições** da escada e os
   Pro seguem depois. O 00-PLANO não diz a ordem numa conta misturada; esta é a leitura consistente
   com F3 (ancorar alto, com margem para descontar) e a única determinística. Com 3 Ultra + 5 Pro dá

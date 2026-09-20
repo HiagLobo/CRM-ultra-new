@@ -486,8 +486,10 @@ Passo a passo:
 4. **Só então publique**: merge/push na `main` (deploy automático) e espere o deploy ficar **Ready**
    na Vercel.
 5. Smoke: `/admin` → **Orçamentos** → **+ Novo orçamento**, escolha um lead de teste, 5 assentos Pro,
-   salve e abra o documento. Confira o número `ORC-AAAA-001`, o total mensal e a validade. Depois
-   **Excluir** para não deixar proposta de teste na base.
+   salve e confira na lista o número `ORC-AAAA-001`, o total mensal e a validade. Depois **Excluir**
+   para não deixar proposta de teste na base.
+   *(O passo de abrir o documento A4 em `/admin/orcamento/<id>` só vale depois que a S3 da O11
+   estiver publicada: até lá o link leva a uma página que ainda não existe.)*
 
 **O que a 007 faz:** cria a tabela `orcamentos` (número, situação, itens, totais e condições em
 JSONB, validade e observação), com `ON DELETE CASCADE` no lead — excluir um lead pelo `/admin`
@@ -522,9 +524,22 @@ ano e a implantação mudam na hora, e **a conta é sempre a do sistema**: a tab
 
 Duas travas, de propósito diferentes: a partir de **15% de desconto** aparece um aviso amarelo (dá
 para seguir), e **abaixo do piso do plano** (R$ 85,00 por assento no Pro, R$ 109,00 no Ultra) o
-servidor recusa com 409 — não adianta insistir pela tela nem chamar a API direto. Salvo, o orçamento
-nasce **rascunho**, ganha o número `ORC-AAAA-NNN` e guarda **os preços do dia**: mudar a tabela
-depois não altera proposta já emitida.
+servidor recusa com 409 — não adianta insistir pela tela nem chamar a API direto.
+
+O piso vale sobre **o que o cliente paga**. No anual, que dá 12 meses pelo preço de 10, o efetivo
+por assento é `mensal × 10 ÷ 12`, e é esse número que é comparado com o piso: por isso o teto do
+desconto no anual é bem menor que no mensal (com 10 assentos Pro, cai de ~41% para ~29%). O
+desconto do anual vale **só na linha dos assentos**: consumo medido (IA acima da franquia, Radar,
+bureau, baixa extra) é pago por uso e não ganha dois meses de graça.
+
+A **implantação** (personalização do software, migração de carteira e treinamento) é paga em duas
+partes: **entrada na assinatura** (padrão 50%, no campo "Entrada (%)") e **saldo na conclusão**.
+Ela não é diluída em 12 meses e **não é devolvida** se o cliente sair depois: o serviço já foi
+entregue. Também **não há multa de saída** em nenhum plano; no mensal basta aviso por escrito com
+30 dias de antecedência.
+
+Salvo, o orçamento nasce **rascunho**, ganha o número `ORC-AAAA-NNN` e guarda **os preços do dia**:
+mudar a tabela depois não altera proposta já emitida.
 
 Cada orçamento abre o documento A4 em `/admin/orcamento/<id>` (botão **Baixar PDF** = impressão do
 navegador, "Salvar como PDF"). No painel dá para marcar **enviado**, **aceito** ou **recusado**,

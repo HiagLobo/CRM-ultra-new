@@ -10,7 +10,7 @@ import type { LeadStore } from "../../lib/leadStore";
 import type { OrcamentoStore } from "../../lib/orcamentoStorePorta";
 import { criarOrcamento } from "./criar";
 import { buscarOrcamentoAdmin, listarOrcamentosParaAdmin, trocarStatusOrcamento } from "./admin";
-import { FAIXAS, TABELA } from "./tabela";
+import { TABELA, type TabelaPrecos } from "./tabela";
 import { bancoTemporario, leadDoOrcamento, pedidoOrcamento } from "./apoioTestes";
 
 const banco = bancoTemporario("orcamento-criar");
@@ -89,6 +89,17 @@ describe("criação", () => {
     expect(await deps.orcamentos.listar()).toEqual([]); // nada guardado
   });
 
+  it("validade fora do padrão manda na data e fica gravada nas condições", async () => {
+    const deps = await comLead();
+    const { orcamento } = await criado(deps, { validadeDias: 30, entradaPct: 40 });
+    expect(orcamento.validadeEm).toBe("2026-10-20"); // 20/09 + 30 dias
+    expect(orcamento.condicoes.validadeDias).toBe(30);
+    // e a entrada escolhida também vai para o retrato
+    expect(orcamento.condicoes.entradaPct).toBe(40);
+    expect(orcamento.totais.implantacaoEntradaCentavos).toBe(71_600); // 40% de 1.790,00
+    expect(orcamento.totais.implantacaoSaldoCentavos).toBe(107_400);
+  });
+
   it("observação em branco não vira campo vazio no registro", async () => {
     const deps = await comLead();
     const { orcamento } = await criado(deps, { observacao: "   " });
@@ -102,22 +113,23 @@ describe("o orçamento emitido guarda o preço do dia", () => {
     const emitido = (await criado(deps)).orcamento;
     expect(emitido.totais.mensalCentavos).toBe(77_500);
 
-    // o fundador reajusta a tabela (R$ 50,00 a mais por assento, em toda faixa)
-    const faixasOriginais = TABELA.faixas;
-    try {
-      TABELA.faixas = FAIXAS.map((f) => ({ ...f, pro: f.pro + 5_000, ultra: f.ultra + 5_000 }));
+    // o fundador reajusta a tabela (R$ 50,00 a mais por assento, em toda faixa).
+    // A tabela nova entra por parâmetro: o singleton `TABELA` é readonly e nunca
+    // é remendado em tempo de execução, nem em teste.
+    const reajustada: TabelaPrecos = {
+      ...TABELA,
+      faixas: TABELA.faixas.map((f) => ({ ...f, pro: f.pro + 5_000, ultra: f.ultra + 5_000 })),
+    };
+    const depois = await criarOrcamento(deps, pedidoOrcamento(), AGORA, reajustada);
+    expect(depois.status).toBe("ok");
+    if (depois.status !== "ok") return;
+    expect(depois.orcamento.totais.mensalCentavos).toBe(102_500); // 2 x 229,00 + 3 x 189,00
 
-      const novo = (await criado(deps)).orcamento;
-      expect(novo.totais.mensalCentavos).toBe(102_500); // 2 x 229,00 + 3 x 189,00
-
-      // e o que já tinha sido emitido continua exatamente como foi proposto
-      const guardado = await buscarOrcamentoAdmin(deps.orcamentos, deps.leads, emitido.id);
-      expect(guardado!.totais).toEqual(emitido.totais);
-      expect(guardado!.itens).toEqual(emitido.itens);
-      expect(guardado!.condicoes.pisos).toEqual(emitido.condicoes.pisos);
-    } finally {
-      TABELA.faixas = faixasOriginais;
-    }
+    // e o que já tinha sido emitido continua exatamente como foi proposto
+    const guardado = await buscarOrcamentoAdmin(deps.orcamentos, deps.leads, emitido.id);
+    expect(guardado!.totais).toEqual(emitido.totais);
+    expect(guardado!.itens).toEqual(emitido.itens);
+    expect(guardado!.condicoes.pisos).toEqual(emitido.condicoes.pisos);
   });
 
   it("o retrato tem a linha de cada faixa, com o preço unitário do dia", async () => {
