@@ -12,6 +12,7 @@ import { z } from "zod";
 import { exigirAdmin } from "@/lib/adminAuth";
 import { leadStore } from "@/lib/criarLeadStore";
 import { avaliacaoStore } from "@/lib/criarAvaliacaoStore";
+import { orcamentoStore } from "@/lib/criarOrcamentoStore";
 import { causaDoErro } from "@/lib/erros";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { resumo, excluirLead } from "@/features/lead/admin";
@@ -106,15 +107,17 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Elimina o lead (LGPD art. 18), com as anotações e com a avaliação que ele
- * tenha deixado no demo (O10). Apaga de vez — o titular pediu para sumir. A
- * auditoria guarda que houve exclusão e de qual id, nunca o contato apagado:
- * registrá-lo manteria o dado que se pediu para eliminar.
+ * Elimina o lead (LGPD art. 18), com as anotações, com a avaliação que ele
+ * tenha deixado no demo (O10) e com os orçamentos dele (O11). Apaga de vez —
+ * o titular pediu para sumir. A auditoria guarda que houve exclusão e de qual
+ * id, nunca o contato apagado: registrá-lo manteria o dado que se pediu para
+ * eliminar.
  *
- * A avaliação sai ANTES do lead: no Postgres o `ON DELETE CASCADE` da migração
- * 006 já faria isso sozinho, mas o adaptador de arquivo (dev) não tem cascata,
- * e uma avaliação órfã é dado de quem pediu para ser apagado. Falhar aqui não
- * pode travar a eliminação: a causa vai para o log e o lead sai do mesmo jeito.
+ * A avaliação e os orçamentos saem ANTES do lead: no Postgres o
+ * `ON DELETE CASCADE` das migrações 006 e 007 já faria isso sozinho, mas o
+ * adaptador de arquivo (dev) não tem cascata, e registro órfão é dado de quem
+ * pediu para ser apagado. Falhar aqui não pode travar a eliminação: a causa vai
+ * para o log e o lead sai do mesmo jeito.
  */
 export async function DELETE(req: NextRequest) {
   const barrado = exigirAdmin(req);
@@ -133,6 +136,13 @@ export async function DELETE(req: NextRequest) {
       // A causa vai para uma variável antes do log: nenhuma rota loga o erro cru.
       const causa = causaDoErro(err, "db");
       console.error("[/api/admin/leads] DELETE avaliação não removida:", causa);
+    }
+    try {
+      await orcamentoStore().removerDoLead(parsed.data.id);
+    } catch (err) {
+      // ex.: migração 007 ainda não rodada (db:42P01) — a exclusão do lead segue
+      const causa = causaDoErro(err, "db");
+      console.error("[/api/admin/leads] DELETE orçamentos não removidos:", causa);
     }
     if (!(await excluirLead(leadStore(), parsed.data.id))) return leadNaoEncontrado();
     await registrarAuditoria("lead.exclusao", { id: parsed.data.id, motivo: "pedido_do_titular" });

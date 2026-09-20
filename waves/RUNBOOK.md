@@ -174,18 +174,19 @@ arquivo do repositório (ele é público) nem em chat.
 
    **Por que a pooled:** cada função da Vercel abre o próprio pool. Com a string direta, um pico de
    acessos estoura o limite de conexões do Postgres (log `db:53300`).
-4. **As 6 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
+4. **As 7 migrações, uma vez só.** Neon → **SQL Editor** (branch principal, database `neondb`). Abra
    `migrations/001-leads.sql` no GitHub, copie **tudo**, cole e clique em **Run**. Repita com
-   `002-auditoria.sql`, `003-rate-limit.sql`, `004-funil.sql`, `005-cadastro-unico.sql` e
-   `006-avaliacoes.sql`, nessa ordem. São idempotentes: rodar de novo não estraga nada. (Banco que já
-   estava no ar: a 004 pelo passo 3.9, a 005 pelo 3.10, a 006 pelo 3.11.)
+   `002-auditoria.sql`, `003-rate-limit.sql`, `004-funil.sql`, `005-cadastro-unico.sql`,
+   `006-avaliacoes.sql` e `007-orcamentos.sql`, nessa ordem. São idempotentes: rodar de novo não
+   estraga nada. (Banco que já estava no ar: a 004 pelo passo 3.9, a 005 pelo 3.10, a 006 pelo 3.11
+   e a 007 pelo 3.12.)
 5. Confira no mesmo SQL Editor:
 
    ```sql
    SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY 1;
    ```
 
-   Têm de voltar **`auditoria`, `avaliacoes`, `lead_notas`, `leads` e `rate_limit`**. Se faltar a
+   Têm de voltar **`auditoria`, `avaliacoes`, `lead_notas`, `leads`, `orcamentos` e `rate_limit`**. Se faltar a
    `rate_limit` (migração 003), todo pedido de acesso e todo login do admin dão erro (log
    `db:42P01`). Se faltar a `auditoria` (002), o sistema funciona, mas a trilha de auditoria da LGPD
    **não grava**, em silêncio. Se faltar a `lead_notas` (004), o funil do `/admin` dá erro (passo
@@ -442,6 +443,65 @@ loga `[/api/avaliacoes] GET: db:42P01`). Rode a 006 (passos 2 e 3); não precisa
 
 ---
 
+### 3.12. Migração 007 (orçamentos) — rode a 007 ANTES de publicar a versão nova
+
+Para quem já está no ar com as migrações 001 a 006. (Banco novo: o passo 3.4 já inclui a 007.) A
+versão com o **gerador de orçamento no painel** grava numa tabela nova, `orcamentos`, que só a
+`007-orcamentos.sql` cria.
+
+**A ordem é: migrar primeiro, publicar depois** (como na 005 e na 006). O motivo:
+
+- a 007 só **acrescenta** (uma tabela nova e dois índices): o código que está no ar nem sabe que ela
+  existe, então rodá-la antes não muda nada no site;
+- o código **novo** grava nela: sem a 007, a aba Orçamentos abre, o fundador monta a proposta
+  inteira e recebe erro ao salvar.
+
+Passo a passo:
+
+1. **Backup.** Neon → **Branches → Create branch** a partir do principal, com a data no nome (ex.:
+   `antes-007-2026-09-20`). Veja "Backup" na seção 4.
+2. Neon → **SQL Editor** (branch principal, database `neondb`) → abra `migrations/007-orcamentos.sql`
+   no GitHub → copie **tudo** → cole → **Run**.
+3. Confira, no mesmo SQL Editor:
+
+   ```sql
+   SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'orcamentos'
+    ORDER BY 1;
+   ```
+
+   Têm de voltar as **13** colunas (`atualizado_em`, `condicoes`, `criado_em`, `enviado_em`, `id`,
+   `itens`, `lead_id`, `numero`, `observacao`, `publico`, `status`, `totais`, `validade_em`). Não
+   voltou nada? A 007 não rodou.
+
+   ```sql
+   SELECT indexname FROM pg_indexes
+    WHERE tablename = 'orcamentos'
+    ORDER BY 1;
+   ```
+
+   Têm de voltar `orcamentos_lead_idx`, `orcamentos_status_criado_idx`, a chave primária e o índice
+   único do `numero` (é ele que garante que dois orçamentos salvos ao mesmo tempo não recebam o
+   mesmo `ORC-AAAA-NNN`).
+4. **Só então publique**: merge/push na `main` (deploy automático) e espere o deploy ficar **Ready**
+   na Vercel.
+5. Smoke: `/admin` → **Orçamentos** → **+ Novo orçamento**, escolha um lead de teste, 5 assentos Pro,
+   salve e confira na lista o número `ORC-AAAA-001`, o total mensal e a validade. Depois **Excluir**
+   para não deixar proposta de teste na base.
+   *(O passo de abrir o documento A4 em `/admin/orcamento/<id>` só vale depois que a S3 da O11
+   estiver publicada: até lá o link leva a uma página que ainda não existe.)*
+
+**O que a 007 faz:** cria a tabela `orcamentos` (número, situação, itens, totais e condições em
+JSONB, validade e observação), com `ON DELETE CASCADE` no lead — excluir um lead pelo `/admin`
+(LGPD) apaga os orçamentos dele junto — e os dois índices. **Não apaga nada**, não toca nas tabelas
+`leads` e `avaliacoes` e pode rodar de novo sem estrago.
+
+**Se publicar antes da 007** (ou esquecer): o site e o funil seguem normais, mas salvar orçamento dá
+erro, com `db:42P01` no log `[/api/admin/orcamentos]`. Rode a 007 (passos 2 e 3); não precisa de
+Redeploy.
+
+---
+
 ## 4. Operação do dia a dia
 
 **Ver os leads:** `/admin/login` → `/admin`. A sessão dura 12h.
@@ -455,6 +515,36 @@ na média** nos dois casos: o que sai do ar é o comentário, não a avaliação
 auditoria como `avaliacao.status` com o id e a situação de/para — nunca o texto nem quem escreveu.
 Se `AVISO_LEADS_EMAIL` estiver configurada, chega um e-mail a cada avaliação nova (ou quando ela
 muda de situação) com **só a nota, a situação e o link do painel**.
+
+**Montar um orçamento.** `/admin` → aba **Orçamentos** → **+ Novo orçamento**. Escolha o lead (quem
+ainda não está no funil entra pelo **+ Novo lead**), o público (autônomo, imobiliária ou rede), a
+quantidade de assentos Pro e Ultra, o desconto, se é anual e os extras. O total mensal, o total do
+ano e a implantação mudam na hora, e **a conta é sempre a do sistema**: a tabela de preços mora em
+`src/features/orcamento/tabela.ts` e nenhuma tela escreve valor na mão.
+
+Duas travas, de propósito diferentes: a partir de **15% de desconto** aparece um aviso amarelo (dá
+para seguir), e **abaixo do piso do plano** (R$ 85,00 por assento no Pro, R$ 109,00 no Ultra) o
+servidor recusa com 409 — não adianta insistir pela tela nem chamar a API direto.
+
+O piso vale sobre **o que o cliente paga**. No anual, que dá 12 meses pelo preço de 10, o efetivo
+por assento é `mensal × 10 ÷ 12`, e é esse número que é comparado com o piso: por isso o teto do
+desconto no anual é bem menor que no mensal (com 10 assentos Pro, cai de ~41% para ~29%). O
+desconto do anual vale **só na linha dos assentos**: consumo medido (IA acima da franquia, Radar,
+bureau, baixa extra) é pago por uso e não ganha dois meses de graça.
+
+A **implantação** (personalização do software, migração de carteira e treinamento) é paga em duas
+partes: **entrada na assinatura** (padrão 50%, no campo "Entrada (%)") e **saldo na conclusão**.
+Ela não é diluída em 12 meses e **não é devolvida** se o cliente sair depois: o serviço já foi
+entregue. Também **não há multa de saída** em nenhum plano; no mensal basta aviso por escrito com
+30 dias de antecedência.
+
+Salvo, o orçamento nasce **rascunho**, ganha o número `ORC-AAAA-NNN` e guarda **os preços do dia**:
+mudar a tabela depois não altera proposta já emitida.
+
+Cada orçamento abre o documento A4 em `/admin/orcamento/<id>` (botão **Baixar PDF** = impressão do
+navegador, "Salvar como PDF"). No painel dá para marcar **enviado**, **aceito** ou **recusado**,
+duplicar e excluir. As mudanças ficam na auditoria como `orcamento.criado` e `orcamento.status`, com
+id, público e quantidade de assentos — **nunca valores, nome de cliente ou observação**.
 
 **Tour guiado.** Na primeira visita de cada tela com tour (os 3 painéis, atendimento, radar e a busca
 do portal — 6 tours, 33 passos) a orientação aparece sozinha: destaque no elemento + balão explicando. Pular ou concluir
@@ -766,13 +856,16 @@ O resto é toolchain de teste, que não vai para o build.
 | `src/lib/ratelimit*.ts` | limite de uso (Postgres em prod, memória em dev) |
 | `src/lib/auditoria.ts` | registro das ações do admin (banco em prod, arquivo em dev) |
 | `src/lib/criarLeadStore.ts` | escolhe o adaptador por ambiente |
+| `src/features/orcamento/tabela.ts` | **a tabela de preços** (faixas, pisos, mínimos, franquias, extras) — fonte única, em centavos |
+| `src/features/orcamento/calculo.ts` · `porte.ts` | escada marginal, desconto com piso, anual e extras · mínimo faturável e implantação |
+| `src/lib/orcamentoStorePorta.ts` · `orcamentoStore.ts` · `orcamentoStorePostgres.ts` | **porta** dos orçamentos · arquivo (dev) · Postgres (numeração atômica) |
 | `src/lib/email.ts` | porta de e-mail + Resend + fallback de dev |
 | `src/lib/erros.ts` | a causa segura do log (`config:`, `email:`, `db:`, `rede:`) — seção 6 |
 | `src/lib/turnstile.ts` · `prazo.ts` | anti-robô da Cloudflare · prazo das chamadas a fornecedor |
 | `src/lib/token.ts` / `adminAuth.ts` | HMAC do token de demo e da sessão de admin |
 | `src/components/landing/` · `acesso/` | landing e fluxo de acesso |
 | `src/app/admin/` | painel de leads |
-| `migrations/` | as 6 migrações do Postgres (seção 3.4; a 004 também no 3.9, a 005 no 3.10, a 006 no 3.11) |
+| `migrations/` | as 7 migrações do Postgres (seção 3.4; a 004 também no 3.9, a 005 no 3.10, a 006 no 3.11, a 007 no 3.12) |
 | `waves/` | o plano por ondas e o estado de cada uma |
 
 Trocar de banco = escrever um adaptador novo com a mesma interface `LeadStore` e ensinar o

@@ -54,9 +54,10 @@ src/
     api/lead/             captura + verificação
     api/avaliacao/        avaliação do demo (exige o cookie do demo)
     api/avaliacoes/       vitrine pública das avaliações (sem cookie)
-    api/admin/            sessão, leads e avaliações (todas atrás de authz)
+    api/admin/            sessão, leads, avaliações e orçamentos (todas atrás de authz)
   features/lead/          domínio: Zod, criação, verificação, funil e casos de uso do admin
   features/avaliacao/     domínio: nota, filtro do comentário, vitrine e moderação
+  features/orcamento/     domínio: tabela de preços, cálculo com piso e proposta guardada
   lib/                    portas e adaptadores (store, e-mail, token, auditoria)
   components/
     landing/ acesso/      landing e fluxo de acesso
@@ -67,7 +68,8 @@ migrations/               SQL do Postgres de produção
 waves/                    o plano por ondas, o estado de cada uma e o runbook
 ```
 
-**Princípio que sustenta o resto:** o domínio fala com **portas** (`LeadStore`, `AvaliacaoStore`, `ProvedorEmail`),
+**Princípio que sustenta o resto:** o domínio fala com **portas** (`LeadStore`, `AvaliacaoStore`,
+`OrcamentoStore`, `ProvedorEmail`),
 nunca com fornecedor. Trocar arquivo por Postgres, ou Resend por outro provedor, é escrever um
 adaptador — o domínio não muda.
 
@@ -104,6 +106,16 @@ adaptador — o domínio não muda.
 - **Funil do admin** sem vazamento: cada fluxo grava só as colunas dele (a verificação do e-mail não
   desfaz a etapa dada pelo admin, e vice-versa); a auditoria registra ids e etapas, nunca o texto de
   anotação, motivo ou próxima ação. Lead cadastrado à mão carimba de onde veio e a base legal.
+- **Orçamento com preço do servidor** (O11): a tabela de preços vive em um único módulo, em
+  centavos inteiros, e o cálculo roda **de novo no servidor** ao salvar. O piso por assento (Pro
+  R$ 85,00 · Ultra R$ 109,00) é recusa com 409, não aviso, e vale sobre **o que o cliente paga**:
+  no anual, que dá 12 meses pelo preço de 10, o efetivo é `mensal × 10 ÷ 12`, e é esse número que
+  é comparado com o piso — desconto e anual não se empilham para furar a trava. O desconto do
+  anual vale só na linha dos assentos: consumo medido (IA, Radar, bureau) é pago por uso.
+  A implantação é paga em duas partes (entrada na assinatura, padrão 50%, e saldo na conclusão),
+  não é diluída em 12 meses e não volta se o cliente sair. O orçamento emitido guarda os valores
+  do dia, e a auditoria registra id, público e quantidade de assentos, nunca dinheiro, nome de
+  cliente ou observação. Excluir o lead leva os orçamentos dele.
 - Segredos só por env, validados com Zod: sem `APP_SECRET`/`ADMIN_PASSWORD` o **build** falha. Em
   produção, `DATABASE_URL` é exigida na **primeira requisição** que usa o banco (não no boot): sem
   ela o app não cai no disco temporário, onde os leads se perderiam em silêncio — a requisição

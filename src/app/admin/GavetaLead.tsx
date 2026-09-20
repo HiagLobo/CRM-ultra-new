@@ -10,12 +10,14 @@ import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 import { dataHoraRecife, diaBR, telefoneNacional, type LeadAdmin } from "@/features/lead/admin";
 import type { AvaliacaoAdmin } from "@/features/avaliacao/admin";
+import type { OrcamentoAdmin } from "@/features/orcamento";
 import { ROTULO_CANAL, type ProximaAcao, type StatusLead } from "@/features/lead/funil";
 import type { ConferenciaCreci } from "@/features/lead/creci";
 import SeletorEtapa from "./SeletorEtapa";
 import BlocoProximaAcao from "./BlocoProximaAcao";
 import BlocoNotas from "./BlocoNotas";
 import BlocoCreci from "./BlocoCreci";
+import BlocoOrcamentos from "./BlocoOrcamentos";
 import Dados from "./Dados";
 import { dataHoraCurta, textoRepetido, type Repetido } from "./selosLead";
 import { FICHA_SEM_AVALIACOES, avaliacaoNaFicha } from "./rotulosAvaliacao";
@@ -32,6 +34,9 @@ export default function GavetaLead({
   repetido,
   avaliacao,
   avaliacoesIndisponiveis,
+  orcamentos,
+  orcamentosIndisponiveis,
+  hoje,
   escAtivo,
   aviso,
   aoFechar,
@@ -39,6 +44,7 @@ export default function GavetaLead({
   aoAlterarRetomar,
   aoDefinirProximaAcao,
   aoConferirCreci,
+  aoNovoOrcamento,
   aoExcluir,
 }: {
   lead: LeadAdmin;
@@ -50,6 +56,12 @@ export default function GavetaLead({
   avaliacao?: AvaliacaoAdmin;
   /** A lista de avaliações não carregou: a ficha diz isso em vez de omitir a linha. */
   avaliacoesIndisponiveis?: boolean;
+  /** As propostas deste cliente (O11), da mais recente para a mais antiga. */
+  orcamentos: ReadonlyArray<OrcamentoAdmin>;
+  /** A lista de orçamentos não carregou: a ficha avisa, em vez de dizer que não há nenhuma. */
+  orcamentosIndisponiveis?: boolean;
+  /** Dia de Recife (`AAAA-MM-DD`), para a validade vencida. */
+  hoje: string;
   /** Desligado enquanto um diálogo está aberto por cima (o Esc é dele). */
   escAtivo: boolean;
   aviso: string | null;
@@ -58,6 +70,7 @@ export default function GavetaLead({
   aoAlterarRetomar: () => void;
   aoDefinirProximaAcao: (acao: ProximaAcao | null) => Promise<ResultadoAcao>;
   aoConferirCreci: (conferencia: ConferenciaCreci | null) => Promise<ResultadoAcao>;
+  aoNovoOrcamento: () => void;
   aoExcluir: () => void;
 }) {
   const [erroEtapa, setErroEtapa] = React.useState<string | null>(null);
@@ -174,6 +187,16 @@ export default function GavetaLead({
             ) : (
               <BlocoProximaAcao key={`${lead.proximaAcaoEm}|${lead.proximaAcao}`} lead={lead} agora={agora} ocupado={ocupado} aoSalvar={aoDefinirProximaAcao} />
             )}
+          </section>
+
+          <section aria-labelledby="gaveta-orcamentos">
+            <h3 id="gaveta-orcamentos" style={tituloSecao}>Orçamentos</h3>
+            <BlocoOrcamentos
+              orcamentos={orcamentos}
+              hoje={hoje}
+              indisponiveis={orcamentosIndisponiveis}
+              aoNovoOrcamento={aoNovoOrcamento}
+            />
           </section>
 
           <section aria-labelledby="gaveta-notas">
