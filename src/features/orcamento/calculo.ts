@@ -24,6 +24,7 @@ import {
   type TabelaPrecos,
 } from "./tabela";
 import { implantacaoDoPorte, minimoFaturavel } from "./porte";
+import { textosDoDia } from "./inclusos";
 import type { CondicoesOrcamento, ItemOrcamento, TotaisOrcamento } from "./orcamento";
 
 export interface ExtraPedido {
@@ -226,6 +227,9 @@ export function calcularOrcamento(pedido: PedidoOrcamento, tabela: TabelaPrecos 
     efetivoPorAssento,
     validadeDias: pedido.validadeDias ?? VALIDADE_PADRAO_DIAS,
     descontoAlto: (pedido.descontoPct ?? 0) >= DESCONTO_QUE_AVISA,
+    // texto do dia: o documento de uma proposta antiga continua dizendo o que
+    // foi prometido naquele dia, mesmo depois de a tabela mudar
+    ...textosDoDia({ pro, ultra }, tabela),
   };
 
   return { ok: true, calculo: { itens: [...assentos.itens, ...extras.itens, itemImplantacao], totais, condicoes } };

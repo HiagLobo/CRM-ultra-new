@@ -8,6 +8,7 @@
  * já emitido, e é por isso que nada aqui recalcula na leitura.
  */
 import type { CodigoExtra, NivelAssento, PublicoOrcamento, Recorrencia } from "./tabela";
+import type { FranquiaDoDia } from "./inclusos";
 
 /** Situação da proposta no funil do orçamento. */
 export const STATUS_ORCAMENTO = ["rascunho", "enviado", "aceito", "recusado"] as const;
@@ -73,6 +74,13 @@ export interface CondicoesOrcamento {
   validadeDias: number;
   /** O desconto passou do limite que o painel avisa. */
   descontoAlto: boolean;
+  /**
+   * O que foi prometido por escrito, copiado da tabela no dia da emissão (só
+   * os níveis contratados). Ausente em registro gravado antes da O11·S2.
+   */
+  inclusos?: { pro?: string[]; ultra?: string[] };
+  /** Franquias de uso e preço do excedente, também do dia da emissão. */
+  franquias?: FranquiaDoDia[];
 }
 
 export interface Orcamento {

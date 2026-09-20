@@ -106,16 +106,23 @@ export const IMPLANTACAO: {
 };
 
 /** Franquias de uso inclusas, por assento/mês (salvo indicação). */
-export const FRANQUIAS = {
+export interface FranquiasDeUso {
   /** Atendimentos de IA por assento/mês. */
-  iaPorAssento: 25,
+  iaPorAssento: number;
   /** Reuniões transcritas por assento/mês. */
-  reunioesPorAssento: 2,
+  reunioesPorAssento: number;
   /** Consultas de Radar por assento/mês (só Ultra). */
-  radarPorAssentoUltra: 8,
+  radarPorAssentoUltra: number;
   /** Baixas automáticas por conta/mês (só Ultra). */
+  baixasPorConta: number;
+}
+
+export const FRANQUIAS: FranquiasDeUso = {
+  iaPorAssento: 25,
+  reunioesPorAssento: 2,
+  radarPorAssentoUltra: 8,
   baixasPorConta: 300,
-} as const;
+};
 
 /** Entra todo mês na fatura, ou é cobrança única no go live. */
 export const RECORRENCIAS = ["mensal", "unica"] as const;
@@ -217,6 +224,9 @@ export interface TabelaPrecos {
   minimoFaturavel: Record<PublicoOrcamento, number>;
   implantacao: typeof IMPLANTACAO;
   extras: readonly Extra[];
+  /** Entram no orçamento como TEXTO do dia (o documento guarda o que prometeu). */
+  inclusos: Record<NivelAssento, readonly string[]>;
+  franquias: FranquiasDeUso;
   mesesPagosNoAnual: number;
   mesesDoAno: number;
 }
@@ -227,6 +237,8 @@ export const TABELA: TabelaPrecos = {
   minimoFaturavel: MINIMO_FATURAVEL,
   implantacao: IMPLANTACAO,
   extras: EXTRAS,
+  inclusos: INCLUSOS,
+  franquias: FRANQUIAS,
   mesesPagosNoAnual: MESES_PAGOS_NO_ANUAL,
   mesesDoAno: MESES_DO_ANO,
 };

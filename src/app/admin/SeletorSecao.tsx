@@ -1,35 +1,43 @@
 "use client";
 /**
- * Troca entre as duas seções do painel: **Leads** (o funil) e **Avaliações**
- * (o que o pessoal escreveu no demo). Mesmo desenho das abas do funil, num
- * nível acima, com o número do que espera conferência para não passar batido.
+ * Troca entre as seções do painel: **Leads** (o funil), **Avaliações** (o que o
+ * pessoal escreveu no demo) e **Orçamentos** (as propostas, O11). Mesmo desenho
+ * das abas do funil, num nível acima, com o número do que espera decisão para
+ * não passar batido.
  *
  * Revisão da O10·S3: o número usa texto escuro sobre o amarelo (branco sobre
- * amarelo fica ilegível), e quando a lista de avaliações NÃO carrega o seletor
- * diz isso — antes, a falha virava um silêncio: nenhum número, nenhum aviso.
+ * amarelo fica ilegível), e quando a lista NÃO carrega o seletor diz isso —
+ * antes, a falha virava um silêncio: nenhum número, nenhum aviso.
  */
 import * as React from "react";
 import { palette as p } from "@/lib/palette";
 import { Ic } from "@/components/Icon";
 
-export type Secao = "leads" | "avaliacoes";
+export type Secao = "leads" | "avaliacoes" | "orcamentos";
+
+/** O que a aba anuncia: quantos esperam decisão, ou que a lista não carregou. */
+export interface SinalSecao {
+  /** 0 esconde o número. */
+  numero: number;
+  falhou: boolean;
+  /** Explicação do número (vai no `title`). */
+  titulo: string;
+}
 
 const SECOES: ReadonlyArray<{ valor: Secao; rotulo: string; icone: string }> = [
   { valor: "leads", rotulo: "Leads", icone: "users" },
   { valor: "avaliacoes", rotulo: "Avaliações", icone: "star" },
+  { valor: "orcamentos", rotulo: "Orçamentos", icone: "calculator" },
 ];
 
 export default function SeletorSecao({
   ativa,
-  paraConferir,
-  falhou,
+  sinais,
   aoEscolher,
 }: {
   ativa: Secao;
-  /** Quantas avaliações o filtro automático segurou (0 esconde o número). */
-  paraConferir: number;
-  /** A lista de avaliações não carregou: o seletor avisa em vez de ficar mudo. */
-  falhou: boolean;
+  /** Por seção; seção sem sinal não mostra número nenhum. */
+  sinais: Partial<Record<Secao, SinalSecao>>;
   aoEscolher: (secao: Secao) => void;
 }) {
   return (
@@ -40,8 +48,9 @@ export default function SeletorSecao({
     >
       {SECOES.map((s) => {
         const selecionada = s.valor === ativa;
-        const problema = s.valor === "avaliacoes" && falhou;
-        const alerta = s.valor === "avaliacoes" && !falhou && paraConferir > 0;
+        const sinal = sinais[s.valor];
+        const problema = !!sinal?.falhou;
+        const alerta = !!sinal && !problema && sinal.numero > 0;
         return (
           <button
             key={s.valor}
@@ -80,9 +89,9 @@ export default function SeletorSecao({
                   background: problema ? p.error : p.warning,
                   color: problema ? p.white : p.ink,
                 }}
-                title={problema ? "Não deu para carregar as avaliações" : "Avaliações que o filtro automático segurou"}
+                title={problema ? `Não deu para carregar: ${s.rotulo}` : sinal!.titulo}
               >
-                {problema ? "!" : paraConferir}
+                {problema ? "!" : sinal!.numero}
               </span>
             )}
           </button>

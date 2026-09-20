@@ -27,6 +27,7 @@ export type {
   Extra,
   FaixaAssento,
   FaixaImplantacao,
+  FranquiasDeUso,
   NivelAssento,
   PublicoOrcamento,
   Recorrencia,
@@ -74,5 +75,14 @@ export {
   trocarStatusOrcamento,
 } from "./admin";
 export type { ClienteOrcamento, OrcamentoAdmin, ResultadoStatus } from "./admin";
+export { textosDoDia } from "./inclusos";
+export type { FranquiaDoDia, TextosDoDia } from "./inclusos";
+export { emReais, paraDocumento } from "./documento";
+export type {
+  LinhaAssentoDocumento,
+  LinhaExtraDocumento,
+  OrcamentoDocumento,
+  TotaisDocumento,
+} from "./documento";
 export { criarOrcamento } from "./criar";
 export type { DepsCriarOrcamento, RecusaCalculo, ResultadoCriarOrcamento } from "./criar";
