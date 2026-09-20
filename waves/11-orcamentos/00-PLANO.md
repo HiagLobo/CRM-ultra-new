@@ -24,7 +24,16 @@
 - **Mínimo faturável**: autônomo 1 · imobiliária 3 · rede 5 por unidade ativa.
 - **Pisos travados no sistema** (preço efetivo por assento, depois do desconto): **Pro R$ 85 · Ultra R$ 109**.
   O sistema avisa a partir de 15% de desconto e **bloqueia** abaixo do piso.
-- **Anual**: 12 meses pelo preço de 10 (16,67%) e implantação isenta.
+- **Anual**: 12 meses pelo preço de 10 (16,67%) e implantação isenta. O desconto do anual vale
+  **só na linha dos assentos**: consumo medido (IA excedente, Radar, bureau, baixa extra) não
+  ganha dois meses de graça, porque é pago por uso *(decisão de 2026-09-20, achado da revisão)*.
+- **O piso vale sobre o que o cliente PAGA**, anual incluído: no anual o efetivo é
+  `mensal × 10 ÷ 12`, e é esse número que é comparado com o piso. Sem isso, desconto e anual se
+  empilhavam e furavam a trava em 16,67% *(decisão de 2026-09-20, achado da revisão)*.
+- **O piso é a média do nível na conta**, não o preço de cada degrau: numa conta grande, cobrar
+  degrau a degrau limitaria o desconto a ~10% e inviabilizaria negociação de volume. Ex.: 600 Pro
+  com 13,05% deixa a faixa de 100+ em R$ 82,61, com média exata de R$ 85,00 *(decisão de
+  2026-09-20)*.
 - **Implantação** (decisão do fundador em 2026-09-20, substitui a amortização): é a personalização
   do software para aquela empresa, mais migração de carteira e treinamento. **Entrada na assinatura
   (padrão 50%, editável no orçamento) e saldo na conclusão da implantação.** Não é diluída em 12
