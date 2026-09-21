@@ -13,6 +13,7 @@
     "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "lucide-react": "0.383.0",
     "next": "^15.5.25",
     "pg": "^8.23.0",

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
@@ -32,7 +33,10 @@ export default function RootLayout({
           <style>{`.lp-rise, .lp-entra { opacity: 1 !important; transform: none !important; animation: none !important; }`}</style>
         </noscript>
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
