@@ -502,11 +502,10 @@ Redeploy.
 
 ### 3.13. Ligar a contagem de visitas (Vercel Analytics)
 
-O código já está no site; falta o botão do lado da Vercel, que é onde a contagem é ligada.
-
-1. Vercel → projeto → aba **Analytics** → **Enable**. Não tem variável de ambiente para criar.
-2. Espere o próximo deploy (ou faça um **Redeploy**) e abra `https://crmultra.com.br`.
-3. Confira: as visitas aparecem na aba **Analytics** em alguns minutos.
+**Já está funcionando** (conferido em 21/09/2026: a visita à landing e ao `/demo/portal` chegou ao
+contador, e o painel não mandou nada). Não tem variável de ambiente para criar. O que fazer é só
+olhar: Vercel → projeto → aba **Analytics**. Se um dia aparecer o botão **Enable**, é porque a
+medição foi desligada; ligue e faça um **Redeploy**.
 
 **O que é medido:** só as páginas públicas (landing, política, `/demo`, e as telas de demonstração
 `/ceo`, `/corretor`, `/franqueado`). O painel (`/admin`), a entrada dele (`/login`) e as rotas de
@@ -518,7 +517,8 @@ Privacidade (seções 2 e 4). Se um dia ligar outra ferramenta de medição, a p
 junto.
 
 **Se a aba Analytics ficar vazia:** abra o site, tecle F12 → **Network** e procure
-`/_vercel/insights/script.js`. Erro 404 = a medição não foi ligada no passo 1. Nada aparecendo =
+um `script.js` fora de `_next` (a Vercel serve por um endereço camuflado, para driblar bloqueador
+de anúncio). Nenhum script assim = a medição foi desligada na aba Analytics. Nada aparecendo =
 você está numa página do painel, que por regra não é contada.
 
 ---
