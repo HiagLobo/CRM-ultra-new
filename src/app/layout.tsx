@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { brand } from "@/config/brand";
+import { Medicao } from "@/components/Medicao";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,7 +33,11 @@ export default function RootLayout({
           <style>{`.lp-rise, .lp-entra { opacity: 1 !important; transform: none !important; animation: none !important; }`}</style>
         </noscript>
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Contagem de visitas das páginas públicas. O painel fica de fora: ver src/lib/medicao.ts. */}
+        <Medicao />
+      </body>
     </html>
   );
 }

@@ -17,7 +17,7 @@ import { brand } from "@/config/brand";
 import { Ic } from "@/components/Icon";
 import { TEXTO_CONSENTIMENTO, EXPIRACAO_CODIGO_MIN } from "@/features/lead/schema";
 
-const ATUALIZADA_EM = "19 de setembro de 2026";
+const ATUALIZADA_EM = "21 de setembro de 2026";
 
 function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -139,6 +139,12 @@ export default function PrivacidadePage() {
               para sabermos quais divulgações funcionam. Até o envio do pedido, isso fica só na aba do
               navegador em que você abriu o site (não é cookie) e some quando ela é fechada.
             </li>
+            <li>
+              <strong>Contagem de visitas das páginas públicas</strong>: medimos quantas visitas cada
+              página recebe, para saber o que interessa a quem chega. A contagem é feita pela Vercel,
+              sem cookie e sem identificar você: nada disso é ligado ao seu cadastro, e as páginas de
+              acesso restrito ficam fora da medição.
+            </li>
           </ul>
           <p style={{ marginBottom: 0 }}>
             Não usamos cookies de rastreamento nem compartilhamos seus dados com anunciantes. Os dados
@@ -171,8 +177,8 @@ export default function PrivacidadePage() {
           <p style={{ margin: 0 }}>
             Apenas com fornecedores necessários para o serviço funcionar: o provedor de envio de
             e-mail (para entregar seu código) e o provedor de hospedagem e banco de dados (onde o
-            registro fica guardado). Eles tratam os dados sob nossa instrução e não podem usá-los para
-            outra finalidade. Não vendemos dados.
+            registro fica guardado e de onde vem a contagem anônima de visitas). Eles tratam os dados
+            sob nossa instrução e não podem usá-los para outra finalidade. Não vendemos dados.
           </p>
         </Secao>
 

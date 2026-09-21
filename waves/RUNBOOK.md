@@ -500,6 +500,27 @@ JSONB, validade e observação), com `ON DELETE CASCADE` no lead — excluir um 
 erro, com `db:42P01` no log `[/api/admin/orcamentos]`. Rode a 007 (passos 2 e 3); não precisa de
 Redeploy.
 
+### 3.13. Ligar a contagem de visitas (Vercel Analytics)
+
+O código já está no site; falta o botão do lado da Vercel, que é onde a contagem é ligada.
+
+1. Vercel → projeto → aba **Analytics** → **Enable**. Não tem variável de ambiente para criar.
+2. Espere o próximo deploy (ou faça um **Redeploy**) e abra `https://crmultra.com.br`.
+3. Confira: as visitas aparecem na aba **Analytics** em alguns minutos.
+
+**O que é medido:** só as páginas públicas (landing, política, `/demo`, e as telas de demonstração
+`/ceo`, `/corretor`, `/franqueado`). O painel (`/admin`), a entrada dele (`/login`) e as rotas de
+API **ficam de fora**: naquele endereço vai o identificador do cliente do orçamento, e ele não sai
+do seu navegador. Quem garante isso é `src/lib/medicao.ts`, com teste ao lado.
+
+**Sem cookie e sem nome:** a contagem é por página, anônima, e está escrita na Política de
+Privacidade (seções 2 e 4). Se um dia ligar outra ferramenta de medição, a política precisa mudar
+junto.
+
+**Se a aba Analytics ficar vazia:** abra o site, tecle F12 → **Network** e procure
+`/_vercel/insights/script.js`. Erro 404 = a medição não foi ligada no passo 1. Nada aparecendo =
+você está numa página do painel, que por regra não é contada.
+
 ---
 
 ## 4. Operação do dia a dia
