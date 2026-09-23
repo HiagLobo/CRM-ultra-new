@@ -13,6 +13,7 @@ import { Ic } from "@/components/Icon";
 import { BotaoAcessar } from "./botoes";
 
 export const ANCORAS: { label: string; href: string }[] = [
+  { label: "Diferenciais", href: "#diferenciais" },
   { label: "Recursos", href: "#recursos" },
   { label: "Para quem", href: "#publico" },
   { label: "Site de imóveis", href: "#site" },

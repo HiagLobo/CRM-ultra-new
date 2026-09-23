@@ -9,6 +9,7 @@
 import * as React from "react";
 import LandingNav from "@/components/landing/LandingNav";
 import Hero from "@/components/landing/Hero";
+import Diferenciais from "@/components/landing/Diferenciais";
 import Recursos from "@/components/landing/Recursos";
 import Publico from "@/components/landing/Publico";
 import SiteImoveis from "@/components/landing/SiteImoveis";
@@ -62,6 +63,7 @@ export default function LandingPage() {
     <div style={{ background: "#fff" }}>
       <LandingNav onAcessar={abrirAcesso} />
       <Hero onAcessar={abrirAcesso} />
+      <Diferenciais />
       <Recursos />
       <Publico />
       <SiteImoveis />

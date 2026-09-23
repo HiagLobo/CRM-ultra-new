@@ -21,7 +21,7 @@ export interface EntregaDatada {
 }
 
 /** Data da última revisão desta lista (sai impressa no anexo). */
-export const ANEXO_REVISADO_EM = "2026-09-20";
+export const ANEXO_REVISADO_EM = "2026-09-23";
 
 export const TITULO_ANEXO = "Anexo 1: o que está no ar hoje e o que entra em qual mês";
 
@@ -36,8 +36,8 @@ export const ANEXO_PROXIMAS: EntregaDatada[] = [
   {
     mes: "Novembro de 2026",
     itens: [
-      "Painel do corretor em operação: funil por etapa, ficha do cliente, anotações, agenda e próxima ação do dia.",
-      "Painel da imobiliária: carteira da equipe, distribuição dos atendimentos e exportação em planilha.",
+      "Painel do corretor em operação: funil por etapa, ficha do cliente, carteira de imóveis com fotos e situação, anotações, agenda e próxima ação do dia. Os mesmos painéis abrem no navegador do celular, com o mesmo login do computador e sem instalar aplicativo.",
+      "Painel da imobiliária: carteira da equipe, distribuição dos atendimentos, divisão da comissão entre corretor e imobiliária junto do fechamento, e exportação em planilha.",
       "Migração da carteira a partir de planilha, acompanhada pela nossa equipe.",
       "Exportação da carteira e exclusão dos dados de um titular pela própria tela (LGPD).",
     ],
@@ -45,7 +45,8 @@ export const ANEXO_PROXIMAS: EntregaDatada[] = [
   {
     mes: "Dezembro de 2026",
     itens: [
-      "Atendimento de IA no WhatsApp oficial, com o resumo da conversa caindo na ficha do cliente.",
+      "Atendimento de IA no WhatsApp oficial: o assistente apura o que o cliente procura, a faixa de valor e o prazo, escreve o resumo na ficha e move o lead para a etapa do funil correspondente, marcado como alteração da IA para o corretor conferir. O registro vai junto do atendimento e não conta como um segundo atendimento na franquia.",
+      "Conversa do corretor com o cliente feita dentro do painel, pelo número de WhatsApp oficial da imobiliária, com o histórico guardado na conta da imobiliária.",
       "Reunião transcrita e resumida dentro do atendimento.",
     ],
   },
@@ -59,7 +60,8 @@ export const ANEXO_PROXIMAS: EntregaDatada[] = [
   {
     mes: "Abril de 2027",
     itens: [
-      "Locação: contratos, reajustes e baixa automática de pagamento.",
+      "Locação: contratos, reajustes e baixa automática de pagamento, com o repasse ao proprietário e a comissão da administração saindo do mesmo lançamento.",
+      "Publicação do imóvel a partir do cadastro: o sistema monta o anúncio e envia, num movimento só, para as principais plataformas de divulgação de imóveis, com a situação de cada envio na ficha do imóvel.",
       "Painel da rede com o fechamento mês a mês por unidade.",
       "Site público da imobiliária com a página de avaliações dos seus clientes, com publicação direta e filtro automático de conteúdo impróprio.",
     ],
