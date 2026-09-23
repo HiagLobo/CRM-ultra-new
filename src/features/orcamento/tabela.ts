@@ -194,6 +194,7 @@ export const INCLUSOS: Record<NivelAssento, readonly string[]> = {
   pro: [
     "Funil, atendimento e agenda do corretor",
     "Carteira de imóveis e controle de comissões",
+    "Publicação do imóvel nos principais portais do mercado",
     `${FRANQUIAS.iaPorAssento} atendimentos de IA por assento/mês`,
     `${FRANQUIAS.reunioesPorAssento} reuniões transcritas por assento/mês`,
   ],
